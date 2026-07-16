@@ -1,4 +1,4 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from '@/api/base44Client';
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -28,7 +28,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="p-5 flex items-center gap-3 border-b border-neon/10">
         <img
-          src="https://media.db.com/images/public/69fca508d8f252b1d9db32a3/c074269d7_BND.png"
+          src="/bnd-dstc.avif"
           alt="DSTC Logo"
           className="w-10 h-10 rounded-lg object-contain" />
         
@@ -67,7 +67,7 @@ export default function Sidebar() {
       <div className="p-3 border-t border-neon/10 space-y-3">
         <div className="flex items-center gap-2 px-2">
           <img
-            src="https://media.db.com/images/public/69fca508d8f252b1d9db32a3/940f88692_image.png"
+            src="/ftu-logo.avif"
             alt="FTU"
             className="w-7 h-7 rounded-full object-contain opacity-70 flex-shrink-0" />
           
@@ -75,7 +75,7 @@ export default function Sidebar() {
         </div>
         <div className="flex items-center gap-2 px-2">
           <img
-            src="https://media.db.com/images/public/69fca508d8f252b1d9db32a3/18e8e0554_logodoan.jpg"
+            src="/doan-logo.avif"
             alt="Đoàn trường"
             className="w-7 h-7 rounded-full object-cover opacity-70" />
           
@@ -83,7 +83,7 @@ export default function Sidebar() {
         </div>
         <div className="flex items-center gap-2 px-2">
           <img
-            src="https://media.db.com/images/public/69fca508d8f252b1d9db32a3/0c4f9215b_LogoBlack.png"
+            src="/cte-logo.avif"
             alt="CTE FTU"
             className="w-7 h-7 rounded object-contain opacity-70 flex-shrink-0 invert" />
           
