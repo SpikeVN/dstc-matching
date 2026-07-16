@@ -1,4 +1,4 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from '@/api/base44Client';
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -53,7 +53,7 @@ export default function Home() {
       <nav className="sticky top-0 z-20 flex items-center justify-between px-6 py-3.5 border-b border-neon/10 bg-background/80 backdrop-blur-md">
         <div className="flex items-center gap-2.5">
           <img
-            src="https://media.db.com/images/public/69fca508d8f252b1d9db32a3/c074269d7_BND.png"
+            src="/bnd-dstc.avif"
             alt="DSTC"
             className="w-8 h-8 object-contain" />
           
@@ -182,11 +182,11 @@ export default function Home() {
 
       {/* Footer logos */}
       <div className="border-t border-neon/10 px-6 py-4 flex items-center justify-center gap-4 opacity-50">
-        <img src="https://media.db.com/images/public/69fca508d8f252b1d9db32a3/940f88692_image.png"
+        <img src="/ftu-logo.avif"
         alt="FTU" className="w-6 h-6 rounded-full object-contain" />
-        <img src="https://media.db.com/images/public/69fca508d8f252b1d9db32a3/18e8e0554_logodoan.jpg"
+        <img src="/doan-logo.avif"
         alt="Đoàn trường" className="w-6 h-6 rounded-full object-cover" />
-        <img src="https://media.db.com/images/public/69fca508d8f252b1d9db32a3/0c4f9215b_LogoBlack.png"
+        <img src="/cte-logo.avif"
         alt="CTE FTU" className="w-6 h-6 rounded object-contain invert" />
         <span className="font-mono text-[10px] text-muted-foreground">Trường Đại học Ngoại thương — Đoàn TNCS HCM — CTE FTU</span>
       </div>

@@ -1,4 +1,4 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from '@/api/base44Client';
 
 import React from 'react';
 
@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Users, Zap, Target, MessageCircle, Sparkles, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const FTU_LOGO = 'https://media.db.com/images/public/69fca508d8f252b1d9db32a3/940f88692_image.png';
-const DOAN_LOGO = 'https://media.db.com/images/public/69fca508d8f252b1d9db32a3/18e8e0554_logodoan.jpg';
-const CTE_LOGO = 'https://media.db.com/images/public/69fca508d8f252b1d9db32a3/0c4f9215b_LogoBlack.png';
+const FTU_LOGO = '/ftu-logo.avif';
+const DOAN_LOGO = '/doan-logo.avif';
+const CTE_LOGO = '/cte-logo.avif';
 
 function FeatureCard({ icon: Icon, title, desc, delay }) {
   return (
@@ -80,7 +80,7 @@ export default function Landing() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-neon/25 bg-neon/5 mb-6">
             <Zap className="w-3 h-3 text-neon" />
-            <span className="font-mono text-[11px] text-neon/80">DSTC: Vietnam Quant Challenge 2026</span>
+            <span className="font-mono text-[11px] text-neon/80">DSTC 2026: Vietnam Quant Challenge</span>
           </div>
 
           <h1 className="font-display font-bold text-4xl md:text-6xl leading-tight mb-5" style={{ letterSpacing: '-0.02em' }}>

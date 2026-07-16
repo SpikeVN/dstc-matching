@@ -1,4 +1,4 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from '@/api/base44Client';
 
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Star, LogIn, UserPlus, Search, HeartHandshake, AlertTriangle, Lightbulb, Building2, Handshake, Code2, Palette, Database } from 'lucide-react';
@@ -290,9 +290,9 @@ export default function Guide() {
         {/* Footer */}
         <div className="text-center pb-4 space-y-2">
           <div className="flex items-center justify-center gap-3">
-            <img src="https://media.db.com/images/public/69fca508d8f252b1d9db32a3/940f88692_image.png" alt="FTU" className="w-7 h-7 rounded-full object-contain opacity-60" />
-            <img src="https://media.db.com/images/public/69fca508d8f252b1d9db32a3/18e8e0554_logodoan.jpg" alt="Đoàn" className="w-7 h-7 rounded-full object-cover opacity-60" />
-            <img src="https://media.db.com/images/public/69fca508d8f252b1d9db32a3/0c4f9215b_LogoBlack.png" alt="CTE FTU" className="w-7 h-7 rounded object-contain opacity-60 invert" />
+            <img src="/ftu-logo.avif" alt="FTU" className="w-7 h-7 rounded-full object-contain opacity-60" />
+            <img src="/doan-logo.avif" alt="Đoàn" className="w-7 h-7 rounded-full object-cover opacity-60" />
+            <img src="/cte-logo.avif" alt="CTE FTU" className="w-7 h-7 rounded object-contain opacity-60 invert" />
           </div>
           <p className="font-body text-[10px] text-muted-foreground/40">© 2026 DSTC: VQC — CTE FTU — ĐH Ngoại Thương</p>
         </div>

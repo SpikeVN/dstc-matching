@@ -1,4 +1,4 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from '@/api/base44Client';
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -344,7 +344,7 @@ export default function Settings() {
           <div className="space-y-4">
             <div className="glass-card rounded-xl border border-neon/10 overflow-hidden">
               <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-3">
-                <img src="https://media.db.com/images/public/69fca508d8f252b1d9db32a3/0c4f9215b_LogoBlack.png" alt="CTE FTU" className="w-6 h-6 rounded object-contain invert opacity-80" />
+                <img src="/cte-logo.avif" alt="CTE FTU" className="w-6 h-6 rounded object-contain invert opacity-80" />
                 <h3 className="font-display text-sm font-semibold neon-text">Đôi điều về CTE</h3>
               </div>
               <div className="p-4 space-y-4 font-body text-xs text-muted-foreground leading-relaxed">
@@ -403,9 +403,9 @@ export default function Settings() {
               </div>
             </div>
             <div className="flex items-center gap-3 px-2">
-              <img src="https://media.db.com/images/public/69fca508d8f252b1d9db32a3/940f88692_image.png" alt="FTU" className="w-8 h-8 rounded-full object-contain opacity-60" />
-              <img src="https://media.db.com/images/public/69fca508d8f252b1d9db32a3/18e8e0554_logodoan.jpg" alt="Đoàn" className="w-8 h-8 rounded-full object-cover opacity-60" />
-              <img src="https://media.db.com/images/public/69fca508d8f252b1d9db32a3/0c4f9215b_LogoBlack.png" alt="CTE FTU" className="w-8 h-8 rounded object-contain opacity-60 invert" />
+              <img src="/ftu-logo.avif" alt="FTU" className="w-8 h-8 rounded-full object-contain opacity-60" />
+              <img src="/doan-logo.avif" alt="Đoàn" className="w-8 h-8 rounded-full object-cover opacity-60" />
+              <img src="/cte-logo.avif" alt="CTE FTU" className="w-8 h-8 rounded object-contain opacity-60 invert" />
               <span className="font-body text-[10px] text-muted-foreground">FTU — Đoàn TNCS HCM — CTE FTU — DSTC: VQC 2026</span>
             </div>
           </div>
@@ -429,9 +429,9 @@ export default function Settings() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <img src="https://media.db.com/images/public/69fca508d8f252b1d9db32a3/940f88692_image.png" alt="FTU" className="w-8 h-8 rounded-full object-contain opacity-60" />
-              <img src="https://media.db.com/images/public/69fca508d8f252b1d9db32a3/18e8e0554_logodoan.jpg" alt="Đoàn" className="w-8 h-8 rounded-full object-cover opacity-60" />
-              <img src="https://media.db.com/images/public/69fca508d8f252b1d9db32a3/0c4f9215b_LogoBlack.png" alt="CTE FTU" className="w-8 h-8 rounded object-contain opacity-60 invert" />
+              <img src="/ftu-logo.avif" alt="FTU" className="w-8 h-8 rounded-full object-contain opacity-60" />
+              <img src="/doan-logo.avif" alt="Đoàn" className="w-8 h-8 rounded-full object-cover opacity-60" />
+              <img src="/cte-logo.avif" alt="CTE FTU" className="w-8 h-8 rounded object-contain opacity-60 invert" />
               <span className="font-body text-[10px] text-muted-foreground">FTU — Đoàn TNCS HCM — CTE FTU — DSTC: VQC 2026</span>
             </div>
             <Button
