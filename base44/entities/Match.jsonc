@@ -1,0 +1,38 @@
+{
+  "name": "Match",
+  "type": "object",
+  "properties": {
+    "user1_id": {
+      "type": "string",
+      "description": "ID ng\u01b0\u1eddi d\u00f9ng 1"
+    },
+    "user2_id": {
+      "type": "string",
+      "description": "ID ng\u01b0\u1eddi d\u00f9ng 2"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "matched",
+        "team_invited",
+        "team_joined"
+      ],
+      "default": "matched",
+      "description": "Tr\u1ea1ng th\u00e1i match"
+    },
+    "user1_confirmed": {
+      "type": "boolean",
+      "default": false,
+      "description": "User1 \u0111\u00e3 x\u00e1c nh\u1eadn l\u1eadp \u0111\u1ed9i"
+    },
+    "user2_confirmed": {
+      "type": "boolean",
+      "default": false,
+      "description": "User2 \u0111\u00e3 x\u00e1c nh\u1eadn l\u1eadp \u0111\u1ed9i"
+    }
+  },
+  "required": [
+    "user1_id",
+    "user2_id"
+  ]
+}

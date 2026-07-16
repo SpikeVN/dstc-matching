@@ -1,0 +1,32 @@
+{
+  "name": "Message",
+  "type": "object",
+  "properties": {
+    "match_id": {
+      "type": "string",
+      "description": "ID match"
+    },
+    "sender_id": {
+      "type": "string",
+      "description": "ID ng\u01b0\u1eddi g\u1eedi"
+    },
+    "receiver_id": {
+      "type": "string",
+      "description": "ID ng\u01b0\u1eddi nh\u1eadn"
+    },
+    "content": {
+      "type": "string",
+      "description": "N\u1ed9i dung tin nh\u1eafn"
+    },
+    "is_read": {
+      "type": "boolean",
+      "default": false,
+      "description": "\u0110\u00e3 \u0111\u1ecdc ch\u01b0a"
+    }
+  },
+  "required": [
+    "match_id",
+    "sender_id",
+    "content"
+  ]
+}

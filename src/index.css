@@ -1,0 +1,139 @@
+const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Nunito:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 150 20% 5%;
+    --foreground: 150 10% 92%;
+    --card: 150 15% 8%;
+    --card-foreground: 150 10% 92%;
+    --popover: 150 15% 8%;
+    --popover-foreground: 150 10% 92%;
+    --primary: 160 75% 51%;
+    --primary-foreground: 150 20% 5%;
+    --secondary: 150 15% 12%;
+    --secondary-foreground: 150 10% 92%;
+    --muted: 150 15% 12%;
+    --muted-foreground: 150 10% 50%;
+    --accent: 160 75% 51%;
+    --accent-foreground: 150 20% 5%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 150 20% 14%;
+    --input: 150 20% 12%;
+    --ring: 160 75% 51%;
+    --chart-1: 160 75% 51%;
+    --chart-2: 160 60% 35%;
+    --chart-3: 160 40% 25%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.6rem;
+    --sidebar-background: 150 20% 4%;
+    --sidebar-foreground: 150 10% 92%;
+    --sidebar-primary: 160 75% 51%;
+    --sidebar-primary-foreground: 150 20% 5%;
+    --sidebar-accent: 150 15% 10%;
+    --sidebar-accent-foreground: 150 10% 92%;
+    --sidebar-border: 150 20% 12%;
+    --sidebar-ring: 160 75% 51%;
+    --font-mono: 'Lexend', sans-serif;
+    --font-display: 'Nunito', sans-serif;
+    --font-body: 'Nunito', 'Lexend', sans-serif;
+    --neon-green: #31D1A2;
+    --neon-glow: 0 0 10px rgba(49, 209, 162, 0.5), 0 0 30px rgba(49, 209, 162, 0.2);
+    --neon-glow-strong: 0 0 15px rgba(49, 209, 162, 0.8), 0 0 50px rgba(49, 209, 162, 0.4);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+    background-image: url('https://media.db.com/images/public/69fca508d8f252b1d9db32a3/459fede46_background.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 10, 8, 0.82);
+    z-index: 0;
+    pointer-events: none;
+  }
+  #root {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+/* Neon glow utilities */
+.neon-text {
+  color: var(--neon-green);
+  text-shadow: 0 0 8px rgba(49, 209, 162, 0.7), 0 0 20px rgba(49, 209, 162, 0.4);
+}
+.neon-border {
+  border-color: var(--neon-green);
+  box-shadow: 0 0 8px rgba(49, 209, 162, 0.3), inset 0 0 8px rgba(49, 209, 162, 0.05);
+}
+.neon-glow {
+  box-shadow: var(--neon-glow);
+}
+.neon-glow-strong {
+  box-shadow: var(--neon-glow-strong);
+}
+.glass-card {
+  background: rgba(10, 25, 18, 0.75);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(49, 209, 162, 0.15);
+}
+.glass-card-hover:hover {
+  background: rgba(10, 25, 18, 0.88);
+  border-color: rgba(49, 209, 162, 0.35);
+  box-shadow: 0 0 20px rgba(49, 209, 162, 0.15);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(49, 209, 162, 0.3); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(49, 209, 162, 0.6); }
+
+/* Swipe animations */
+@keyframes slideInRight {
+  from { transform: translateX(80%) rotate(5deg); opacity: 0; }
+  to { transform: translateX(0) rotate(0); opacity: 1; }
+}
+@keyframes pulse-neon {
+  0%, 100% { box-shadow: 0 0 8px rgba(49,209,162,0.4), 0 0 20px rgba(49,209,162,0.2); }
+  50% { box-shadow: 0 0 20px rgba(49,209,162,0.8), 0 0 50px rgba(49,209,162,0.4); }
+}
+@keyframes scanline {
+  0% { top: -5%; }
+  100% { top: 105%; }
+}
+@keyframes flicker {
+  0%, 95%, 100% { opacity: 1; }
+  96%, 99% { opacity: 0.85; }
+}
+.animate-slide-in { animation: slideInRight 0.35s ease-out; }
+.animate-pulse-neon { animation: pulse-neon 2s ease-in-out infinite; }
+.animate-flicker { animation: flicker 4s infinite; }
+
+/* Grid/dot pattern overlay */
+.grid-overlay {
+  background-image: 
+    linear-gradient(rgba(49,209,162,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(49,209,162,0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
