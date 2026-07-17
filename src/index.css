@@ -40,8 +40,8 @@
     --sidebar-border: 150 20% 12%;
     --sidebar-ring: 160 75% 51%;
     --font-mono: 'Lexend', sans-serif;
-    --font-display: 'Nunito', sans-serif;
-    --font-body: 'Nunito', 'Lexend', sans-serif;
+    --font-display: 'Be Vietnam Pro', 'Nunito', sans-serif;
+    --font-body: 'Be Vietnam Pro', 'Nunito', sans-serif;
     --neon-green: #31D1A2;
     --neon-glow: 0 0 10px rgba(49, 209, 162, 0.5), 0 0 30px rgba(49, 209, 162, 0.2);
     --neon-glow-strong: 0 0 15px rgba(49, 209, 162, 0.8), 0 0 50px rgba(49, 209, 162, 0.4);
@@ -55,7 +55,7 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
-    background-image: url('/background.avif');
+    background-image: url('/background.webp');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -68,6 +68,12 @@
     background: rgba(2, 10, 8, 0.82);
     z-index: 0;
     pointer-events: none;
+  }
+  html.no-bg body {
+    background-image: none;
+  }
+  html.no-bg body::before {
+    display: none;
   }
   #root {
     position: relative;

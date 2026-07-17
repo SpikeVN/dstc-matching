@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { User, Heart, MessageCircle, Sparkles, LayoutDashboard } from 'lucide-react';
 
 const navItems = [
-  { path: '/dashboard', label: 'Home', icon: LayoutDashboard },
+  { path: '/', label: 'Home', icon: LayoutDashboard },
   { path: '/discover', label: 'Khám phá', icon: Sparkles },
   { path: '/matches', label: 'Match', icon: Heart },
   { path: '/messages', label: 'Chat', icon: MessageCircle },

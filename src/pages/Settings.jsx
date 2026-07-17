@@ -25,11 +25,10 @@ function TabButton({ tab, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-body transition-all duration-200 ${
-        active
-          ? 'bg-neon/10 text-neon border border-neon/30'
-          : 'text-muted-foreground hover:text-foreground hover:bg-white/5 border border-transparent'
-      }`}
+      className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-body transition-all duration-200 ${active
+        ? 'bg-neon/10 text-neon border border-neon/30'
+        : 'text-muted-foreground hover:text-foreground hover:bg-white/5 border border-transparent'
+        }`}
     >
       <Icon className="w-4 h-4" />
       <span className="hidden sm:block">{tab.label}</span>
@@ -344,7 +343,7 @@ export default function Settings() {
           <div className="space-y-4">
             <div className="glass-card rounded-xl border border-neon/10 overflow-hidden">
               <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-3">
-                <img src="/cte-logo.avif" alt="CTE FTU" className="w-6 h-6 rounded object-contain invert opacity-80" />
+                <img src="/cte-logo.svg" alt="CTE FTU" className="w-6 h-6 rounded object-contain opacity-80" />
                 <h3 className="font-display text-sm font-semibold neon-text">Đôi điều về CTE</h3>
               </div>
               <div className="p-4 space-y-4 font-body text-xs text-muted-foreground leading-relaxed">
@@ -403,9 +402,9 @@ export default function Settings() {
               </div>
             </div>
             <div className="flex items-center gap-3 px-2">
-              <img src="/ftu-logo.avif" alt="FTU" className="w-8 h-8 rounded-full object-contain opacity-60" />
-              <img src="/doan-logo.avif" alt="Đoàn" className="w-8 h-8 rounded-full object-cover opacity-60" />
-              <img src="/cte-logo.avif" alt="CTE FTU" className="w-8 h-8 rounded object-contain opacity-60 invert" />
+              <img src="/ftu.webp" alt="FTU" className="w-8 h-8 rounded-full object-contain opacity-60" />
+              <img src="/fyu.webp" alt="Đoàn" className="w-8 h-8 rounded-full object-cover opacity-60" />
+              <img src="/cte-logo.svg" alt="CTE FTU" className="w-8 h-8 rounded object-contain opacity-60" />
               <span className="font-body text-[10px] text-muted-foreground">FTU — Đoàn TNCS HCM — CTE FTU — DSTC: VQC 2026</span>
             </div>
           </div>
@@ -429,9 +428,9 @@ export default function Settings() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <img src="/ftu-logo.avif" alt="FTU" className="w-8 h-8 rounded-full object-contain opacity-60" />
-              <img src="/doan-logo.avif" alt="Đoàn" className="w-8 h-8 rounded-full object-cover opacity-60" />
-              <img src="/cte-logo.avif" alt="CTE FTU" className="w-8 h-8 rounded object-contain opacity-60 invert" />
+              <img src="/ftu.webp" alt="FTU" className="w-8 h-8 rounded-full object-contain opacity-60" />
+              <img src="/fyu.webp" alt="Đoàn" className="w-8 h-8 rounded-full object-cover opacity-60" />
+              <img src="/cte-logo.svg" alt="CTE FTU" className="w-8 h-8 rounded object-contain opacity-60" />
               <span className="font-body text-[10px] text-muted-foreground">FTU — Đoàn TNCS HCM — CTE FTU — DSTC: VQC 2026</span>
             </div>
             <Button
