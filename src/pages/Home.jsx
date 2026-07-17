@@ -24,7 +24,7 @@ function FeatureCard({ icon: Icon, title, desc, delay }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
       className="glass-card rounded-xl p-5 border border-neon/10 hover:border-neon/25 transition-all duration-300 group">
-      
+
       <div className="w-10 h-10 rounded-lg bg-neon/10 border border-neon/20 flex items-center justify-center mb-3 group-hover:bg-neon/15 transition-colors">
         <Icon className="w-5 h-5 text-neon" />
       </div>
@@ -53,10 +53,10 @@ export default function Home() {
       <nav className="sticky top-0 z-20 flex items-center justify-between px-6 py-3.5 border-b border-neon/10 bg-background/80 backdrop-blur-md">
         <div className="flex items-center gap-2.5">
           <img
-            src="/bnd-dstc.avif"
+            src="/bnd-dstc.webp"
             alt="DSTC"
             className="w-8 h-8 object-contain" />
-          
+
           <span className="font-display font-bold text-sm neon-text tracking-widest">DSTC</span>
           <span className="font-mono text-[10px] text-muted-foreground/60 hidden sm:block">Matching Platform</span>
         </div>
@@ -66,7 +66,7 @@ export default function Home() {
             size="sm"
             className="font-mono text-xs text-muted-foreground hover:text-neon hidden sm:flex"
             onClick={() => navigate('/discover')}>
-            
+
             Khám phá
           </Button>
           <Button
@@ -74,7 +74,7 @@ export default function Home() {
             className="font-display text-xs uppercase tracking-wider bg-neon text-background hover:bg-neon/90 h-8 px-4 gap-1.5 transition-all duration-200"
             style={{ boxShadow: '0 0 16px rgba(49,209,162,0.4)' }}
             onClick={() => navigate(hasProfile ? '/discover' : '/profile')}>
-            
+
             {hasProfile ? 'Vào app' : 'Bắt đầu'}
             <ArrowRight className="w-3.5 h-3.5" />
           </Button>
@@ -91,7 +91,7 @@ export default function Home() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           className="max-w-2xl relative z-10">
-          
+
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-neon/25 bg-neon/5 mb-6">
             <Zap className="w-3 h-3 text-neon" />
@@ -115,7 +115,7 @@ export default function Home() {
                 className="h-12 px-8 font-display text-sm gap-2 uppercase tracking-wider bg-neon text-background hover:bg-neon/90 border-0 rounded-lg transition-all duration-200"
                 style={{ boxShadow: '0 0 24px rgba(49,209,162,0.5)' }}
                 onClick={() => navigate(hasProfile ? '/discover' : '/profile')}>
-                
+
                 <Sparkles className="w-4 h-4" />
                 {hasProfile ? 'Khám phá ngay' : 'Tạo hồ sơ'}
               </Button>
@@ -126,7 +126,7 @@ export default function Home() {
                 size="lg"
                 className="h-12 px-8 font-display text-sm uppercase tracking-wider border-neon/20 hover:border-neon/40 hover:bg-neon/5 text-foreground rounded-lg transition-all duration-200"
                 onClick={() => navigate('/matches')}>
-                
+
                 Xem matches
               </Button>
             </motion.div>
@@ -139,7 +139,7 @@ export default function Home() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.3 }}
           className="flex items-center gap-8 mt-14 px-8 py-5 glass-card rounded-2xl border border-neon/10">
-          
+
           <StatBadge value="100+" label="Thí sinh" />
           <div className="w-px h-8 bg-neon/10" />
           <StatBadge value="4" label="Vai trò" />
@@ -155,7 +155,7 @@ export default function Home() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.4 }}
           className="text-center mb-8">
-          
+
           <h2 className="font-display font-bold text-lg neon-text tracking-widest uppercase">Cách hoạt động</h2>
         </motion.div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -164,30 +164,30 @@ export default function Home() {
             title="Tạo hồ sơ"
             desc="Điền kỹ năng, kinh nghiệm và mục tiêu để hệ thống gợi ý đồng đội phù hợp nhất."
             delay={0.5} />
-          
+
           <FeatureCard
             icon={Sparkles}
             title="Swipe & Match"
             desc="Lướt qua các hồ sơ và like những người bạn muốn đồng đội. Match khi cả hai cùng thích nhau."
             delay={0.6} />
-          
+
           <FeatureCard
             icon={MessageCircle}
             title="Chat & Hình thành đội"
             desc="Nhắn tin trực tiếp với các match của bạn và cùng nhau xây dựng đội hình mơ ước."
             delay={0.7} />
-          
+
         </div>
       </div>
 
       {/* Footer logos */}
       <div className="border-t border-neon/10 px-6 py-4 flex items-center justify-center gap-4 opacity-50">
-        <img src="/ftu-logo.avif"
-        alt="FTU" className="w-6 h-6 rounded-full object-contain" />
-        <img src="/doan-logo.avif"
-        alt="Đoàn trường" className="w-6 h-6 rounded-full object-cover" />
-        <img src="/cte-logo.avif"
-        alt="CTE FTU" className="w-6 h-6 rounded object-contain invert" />
+        <img src="/ftu.webp"
+          alt="FTU" className="w-6 h-6 rounded-full object-contain" />
+        <img src="/fyu.webp"
+          alt="Đoàn trường" className="w-6 h-6 rounded-full object-cover" />
+        <img src="/cte-logo.svg"
+          alt="CTE FTU" className="w-6 h-6 rounded object-contain invert" />
         <span className="font-mono text-[10px] text-muted-foreground">Trường Đại học Ngoại thương — Đoàn TNCS HCM — CTE FTU</span>
       </div>
     </div>);

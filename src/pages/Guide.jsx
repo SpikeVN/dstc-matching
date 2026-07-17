@@ -290,9 +290,9 @@ export default function Guide() {
         {/* Footer */}
         <div className="text-center pb-4 space-y-2">
           <div className="flex items-center justify-center gap-3">
-            <img src="/ftu-logo.avif" alt="FTU" className="w-7 h-7 rounded-full object-contain opacity-60" />
-            <img src="/doan-logo.avif" alt="Đoàn" className="w-7 h-7 rounded-full object-cover opacity-60" />
-            <img src="/cte-logo.avif" alt="CTE FTU" className="w-7 h-7 rounded object-contain opacity-60 invert" />
+            <img src="/ftu.webp" alt="FTU" className="w-7 h-7 rounded-full object-contain opacity-60" />
+            <img src="/fyu.webp" alt="Đoàn" className="w-7 h-7 rounded-full object-cover opacity-60" />
+            <img src="/cte-logo.svg" alt="CTE FTU" className="w-7 h-7 rounded object-contain opacity-60" />
           </div>
           <p className="font-body text-[10px] text-muted-foreground/40">© 2026 DSTC: VQC — CTE FTU — ĐH Ngoại Thương</p>
         </div>
