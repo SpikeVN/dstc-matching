@@ -4,12 +4,12 @@ import { format, addHours } from 'date-fns';
 
 function StatCard({ icon: Icon, label, value, color, sublabel }) {
   return (
-    <div className="glass-card rounded-xl border border-neon/10 p-4 flex items-center gap-3">
+    <div className="glass-card rounded-xl border border-primary/10 p-4 flex items-center gap-3">
       <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${color}`}>
         <Icon className="w-5 h-5" />
       </div>
       <div className="min-w-0">
-        <p className="font-body text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
+        <p className="font-body text-[10px] text-muted-foreground">{label}</p>
         <p className="font-display font-bold text-2xl text-foreground leading-tight">{value}</p>
         {sublabel && <p className="font-body text-[10px] text-muted-foreground/70 truncate">{sublabel}</p>}
       </div>
@@ -49,7 +49,7 @@ export default function MatchDashboard({ matches, allProfiles, allMessages }) {
           icon={Clock}
           label="Đang diễn ra"
           value={ongoing.length}
-          color="bg-neon/10 text-neon"
+          color="bg-primary/10 text-primary"
           sublabel="Đang trò chuyện"
         />
         <StatCard
@@ -70,15 +70,15 @@ export default function MatchDashboard({ matches, allProfiles, allMessages }) {
 
       {/* Secondary stats */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="glass-card rounded-xl border border-neon/10 p-3 flex items-center gap-2">
-          <MessageCircle className="w-4 h-4 text-neon/60 flex-shrink-0" />
+        <div className="glass-card rounded-xl border border-primary/10 p-3 flex items-center gap-2">
+          <MessageCircle className="w-4 h-4 text-primary/60 flex-shrink-0" />
           <div>
             <p className="font-body text-[10px] text-muted-foreground">Tổng tin nhắn</p>
             <p className="font-display font-bold text-sm text-foreground">{allMessages.length}</p>
           </div>
         </div>
-        <div className="glass-card rounded-xl border border-neon/10 p-3 flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-neon/60 flex-shrink-0" />
+        <div className="glass-card rounded-xl border border-primary/10 p-3 flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-primary/60 flex-shrink-0" />
           <div>
             <p className="font-body text-[10px] text-muted-foreground">Trung bình TB/match</p>
             <p className="font-display font-bold text-sm text-foreground">{avgMessages} tin nhắn</p>
@@ -87,28 +87,28 @@ export default function MatchDashboard({ matches, allProfiles, allMessages }) {
       </div>
 
       {/* Successful pairs list */}
-      <div className="glass-card rounded-xl border border-neon/15 overflow-hidden">
-        <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-neon" />
-          <h3 className="font-display text-sm font-semibold neon-text">
+      <div className="glass-card rounded-xl border border-primary/15 overflow-hidden">
+        <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-primary" />
+          <h3 className="font-display text-sm font-semibold text-primary">
             Cặp đôi đã ghép thành công ({successful.length})
           </h3>
         </div>
         <div className="max-h-72 overflow-y-auto">
           {successful.length === 0 ? (
             <div className="text-center py-10">
-              <Users className="w-8 h-8 text-neon/10 mx-auto mb-2" />
+              <Users className="w-8 h-8 text-primary/10 mx-auto mb-2" />
               <p className="font-body text-xs text-muted-foreground">Chưa có cặp nào thành đội</p>
             </div>
           ) : (
-            <div className="divide-y divide-neon/8">
+            <div className="divide-y divide-primary/8">
               {successful.map((match, i) => {
                 const p1 = profileMap[match.user1_id];
                 const p2 = profileMap[match.user2_id];
                 const msgCount = msgCountByMatch[match.id] || 0;
                 return (
-                  <div key={match.id} className="px-4 py-3 flex items-center gap-3 hover:bg-neon/5 transition-colors">
-                    <span className="font-display text-xs text-neon/40 w-5 text-right flex-shrink-0">#{i + 1}</span>
+                  <div key={match.id} className="px-4 py-3 flex items-center gap-3 hover:bg-primary/5 transition-colors">
+                    <span className="font-display text-xs text-primary/40 w-5 text-right flex-shrink-0">#{i + 1}</span>
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <span className="font-body text-xs text-foreground truncate">
                         {p1?.display_name || match.user1_id}

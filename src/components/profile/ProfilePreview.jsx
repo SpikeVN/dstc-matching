@@ -3,7 +3,7 @@ import { MapPin, GraduationCap, Award, User, Star, MessageSquare, Wrench, Sparkl
 
 const ROLE_COLORS = {
   'Data Analyst': 'border-blue-400/40 text-blue-300',
-  'ML Engineer': 'border-neon/40 text-neon',
+  'ML Engineer': 'border-primary/40 text-primary',
   'Backend Developer': 'border-purple-400/40 text-purple-300',
   'Quant Researcher': 'border-orange-400/40 text-orange-300',
   'Quant Developer': 'border-cyan-400/40 text-cyan-300',
@@ -13,10 +13,10 @@ const ROLE_COLORS = {
 
 function PreviewBlock({ icon: Icon, title, children }) {
   return (
-    <div className="glass-card rounded-xl border border-neon/10 overflow-hidden max-w-sm mx-auto w-full">
-      <div className="px-4 py-2.5 border-b border-neon/10 flex items-center gap-2">
-        {Icon && <Icon className="w-3.5 h-3.5 text-neon/70" />}
-        <p className="font-display text-[10px] uppercase tracking-widest text-neon/70">{title}</p>
+    <div className="glass-card rounded-xl border border-primary/10 overflow-hidden max-w-sm mx-auto w-full">
+      <div className="px-4 py-2.5 border-b border-primary/10 flex items-center gap-2">
+        {Icon && <Icon className="w-3.5 h-3.5 text-primary/70" />}
+        <p className="font-display text-[10px] text-primary/70">{title}</p>
       </div>
       <div className="p-4">{children}</div>
     </div>
@@ -26,8 +26,8 @@ function PreviewBlock({ icon: Icon, title, children }) {
 export default function ProfilePreview({ profile }) {
   if (!profile) {
     return (
-      <div className="glass-card rounded-xl border border-neon/10 p-8 text-center">
-        <User className="w-12 h-12 text-neon/15 mx-auto mb-3" />
+      <div className="glass-card rounded-xl border border-primary/10 p-8 text-center">
+        <User className="w-12 h-12 text-primary/15 mx-auto mb-3" />
         <p className="font-body text-sm text-muted-foreground">Chưa có hồ sơ. Hãy lưu hồ sơ trước!</p>
       </div>
     );
@@ -42,19 +42,19 @@ export default function ProfilePreview({ profile }) {
       </p>
 
       {/* ── Avatar card ──────────────────────────────────────────── */}
-      <div className="max-w-sm mx-auto overflow-hidden rounded-xl glass-card border border-neon/20 shadow-2xl">
-        <div className="relative h-48 bg-gradient-to-br from-neon/10 via-transparent to-neon/5 grid-overlay">
+      <div className="max-w-sm mx-auto overflow-hidden rounded-xl glass-card border border-primary/20 shadow-2xl">
+        <div className="relative h-48 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 grid-overlay">
           {profile.profile_image ? (
             <img src={profile.profile_image} alt={profile.display_name} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <User className="w-20 h-20 text-neon/20" />
+              <User className="w-20 h-20 text-primary/20" />
             </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/85" />
           {profile.role && (
             <div className="absolute top-3 left-3">
-              <span className={`font-display text-[10px] tracking-widest uppercase px-2.5 py-1 rounded border glass-card ${ROLE_COLORS[profile.role] || 'border-neon/30 text-neon'}`}>
+              <span className={`font-display text-[10px] px-2.5 py-1 rounded border glass-card ${ROLE_COLORS[profile.role] || 'border-primary/30 text-primary'}`}>
                 {profile.role}
               </span>
             </div>
@@ -92,7 +92,7 @@ export default function ProfilePreview({ profile }) {
         <PreviewBlock icon={Wrench} title="Kỹ năng kỹ thuật">
           <div className="flex flex-wrap gap-1.5">
             {(profile.technical_skills || []).map(skill => (
-              <span key={skill} className="font-mono text-[10px] px-2 py-0.5 rounded border border-neon/20 text-neon/80 bg-neon/5">
+              <span key={skill} className="font-mono text-[10px] px-2 py-0.5 rounded border border-primary/20 text-primary/80 bg-primary/5">
                 {skill}
               </span>
             ))}
@@ -116,7 +116,7 @@ export default function ProfilePreview({ profile }) {
         <PreviewBlock icon={Target} title="Mục tiêu tham gia">
           <div className="flex flex-wrap gap-1.5">
             {(profile.goals || []).map(g => (
-              <span key={g} className="font-mono text-[10px] px-2 py-0.5 rounded border border-neon/20 text-neon/70">{g}</span>
+              <span key={g} className="font-mono text-[10px] px-2 py-0.5 rounded border border-primary/20 text-primary/70">{g}</span>
             ))}
           </div>
         </PreviewBlock>

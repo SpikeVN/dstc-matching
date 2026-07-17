@@ -68,14 +68,14 @@ export default function Profile() {
         {/* Mode toggle */}
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h1 className="font-display font-bold text-xl tracking-wide neon-text">Hồ sơ</h1>
+            <h1 className="font-display font-bold text-xl tracking-wide text-primary">Hồ sơ</h1>
             <p className="font-body text-xs text-muted-foreground mt-0.5">Chỉnh sửa thông tin rồi nhấn "Lưu hồ sơ"</p>
           </div>
-          <div className="flex gap-1 p-1 rounded-lg bg-muted/40 border border-neon/10">
+          <div className="flex gap-1 p-1 rounded-lg bg-muted/40 border border-primary/10">
             <button
               onClick={() => setMode('edit')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-body transition-all ${
-                mode === 'edit' ? 'bg-neon/15 text-neon border border-neon/30' : 'text-muted-foreground hover:text-foreground'
+                mode === 'edit' ? 'bg-primary/15 text-primary border border-primary/30' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <Edit3 className="w-3.5 h-3.5" /> Chỉnh sửa
@@ -83,7 +83,7 @@ export default function Profile() {
             <button
               onClick={handleSwitchToPreview}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-body transition-all ${
-                mode === 'preview' ? 'bg-neon/15 text-neon border border-neon/30' : 'text-muted-foreground hover:text-foreground'
+                mode === 'preview' ? 'bg-primary/15 text-primary border border-primary/30' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <Eye className="w-3.5 h-3.5" /> Xem trước

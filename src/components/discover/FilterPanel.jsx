@@ -20,11 +20,10 @@ function FilterChip({ label, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`text-xs font-body px-3 py-1.5 rounded-lg border transition-all duration-150 ${
-        active
-          ? 'bg-neon/15 border-neon/50 text-neon'
-          : 'border-neon/10 text-muted-foreground hover:border-neon/25 hover:text-foreground'
-      }`}
+      className={`text-xs font-body px-3 py-1.5 rounded-lg border transition-all duration-150 ${active
+        ? 'bg-primary/15 border-primary/50 text-primary'
+        : 'border-primary/10 text-muted-foreground hover:border-primary/25 hover:text-foreground'
+        }`}
     >
       {label}
     </button>
@@ -34,7 +33,7 @@ function FilterChip({ label, active, onClick }) {
 function FilterSection({ title, children }) {
   return (
     <div className="space-y-2">
-      <p className="font-display text-[10px] uppercase tracking-widest text-neon/60">{title}</p>
+      <p className="font-display text-[10px] text-primary/60">{title}</p>
       <div className="flex flex-wrap gap-1.5">{children}</div>
     </div>
   );
@@ -69,22 +68,22 @@ export default function FilterPanel({ open, onClose, filters, onChange }) {
           <motion.div
             initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="fixed right-0 top-0 bottom-0 z-50 w-80 glass-card border-l border-neon/15 flex flex-col shadow-2xl"
-            style={{ boxShadow: '-8px 0 40px rgba(0,0,0,0.4), -4px 0 20px rgba(49,209,162,0.06)' }}
+            className="fixed right-0 top-0 bottom-0 z-50 w-80 glass-card border-l border-primary/15 flex flex-col shadow-2xl"
+            style={{ boxShadow: '-8px 0 40px rgba(0,0,0,0.4)' }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-4 border-b border-neon/10">
+            <div className="flex items-center justify-between px-4 py-4 border-b border-primary/10">
               <div className="flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4 text-neon" />
+                <SlidersHorizontal className="w-4 h-4 text-primary" />
                 <h2 className="font-display font-bold text-sm text-foreground">Bộ lọc</h2>
               </div>
               <div className="flex items-center gap-2">
                 {hasActive && (
-                  <button onClick={reset} className="flex items-center gap-1 text-xs font-body text-muted-foreground hover:text-neon transition-colors">
+                  <button onClick={reset} className="flex items-center gap-1 text-xs font-body text-muted-foreground hover:text-primary transition-colors">
                     <RotateCcw className="w-3 h-3" /> Reset
                   </button>
                 )}
-                <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-neon/10 transition-colors">
+                <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-primary/10 transition-colors">
                   <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
@@ -168,10 +167,10 @@ export default function FilterPanel({ open, onClose, filters, onChange }) {
             </div>
 
             {/* Apply */}
-            <div className="p-4 border-t border-neon/10">
+            <div className="p-4 border-t border-primary/10">
               <Button
                 onClick={onClose}
-                className="w-full h-9 font-display text-xs uppercase tracking-wider bg-neon text-background hover:bg-neon/90 gap-2"
+                className="w-full h-9 font-display text-xs font-medium bg-primary text-background hover:bg-primary/90 gap-2"
               >
                 Áp dụng bộ lọc
                 {hasActive && (

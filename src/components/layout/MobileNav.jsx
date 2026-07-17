@@ -14,7 +14,7 @@ export default function MobileNav() {
   const location = useLocation();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 glass-card border-t border-neon/15 z-50 md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 backdrop-blur-md border-t border-primary/15 z-50 md:hidden" style={{ background: 'rgba(10,18,11,0.9)' }}>
       <div className="flex items-center justify-around py-2 px-1">
         {navItems.map(item => {
           const Icon = item.icon;
@@ -23,13 +23,11 @@ export default function MobileNav() {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all ${
-                isActive ? 'text-neon' : 'text-muted-foreground'
-              }`}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all ${isActive ? 'text-primary' : 'text-muted-foreground'
+                }`}
             >
-              <Icon className={`w-5 h-5 ${isActive ? 'drop-shadow-[0_0_6px_rgba(49,209,162,0.8)]' : ''}`} />
+              <Icon className={`w-5 h-5 ${isActive ? 'text-primary' : ''}`} />
               <span className="text-[10px] font-mono font-medium">{item.label}</span>
-              {isActive && <div className="w-1 h-1 rounded-full bg-neon animate-pulse" />}
             </Link>
           );
         })}

@@ -12,39 +12,37 @@
     --card-foreground: 150 10% 92%;
     --popover: 150 15% 8%;
     --popover-foreground: 150 10% 92%;
-    --primary: 160 75% 51%;
+    --primary: 112 59% 60%;
     --primary-foreground: 150 20% 5%;
     --secondary: 150 15% 12%;
     --secondary-foreground: 150 10% 92%;
     --muted: 150 15% 12%;
     --muted-foreground: 150 10% 50%;
-    --accent: 160 75% 51%;
+    --accent: 112 59% 60%;
     --accent-foreground: 150 20% 5%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
     --border: 150 20% 14%;
     --input: 150 20% 12%;
-    --ring: 160 75% 51%;
-    --chart-1: 160 75% 51%;
-    --chart-2: 160 60% 35%;
-    --chart-3: 160 40% 25%;
+    --ring: 112 59% 60%;
+    --chart-1: 112 59% 60%;
+    --chart-2: 112 45% 40%;
+    --chart-3: 112 30% 28%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.6rem;
     --sidebar-background: 150 20% 4%;
     --sidebar-foreground: 150 10% 92%;
-    --sidebar-primary: 160 75% 51%;
+    --sidebar-primary: 112 59% 60%;
     --sidebar-primary-foreground: 150 20% 5%;
     --sidebar-accent: 150 15% 10%;
     --sidebar-accent-foreground: 150 10% 92%;
     --sidebar-border: 150 20% 12%;
-    --sidebar-ring: 160 75% 51%;
+    --sidebar-ring: 112 59% 60%;
     --font-mono: 'Lexend', sans-serif;
     --font-display: 'Be Vietnam Pro', 'Nunito', sans-serif;
     --font-body: 'Be Vietnam Pro', 'Nunito', sans-serif;
-    --neon-green: #31D1A2;
-    --neon-glow: 0 0 10px rgba(49, 209, 162, 0.5), 0 0 30px rgba(49, 209, 162, 0.2);
-    --neon-glow-strong: 0 0 15px rgba(49, 209, 162, 0.8), 0 0 50px rgba(49, 209, 162, 0.4);
+    --accent-green: #71d65b;
   }
 }
 
@@ -81,46 +79,37 @@
   }
 }
 
-/* Neon glow utilities */
-.neon-text {
-  color: var(--neon-green);
-  text-shadow: 0 0 8px rgba(49, 209, 162, 0.7), 0 0 20px rgba(49, 209, 162, 0.4);
+/* Accent utilities */
+.accent-text {
+  color: var(--accent-green);
 }
-.neon-border {
-  border-color: var(--neon-green);
-  box-shadow: 0 0 8px rgba(49, 209, 162, 0.3), inset 0 0 8px rgba(49, 209, 162, 0.05);
-}
-.neon-glow {
-  box-shadow: var(--neon-glow);
-}
-.neon-glow-strong {
-  box-shadow: var(--neon-glow-strong);
+.accent-border {
+  border-color: var(--accent-green);
 }
 .glass-card {
-  background: rgba(10, 25, 18, 0.75);
+  background: rgba(10, 18, 11, 0.75);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(49, 209, 162, 0.15);
+  border: 1px solid rgba(42, 75, 46, 0.3);
 }
 .glass-card-hover:hover {
-  background: rgba(10, 25, 18, 0.88);
-  border-color: rgba(49, 209, 162, 0.35);
-  box-shadow: 0 0 20px rgba(49, 209, 162, 0.15);
+  background: rgba(10, 18, 11, 0.88);
+  border-color: rgba(42, 75, 46, 0.5);
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(49, 209, 162, 0.3); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(49, 209, 162, 0.6); }
+::-webkit-scrollbar-thumb { background: rgba(42, 75, 46, 0.4); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(42, 75, 46, 0.7); }
 
 /* Swipe animations */
 @keyframes slideInRight {
   from { transform: translateX(80%) rotate(5deg); opacity: 0; }
   to { transform: translateX(0) rotate(0); opacity: 1; }
 }
-@keyframes pulse-neon {
-  0%, 100% { box-shadow: 0 0 8px rgba(49,209,162,0.4), 0 0 20px rgba(49,209,162,0.2); }
-  50% { box-shadow: 0 0 20px rgba(49,209,162,0.8), 0 0 50px rgba(49,209,162,0.4); }
+@keyframes pulse-accent {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 @keyframes scanline {
   0% { top: -5%; }
@@ -131,13 +120,13 @@
   96%, 99% { opacity: 0.85; }
 }
 .animate-slide-in { animation: slideInRight 0.35s ease-out; }
-.animate-pulse-neon { animation: pulse-neon 2s ease-in-out infinite; }
+.animate-pulse-accent { animation: pulse-accent 2s ease-in-out infinite; }
 .animate-flicker { animation: flicker 4s infinite; }
 
 /* Grid/dot pattern overlay */
 .grid-overlay {
   background-image: 
-    linear-gradient(rgba(49,209,162,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(49,209,162,0.04) 1px, transparent 1px);
+    linear-gradient(rgba(42,75,46,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(42,75,46,0.04) 1px, transparent 1px);
   background-size: 40px 40px;
 }

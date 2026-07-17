@@ -26,7 +26,7 @@ function TabButton({ tab, active, onClick }) {
     <button
       onClick={onClick}
       className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-body transition-all duration-200 ${active
-        ? 'bg-neon/10 text-neon border border-neon/30'
+        ? 'bg-primary/10 text-primary border border-primary/30'
         : 'text-muted-foreground hover:text-foreground hover:bg-white/5 border border-transparent'
         }`}
     >
@@ -38,20 +38,20 @@ function TabButton({ tab, active, onClick }) {
 
 function PrivacyToggle({ label, desc, checked, onChange }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-neon/8 last:border-0">
+    <div className="flex items-center justify-between py-3 border-b border-primary/8 last:border-0">
       <div className="flex-1 pr-4">
         <p className="text-sm font-body text-foreground">{label}</p>
         {desc && <p className="text-xs font-body text-muted-foreground mt-0.5">{desc}</p>}
       </div>
-      <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-neon" />
+      <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-primary" />
     </div>
   );
 }
 
-function ActivityItem({ icon: Icon, title, desc, time, color = 'text-neon' }) {
+function ActivityItem({ icon: Icon, title, desc, time, color = 'text-primary' }) {
   return (
-    <div className="flex items-start gap-3 py-3 border-b border-neon/8 last:border-0">
-      <div className={`w-8 h-8 rounded-lg bg-neon/8 flex items-center justify-center flex-shrink-0 ${color}`}>
+    <div className="flex items-start gap-3 py-3 border-b border-primary/8 last:border-0">
+      <div className={`w-8 h-8 rounded-lg bg-primary/8 flex items-center justify-center flex-shrink-0 ${color}`}>
         <Icon className="w-4 h-4" />
       </div>
       <div className="flex-1 min-w-0">
@@ -125,10 +125,10 @@ export default function Settings() {
     switch (activeTab) {
       case 'privacy':
         return (
-          <div className="glass-card rounded-xl border border-neon/10 overflow-hidden">
-            <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-2">
-              <Shield className="w-4 h-4 text-neon" />
-              <h3 className="font-display text-sm font-semibold neon-text">Thông tin hiển thị công khai</h3>
+          <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+            <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+              <Shield className="w-4 h-4 text-primary" />
+              <h3 className="font-display text-sm font-semibold text-primary">Thông tin hiển thị công khai</h3>
             </div>
             <div className="p-4">
               <p className="text-xs font-body text-muted-foreground mb-4 leading-relaxed">
@@ -149,10 +149,10 @@ export default function Settings() {
 
       case 'password':
         return (
-          <div className="glass-card rounded-xl border border-neon/10 overflow-hidden">
-            <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-neon" />
-              <h3 className="font-display text-sm font-semibold neon-text">Đổi mật khẩu</h3>
+          <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+            <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+              <KeyRound className="w-4 h-4 text-primary" />
+              <h3 className="font-display text-sm font-semibold text-primary">Đổi mật khẩu</h3>
             </div>
             <div className="p-4 space-y-3">
               <p className="text-xs font-body text-muted-foreground leading-relaxed">
@@ -170,14 +170,14 @@ export default function Settings() {
                     value={pwForm[field]}
                     onChange={(e) => setPwForm((p) => ({ ...p, [field]: e.target.value }))}
                     placeholder={placeholder}
-                    className="text-sm bg-muted/50 border-neon/15 focus:border-neon/50 font-body"
+                    className="text-sm bg-muted/50 border-primary/15 focus:border-primary/50 font-body"
                   />
                 </div>
               ))}
               {pwMsg && (
-                <p className={`text-xs font-body ${pwMsg.startsWith('✓') ? 'text-neon' : 'text-destructive'}`}>{pwMsg}</p>
+                <p className={`text-xs font-body ${pwMsg.startsWith('✓') ? 'text-primary' : 'text-destructive'}`}>{pwMsg}</p>
               )}
-              <Button onClick={handlePasswordChange} className="w-full h-9 font-display text-xs uppercase tracking-wider bg-neon text-background hover:bg-neon/90 transition-all duration-200 mt-2">
+              <Button onClick={handlePasswordChange} className="w-full h-9 font-display text-xs font-medium bg-primary text-background hover:bg-primary/90 transition-all duration-200 mt-2">
                 Cập nhật mật khẩu
               </Button>
             </div>
@@ -186,10 +186,10 @@ export default function Settings() {
 
       case 'activity':
         return (
-          <div className="glass-card rounded-xl border border-neon/10 overflow-hidden">
-            <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-neon" />
-              <h3 className="font-display text-sm font-semibold neon-text">Nhật ký hoạt động</h3>
+          <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+            <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+              <Activity className="w-4 h-4 text-primary" />
+              <h3 className="font-display text-sm font-semibold text-primary">Nhật ký hoạt động</h3>
             </div>
             <div className="p-4">
               {matches.length === 0 ? (
@@ -215,7 +215,7 @@ export default function Settings() {
                 title="Đăng nhập thành công"
                 desc={`Tài khoản: ${currentUser?.email || ''}`}
                 time="Hôm nay"
-                color="text-neon"
+                color="text-primary"
               />
             </div>
           </div>
@@ -224,16 +224,16 @@ export default function Settings() {
       case 'legal':
         return (
           <div className="space-y-4">
-            <div className="glass-card rounded-xl border border-neon/10 overflow-hidden">
-              <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-2">
-                <FileText className="w-4 h-4 text-neon" />
-                <h3 className="font-display text-sm font-semibold neon-text">Điều khoản sử dụng</h3>
+            <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+              <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-primary" />
+                <h3 className="font-display text-sm font-semibold text-primary">Điều khoản sử dụng</h3>
               </div>
               <div className="p-4 space-y-3 font-body text-xs text-muted-foreground leading-relaxed">
                 <p className="font-body font-medium text-foreground text-sm">1. Chấp nhận điều khoản</p>
                 <p>Bằng cách sử dụng nền tảng DSTC Matching, bạn đồng ý tuân thủ các điều khoản và điều kiện được nêu trong tài liệu này. Nếu bạn không đồng ý, vui lòng không sử dụng dịch vụ.</p>
                 <p className="font-body font-medium text-foreground text-sm">2. Mục đích sử dụng</p>
-                <p>Nền tảng này được xây dựng với mục đích duy nhất là kết nối thí sinh tham gia cuộc thi <span className="text-neon">DSTC: VQC 2026 - Data Science Talent Competition: Vietnam Quant Challenge 2026</span> do CLB Khoa học công nghệ trong Kinh tế và Kinh doanh - CTE FTU tổ chức. Nghiêm cấm sử dụng cho mục đích khác.</p>
+                <p>Nền tảng này được xây dựng với mục đích duy nhất là kết nối thí sinh tham gia cuộc thi <span className="text-primary">DSTC: VQC 2026 - Data Science Talent Competition: Vietnam Quant Challenge 2026</span> do CLB Khoa học công nghệ trong Kinh tế và Kinh doanh - CTE FTU tổ chức. Nghiêm cấm sử dụng cho mục đích khác.</p>
                 <p className="font-body font-medium text-foreground text-sm">3. Tài khoản người dùng</p>
                 <p>Bạn chịu trách nhiệm bảo mật thông tin đăng nhập và toàn bộ hoạt động được thực hiện dưới tài khoản của bạn. Thông tin hồ sơ phải trung thực và chính xác.</p>
                 <p className="font-body font-medium text-foreground text-sm">4. Nội dung người dùng</p>
@@ -242,10 +242,10 @@ export default function Settings() {
                 <p>Nền tảng được cung cấp "as-is". Ban tổ chức không chịu trách nhiệm về bất kỳ thiệt hại nào phát sinh từ việc sử dụng nền tảng này, bao gồm nhưng không giới hạn ở việc mất dữ liệu hoặc gián đoạn dịch vụ.</p>
               </div>
             </div>
-            <div className="glass-card rounded-xl border border-neon/10 overflow-hidden">
-              <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-2">
-                <Shield className="w-4 h-4 text-neon" />
-                <h3 className="font-display text-sm font-semibold neon-text">Chính sách bảo mật</h3>
+            <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+              <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-primary" />
+                <h3 className="font-display text-sm font-semibold text-primary">Chính sách bảo mật</h3>
               </div>
               <div className="p-4 space-y-3 font-body text-xs text-muted-foreground leading-relaxed">
                 <p className="font-body font-medium text-foreground text-sm">Dữ liệu chúng tôi thu thập</p>
@@ -263,26 +263,26 @@ export default function Settings() {
                 <p>Bạn có quyền yêu cầu xóa tài khoản và toàn bộ dữ liệu liên quan bằng cách liên hệ ban tổ chức.</p>
               </div>
             </div>
-            <div className="glass-card rounded-xl border border-neon/10 p-4 space-y-3 font-body text-xs text-muted-foreground">
-              <p className="font-display text-[10px] uppercase tracking-widest text-neon/60 mb-2">Thông tin liên hệ</p>
+            <div className="glass-card rounded-xl border border-primary/10 p-4 space-y-3 font-body text-xs text-muted-foreground">
+              <p className="font-display text-[10px] text-primary/60 mb-2">Thông tin liên hệ</p>
               <div className="flex items-start gap-2">
-                <MapPin className="w-3.5 h-3.5 text-neon/60 flex-shrink-0 mt-0.5" />
+                <MapPin className="w-3.5 h-3.5 text-primary/60 flex-shrink-0 mt-0.5" />
                 <span>Nhà CLB, Toà B, Trường Đại học Ngoại thương - 91 Phố Chùa Láng, Phường Láng, Hà Nội</span>
               </div>
               <div className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-neon/60 flex-shrink-0" />
-                <a href="mailto:datasciencetalent.cteftu@gmail.com" className="text-neon hover:underline">datasciencetalent.cteftu@gmail.com</a>
+                <Mail className="w-3.5 h-3.5 text-primary/60 flex-shrink-0" />
+                <a href="mailto:datasciencetalent.cteftu@gmail.com" className="text-primary hover:underline">datasciencetalent.cteftu@gmail.com</a>
               </div>
               <div className="flex items-center gap-2">
-                <Link2 className="w-3.5 h-3.5 text-neon/60 flex-shrink-0" />
-                <span>Fanpage cuộc thi: <a href="https://www.facebook.com/datasciencetalentcompetition" target="_blank" rel="noopener noreferrer" className="text-neon hover:underline">Data Science Talent Competition</a></span>
+                <Link2 className="w-3.5 h-3.5 text-primary/60 flex-shrink-0" />
+                <span>Fanpage cuộc thi: <a href="https://www.facebook.com/datasciencetalentcompetition" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Data Science Talent Competition</a></span>
               </div>
               <div className="flex items-center gap-2">
-                <Users className="w-3.5 h-3.5 text-neon/60 flex-shrink-0" />
-                <span>Fanpage BTC: <a href="https://www.facebook.com/cte.ftu" target="_blank" rel="noopener noreferrer" className="text-neon hover:underline">CLB Khoa học công nghệ trong Kinh tế và Kinh doanh - CTE FTU</a></span>
+                <Users className="w-3.5 h-3.5 text-primary/60 flex-shrink-0" />
+                <span>Fanpage BTC: <a href="https://www.facebook.com/cte.ftu" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">CLB Khoa học công nghệ trong Kinh tế và Kinh doanh - CTE FTU</a></span>
               </div>
-              <div className="h-px bg-neon/10 my-1" />
-              <div className="flex justify-between"><span className="text-neon/60">Phiên bản</span><span>DSTC Matching v1.0 — 2026</span></div>
+              <div className="h-px bg-primary/10 my-1" />
+              <div className="flex justify-between"><span className="text-primary/60">Phiên bản</span><span>DSTC Matching v1.0 — 2026</span></div>
               <p className="text-[10px] text-muted-foreground/40 mt-2 text-center">© 2026 DSTC: VQC — All rights reserved — ĐH Ngoại Thương</p>
             </div>
           </div>
@@ -291,16 +291,16 @@ export default function Settings() {
       case 'support':
         return (
           <div className="space-y-4">
-            <div className="glass-card rounded-xl border border-neon/10 overflow-hidden">
-              <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-2">
-                <HelpCircle className="w-4 h-4 text-neon" />
-                <h3 className="font-display text-sm font-semibold neon-text">Hỗ trợ người dùng</h3>
+            <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+              <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+                <HelpCircle className="w-4 h-4 text-primary" />
+                <h3 className="font-display text-sm font-semibold text-primary">Hỗ trợ người dùng</h3>
               </div>
               <div className="p-4 space-y-3 font-body text-xs text-muted-foreground leading-relaxed">
                 <p>Nếu bạn gặp bất kỳ vấn đề nào khi sử dụng nền tảng, vui lòng liên hệ ban tổ chức qua email bên dưới. Chúng tôi sẽ phản hồi trong vòng 24–48 giờ làm việc.</p>
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-neon/5 border border-neon/15">
-                  <Mail className="w-4 h-4 text-neon flex-shrink-0" />
-                  <a href="mailto:datasciencetalent.cteftu@gmail.com" className="text-neon font-mono hover:underline">datasciencetalent.cteftu@gmail.com</a>
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/15">
+                  <Mail className="w-4 h-4 text-primary flex-shrink-0" />
+                  <a href="mailto:datasciencetalent.cteftu@gmail.com" className="text-primary font-mono hover:underline">datasciencetalent.cteftu@gmail.com</a>
                 </div>
                 <p className="font-body font-medium text-foreground text-sm">Các vấn đề phổ biến</p>
                 <ul className="list-disc list-inside space-y-1">
@@ -311,20 +311,20 @@ export default function Settings() {
                 </ul>
               </div>
             </div>
-            <div className="glass-card rounded-xl border border-neon/10 overflow-hidden">
-              <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-2">
-                <BarChart2 className="w-4 h-4 text-neon" />
-                <h3 className="font-display text-sm font-semibold neon-text">Theo dõi dữ liệu sử dụng</h3>
+            <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+              <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+                <BarChart2 className="w-4 h-4 text-primary" />
+                <h3 className="font-display text-sm font-semibold text-primary">Theo dõi dữ liệu sử dụng</h3>
               </div>
               <div className="p-4 space-y-3 font-body text-xs text-muted-foreground leading-relaxed">
                 <p>Nền tảng thu thập một số dữ liệu ẩn danh để cải thiện trải nghiệm người dùng, bao gồm tần suất sử dụng, tính năng được dùng nhiều nhất và thời gian phiên đăng nhập.</p>
-                <p>Dữ liệu này <span className="text-neon">không bao gồm</span> nội dung tin nhắn cá nhân hoặc thông tin nhận dạng cụ thể. Xem thêm tại tab Pháp lý → Chính sách bảo mật.</p>
+                <p>Dữ liệu này <span className="text-primary">không bao gồm</span> nội dung tin nhắn cá nhân hoặc thông tin nhận dạng cụ thể. Xem thêm tại tab Pháp lý → Chính sách bảo mật.</p>
               </div>
             </div>
-            <div className="glass-card rounded-xl border border-neon/10 overflow-hidden">
-              <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-2">
-                <Wrench className="w-4 h-4 text-neon" />
-                <h3 className="font-display text-sm font-semibold neon-text">Xử lý sự cố</h3>
+            <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+              <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+                <Wrench className="w-4 h-4 text-primary" />
+                <h3 className="font-display text-sm font-semibold text-primary">Xử lý sự cố</h3>
               </div>
               <div className="p-4 space-y-3 font-body text-xs text-muted-foreground leading-relaxed">
                 <p className="font-body font-medium text-foreground text-sm">Bước 1 — Làm mới trang</p>
@@ -332,7 +332,7 @@ export default function Settings() {
                 <p className="font-body font-medium text-foreground text-sm">Bước 2 — Xóa cache trình duyệt</p>
                 <p>Vào Settings trình duyệt → Xóa dữ liệu duyệt web → Xóa cache và cookie → Thử lại.</p>
                 <p className="font-body font-medium text-foreground text-sm">Bước 3 — Liên hệ hỗ trợ</p>
-                <p>Nếu vấn đề vẫn tồn tại, gửi email mô tả chi tiết lỗi (kèm ảnh chụp màn hình nếu có) tới <span className="text-neon">datasciencetalent.cteftu@gmail.com</span>.</p>
+                <p>Nếu vấn đề vẫn tồn tại, gửi email mô tả chi tiết lỗi (kèm ảnh chụp màn hình nếu có) tới <span className="text-primary">datasciencetalent.cteftu@gmail.com</span>.</p>
               </div>
             </div>
           </div>
@@ -341,69 +341,69 @@ export default function Settings() {
       case 'about':
         return (
           <div className="space-y-4">
-            <div className="glass-card rounded-xl border border-neon/10 overflow-hidden">
-              <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-3">
+            <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+              <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-3">
                 <img src="/cte-logo.svg" alt="CTE FTU" className="w-6 h-6 rounded object-contain opacity-80" />
-                <h3 className="font-display text-sm font-semibold neon-text">Đôi điều về CTE</h3>
+                <h3 className="font-display text-sm font-semibold text-primary">Đôi điều về CTE</h3>
               </div>
               <div className="p-4 space-y-4 font-body text-xs text-muted-foreground leading-relaxed">
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-neon/5 border border-neon/15">
-                  <Mail className="w-4 h-4 text-neon flex-shrink-0" />
-                  <a href="mailto:datasciencetalent.cteftu@gmail.com" className="text-neon font-mono hover:underline">datasciencetalent.cteftu@gmail.com</a>
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/15">
+                  <Mail className="w-4 h-4 text-primary flex-shrink-0" />
+                  <a href="mailto:datasciencetalent.cteftu@gmail.com" className="text-primary font-mono hover:underline">datasciencetalent.cteftu@gmail.com</a>
                 </div>
                 <div>
-                  <p className="font-body font-medium text-foreground text-sm mb-1 flex items-center gap-1.5"><Star className="w-3.5 h-3.5 text-neon/60" /> Quá trình hình thành</p>
-                  <p>Thành lập ngày 10/8/2022, Câu lạc bộ Khoa học Công nghệ trong Kinh tế và Kinh doanh trường Đại học Ngoại thương (Club of Technology in Economics - <span className="text-neon">CTE FTU</span>) ra đời trong sứ mệnh chung của Nhà trường nhằm xây dựng hệ sinh thái về Khoa học Dữ liệu và Khoa học Công nghệ tại Trường Đại học Ngoại thương.</p>
+                  <p className="font-body font-medium text-foreground text-sm mb-1 flex items-center gap-1.5"><Star className="w-3.5 h-3.5 text-primary/60" /> Quá trình hình thành</p>
+                  <p>Thành lập ngày 10/8/2022, Câu lạc bộ Khoa học Công nghệ trong Kinh tế và Kinh doanh trường Đại học Ngoại thương (Club of Technology in Economics - <span className="text-primary">CTE FTU</span>) ra đời trong sứ mệnh chung của Nhà trường nhằm xây dựng hệ sinh thái về Khoa học Dữ liệu và Khoa học Công nghệ tại Trường Đại học Ngoại thương.</p>
                   <p className="mt-2">Cho tới hiện tại, CTE là câu lạc bộ chuyên môn duy nhất hoạt động trong lĩnh vực Khoa học dữ liệu, trực thuộc Đoàn Thanh niên Cộng sản Hồ Chí Minh trường Đại học Ngoại thương.</p>
                 </div>
                 <div>
-                  <p className="font-body font-medium text-foreground text-sm mb-1 flex items-center gap-1.5"><Star className="w-3.5 h-3.5 text-neon/60" /> Sứ mệnh và tầm nhìn</p>
+                  <p className="font-body font-medium text-foreground text-sm mb-1 flex items-center gap-1.5"><Star className="w-3.5 h-3.5 text-primary/60" /> Sứ mệnh và tầm nhìn</p>
                   <p>Là câu lạc bộ chuyên môn được xây dựng nhằm tập hợp các sinh viên kinh tế có đam mê Khoa học dữ liệu, Khoa học công nghệ, CTE luôn nỗ lực không ngừng trong quá trình phát triển năng lực cho cộng đồng sinh viên, với mục tiêu góp phần nhỏ trong việc đào tạo nguồn nhân lực chất lượng cao cho xã hội.</p>
                 </div>
                 <div className="space-y-2">
-                  <p className="font-body font-medium text-foreground text-sm flex items-center gap-1.5"><Award className="w-3.5 h-3.5 text-neon/60" /> Hoạt động nổi bật</p>
-                  <div className="p-3 rounded-lg bg-white/3 border border-neon/10 space-y-1">
+                  <p className="font-body font-medium text-foreground text-sm flex items-center gap-1.5"><Award className="w-3.5 h-3.5 text-primary/60" /> Hoạt động nổi bật</p>
+                  <div className="p-3 rounded-lg bg-white/3 border border-primary/10 space-y-1">
                     <p className="text-foreground/80 font-medium">Data Science Talent Competition (DSTC)</p>
                     <p>Cuộc thi về lĩnh vực Khoa học dữ liệu đầu tiên do sinh viên Kinh tế tổ chức, quy tụ đông đảo học sinh, sinh viên toàn quốc đề xuất giải pháp cho các vấn đề xã hội bằng Khoa học dữ liệu.</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-white/3 border border-neon/10 space-y-1">
+                  <div className="p-3 rounded-lg bg-white/3 border border-primary/10 space-y-1">
                     <p className="text-foreground/80 font-medium">Chuỗi khóa học Data Bootcamp</p>
                     <p>Tổ chức theo hai mùa: Summer Bootcamp và Winter Bootcamp, giúp học sinh và sinh viên linh hoạt chọn thời điểm phù hợp để tham gia.</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-white/3 border border-neon/10 space-y-1">
+                  <div className="p-3 rounded-lg bg-white/3 border border-primary/10 space-y-1">
                     <p className="text-foreground/80 font-medium">Game Bụt của Cô Tấm — Tiền sự kiện DSTC: VQC 2026</p>
-                    <p>Game online mang tính giáo dục do team Tri Phương phát triển, đưa kiến thức KHCN đến gần giới trẻ qua trải nghiệm giải trí. <a href="https://butcuacotam.cteftu.id.vn/" target="_blank" rel="noopener noreferrer" className="text-neon hover:underline">Trải nghiệm tại butcuacotam.cteftu.id.vn →</a></p>
+                    <p>Game online mang tính giáo dục do team Tri Phương phát triển, đưa kiến thức KHCN đến gần giới trẻ qua trải nghiệm giải trí. <a href="https://butcuacotam.cteftu.id.vn/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Trải nghiệm tại butcuacotam.cteftu.id.vn →</a></p>
                   </div>
-                  <div className="p-3 rounded-lg bg-white/3 border border-neon/10 space-y-1">
+                  <div className="p-3 rounded-lg bg-white/3 border border-primary/10 space-y-1">
                     <p className="text-foreground/80 font-medium">Data Science Explorer Community</p>
-                    <p>Cộng đồng với gần <span className="text-neon font-medium">7.500 thành viên</span> năng động, chia sẻ tài liệu, trải nghiệm và tips phỏng vấn cho các vị trí Data.</p>
+                    <p>Cộng đồng với gần <span className="text-primary font-medium">7.500 thành viên</span> năng động, chia sẻ tài liệu, trải nghiệm và tips phỏng vấn cho các vị trí Data.</p>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="glass-card rounded-xl border border-neon/10 overflow-hidden">
-              <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-3">
-                <Trophy className="w-4 h-4 text-neon" />
-                <h3 className="font-display text-sm font-semibold neon-text">Về DSTC</h3>
+            <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+              <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-3">
+                <Trophy className="w-4 h-4 text-primary" />
+                <h3 className="font-display text-sm font-semibold text-primary">Về DSTC</h3>
               </div>
               <div className="p-4 space-y-4 font-body text-xs text-muted-foreground leading-relaxed">
-                <p>DSTC là cuộc thi về Khoa học dữ liệu đầu tiên của FTU do <span className="text-neon">CTE FTU</span> tổ chức, được bảo trợ pháp lý bởi Đoàn TNCS HCM và bảo trợ chuyên môn bởi Khoa Công nghệ & Khoa học Dữ liệu nhà trường.</p>
-                <div className="p-3 rounded-lg bg-white/3 border border-neon/10 space-y-2">
+                <p>DSTC là cuộc thi về Khoa học dữ liệu đầu tiên của FTU do <span className="text-primary">CTE FTU</span> tổ chức, được bảo trợ pháp lý bởi Đoàn TNCS HCM và bảo trợ chuyên môn bởi Khoa Công nghệ & Khoa học Dữ liệu nhà trường.</p>
+                <div className="p-3 rounded-lg bg-white/3 border border-primary/10 space-y-2">
                   <p className="text-foreground font-medium">1. Tiền sự kiện DSTC: VQC 2026</p>
-                  <p><span className="text-neon/70">Nội dung:</span> Game Bụt của Cô Tấm — game online mang tính giáo dục do team Tri Phương phát triển, đưa kiến thức KHCN đến gần với giới trẻ thông qua trò chơi giải trí.</p>
-                  <p><span className="text-neon/70">Link:</span> <a href="https://butcuacotam.cteftu.id.vn/" target="_blank" rel="noopener noreferrer" className="text-neon hover:underline">butcuacotam.cteftu.id.vn</a></p>
-                  <p><span className="text-neon/70">Đối tác:</span> <a href="https://ntq-solution.com.vn" target="_blank" rel="noopener noreferrer" className="text-neon hover:underline">NTQ Solutions</a> — đơn vị cung cấp nền tảng công nghệ cho game.</p>
+                  <p><span className="text-primary/70">Nội dung:</span> Game Bụt của Cô Tấm — game online mang tính giáo dục do team Tri Phương phát triển, đưa kiến thức KHCN đến gần với giới trẻ thông qua trò chơi giải trí.</p>
+                  <p><span className="text-primary/70">Link:</span> <a href="https://butcuacotam.cteftu.id.vn/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">butcuacotam.cteftu.id.vn</a></p>
+                  <p><span className="text-primary/70">Đối tác:</span> <a href="https://ntq-solution.com.vn" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">NTQ Solutions</a> — đơn vị cung cấp nền tảng công nghệ cho game.</p>
                 </div>
-                <div className="p-3 rounded-lg bg-neon/5 border border-neon/20 space-y-2">
+                <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-2">
                   <p className="text-foreground font-medium">2. DSTC: VQC 2026 — Vietnam Quant Challenge</p>
-                  <p><span className="text-neon/70">Nội dung:</span> Cuộc thi về tài chính định lượng (quant finance), thí sinh sử dụng kiến thức toán và tài chính để tìm ra alpha — phương trình dự báo giá cổ phiếu trên sàn chứng khoán Việt Nam (tương tự International Quant Championship).</p>
-                  <p><span className="text-neon/70">Đối tác:</span> <span className="text-foreground/80">XNO Quant</span> — đơn vị cung cấp nền tảng thi đấu cho cuộc thi.</p>
+                  <p><span className="text-primary/70">Nội dung:</span> Cuộc thi về tài chính định lượng (quant finance), thí sinh sử dụng kiến thức toán và tài chính để tìm ra alpha — phương trình dự báo giá cổ phiếu trên sàn chứng khoán Việt Nam (tương tự International Quant Championship).</p>
+                  <p><span className="text-primary/70">Đối tác:</span> <span className="text-foreground/80">XNO Quant</span> — đơn vị cung cấp nền tảng thi đấu cho cuộc thi.</p>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-3 px-2">
               <img src="/ftu.webp" alt="FTU" className="w-8 h-8 rounded-full object-contain opacity-60" />
-              <img src="/fyu.webp" alt="Đoàn" className="w-8 h-8 rounded-full object-cover opacity-60" />
+              <img src="/fyu.svg" alt="Đoàn" className="w-8 h-8 object-contain opacity-60" />
               <img src="/cte-logo.svg" alt="CTE FTU" className="w-8 h-8 rounded object-contain opacity-60" />
               <span className="font-body text-[10px] text-muted-foreground">FTU — Đoàn TNCS HCM — CTE FTU — DSTC: VQC 2026</span>
             </div>
@@ -413,29 +413,29 @@ export default function Settings() {
       case 'system':
         return (
           <div className="space-y-4">
-            <div className="glass-card rounded-xl border border-neon/10 overflow-hidden">
-              <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-neon" />
-                <h3 className="font-display text-sm font-semibold neon-text">Về hệ thống</h3>
+            <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+              <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+                <Terminal className="w-4 h-4 text-primary" />
+                <h3 className="font-display text-sm font-semibold text-primary">Về hệ thống</h3>
               </div>
               <div className="p-4 space-y-2 font-body text-xs text-muted-foreground">
-                <div className="flex justify-between"><span className="text-neon/60">Platform</span><span>DSTC Matching v1.0</span></div>
-                <div className="flex justify-between"><span className="text-neon/60">Organizer</span><span>CTE FTU</span></div>
-                <div className="flex justify-between"><span className="text-neon/60">Host</span><span>ĐH Ngoại Thương</span></div>
-                <div className="flex justify-between"><span className="text-neon/60">Competition</span><span>DSTC: VQC 2026</span></div>
-                <div className="h-px bg-neon/10 my-2" />
+                <div className="flex justify-between"><span className="text-primary/60">Platform</span><span>DSTC Matching v1.0</span></div>
+                <div className="flex justify-between"><span className="text-primary/60">Organizer</span><span>CTE FTU</span></div>
+                <div className="flex justify-between"><span className="text-primary/60">Host</span><span>ĐH Ngoại Thương</span></div>
+                <div className="flex justify-between"><span className="text-primary/60">Competition</span><span>DSTC: VQC 2026</span></div>
+                <div className="h-px bg-primary/10 my-2" />
                 <p className="text-[10px] text-muted-foreground/50">© 2026 DSTC — All rights reserved</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <img src="/ftu.webp" alt="FTU" className="w-8 h-8 rounded-full object-contain opacity-60" />
-              <img src="/fyu.webp" alt="Đoàn" className="w-8 h-8 rounded-full object-cover opacity-60" />
+              <img src="/fyu.svg" alt="Đoàn" className="w-8 h-8 object-contain opacity-60" />
               <img src="/cte-logo.svg" alt="CTE FTU" className="w-8 h-8 rounded object-contain opacity-60" />
               <span className="font-body text-[10px] text-muted-foreground">FTU — Đoàn TNCS HCM — CTE FTU — DSTC: VQC 2026</span>
             </div>
             <Button
               variant="outline"
-              className="w-full gap-2 font-display text-xs uppercase tracking-wider border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive/50 transition-all duration-200"
+              className="w-full gap-2 font-display text-xs font-medium border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive/50 transition-all duration-200"
               onClick={() => db.auth.logout()}
             >
               <LogOut className="w-4 h-4" />
@@ -453,7 +453,7 @@ export default function Settings() {
     <div className="min-h-screen p-4 md:p-8 grid-overlay">
       <div className="max-w-2xl mx-auto space-y-5">
         <div>
-          <h1 className="font-display font-bold text-xl tracking-wide neon-text">Cài đặt</h1>
+          <h1 className="font-display font-bold text-xl tracking-wide text-primary">Cài đặt</h1>
           <p className="font-body text-xs text-muted-foreground mt-1">Quản lý tài khoản và quyền riêng tư</p>
         </div>
 

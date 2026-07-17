@@ -49,12 +49,7 @@ export default function AppLayout() {
       </div>
 
       {/* Main content */}
-      <main className={`flex-1 min-h-screen overflow-x-hidden flex flex-col ${location.pathname === '/messages' ? 'pb-0' : 'pb-20 md:pb-0'}`}>
-        {/* Top bar with notification bell */}
-        <div className="sticky top-0 z-30 flex items-center justify-between px-5 py-3 border-b border-neon/10 bg-background/80 backdrop-blur-md md:flex">
-          <span className="font-display font-semibold text-sm text-foreground/80">{title}</span>
-          <NotificationBell />
-        </div>
+      <main className={`flex-1 min-h-screen overflow-x-hidden flex flex-col ${location.pathname === '/messages' ? 'pb-0' : 'pt-6 md:pt-8 pb-20 md:pb-0'}`}>
         <div className="flex-1">
           <Outlet />
         </div>

@@ -3,7 +3,7 @@ import { MapPin, GraduationCap, Target, Award, User } from 'lucide-react';
 
 const ROLE_COLORS = {
   'Data Analyst': 'border-blue-400/40 text-blue-300',
-  'ML Engineer': 'border-neon/40 text-neon',
+  'ML Engineer': 'border-primary/40 text-primary',
   'Backend Developer': 'border-purple-400/40 text-purple-300',
   'Quant Researcher': 'border-orange-400/40 text-orange-300',
   'Quant Developer': 'border-cyan-400/40 text-cyan-300',
@@ -18,16 +18,16 @@ export default function SwipeCard({ profile, style, className = '' }) {
 
   return (
     <div
-      className={`w-full max-w-sm mx-auto overflow-hidden rounded-xl glass-card border border-neon/20 shadow-2xl ${className}`}
+      className={`w-full max-w-sm mx-auto overflow-hidden rounded-xl glass-card border border-primary/20 shadow-2xl ${className}`}
       style={style}
     >
       {/* Image / Avatar */}
-      <div className="relative h-52 bg-gradient-to-br from-neon/10 via-transparent to-neon/5 grid-overlay">
+      <div className="relative h-52 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 grid-overlay">
         {profile.profile_image ? (
           <img src={profile.profile_image} alt={profile.display_name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <User className="w-20 h-20 text-neon/20" />
+            <User className="w-20 h-20 text-primary/20" />
           </div>
         )}
 
@@ -37,7 +37,7 @@ export default function SwipeCard({ profile, style, className = '' }) {
         {/* Role badge */}
         {profile.role && (
           <div className="absolute top-3 left-3">
-            <span className={`font-display text-[10px] tracking-widest uppercase px-2.5 py-1 rounded border glass-card ${ROLE_COLORS[profile.role] || 'border-neon/30 text-neon'}`}>
+            <span className={`font-display text-[10px] px-2.5 py-1 rounded border glass-card ${ROLE_COLORS[profile.role] || 'border-primary/30 text-primary'}`}>
               {profile.role}
             </span>
           </div>
@@ -67,7 +67,7 @@ export default function SwipeCard({ profile, style, className = '' }) {
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-mono">
           {profile.city && (
             <span className="flex items-center gap-1 text-muted-foreground">
-              <MapPin className="w-3 h-3 text-neon/60" /> {profile.city}
+              <MapPin className="w-3 h-3 text-primary/60" /> {profile.city}
             </span>
           )}
         </div>
@@ -77,7 +77,7 @@ export default function SwipeCard({ profile, style, className = '' }) {
             {skills.map(skill => (
               <span
                 key={skill}
-                className="font-mono text-[10px] px-2 py-0.5 rounded border border-neon/20 text-neon/80 bg-neon/5"
+                className="font-mono text-[10px] px-2 py-0.5 rounded border border-primary/20 text-primary/80 bg-primary/5"
               >
                 {skill}
               </span>
@@ -87,10 +87,10 @@ export default function SwipeCard({ profile, style, className = '' }) {
 
         {goals.length > 0 && (
           <div className="flex items-center gap-2">
-            <Target className="w-3 h-3 text-neon/60 flex-shrink-0" />
+            <Target className="w-3 h-3 text-primary/60 flex-shrink-0" />
             <div className="flex gap-1.5 flex-wrap">
               {goals.map(g => (
-                <span key={g} className="font-mono text-[10px] px-2 py-0.5 rounded border border-neon/20 text-neon/70">
+                <span key={g} className="font-mono text-[10px] px-2 py-0.5 rounded border border-primary/20 text-primary/70">
                   {g}
                 </span>
               ))}
@@ -106,8 +106,8 @@ export default function SwipeCard({ profile, style, className = '' }) {
         )}
       </div>
 
-      {/* Bottom neon line */}
-      <div className="h-px bg-gradient-to-r from-transparent via-neon/40 to-transparent" />
+      {/* Bottom primary line */}
+      <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
     </div>
   );
 }

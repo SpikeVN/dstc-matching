@@ -62,12 +62,12 @@ export default function TeamConfirmBar({ match, currentUser, otherProfile }) {
 
   if (teamFormed) {
     return (
-      <div className="px-4 py-2.5 border-b border-neon/10 bg-neon/5 flex items-center gap-2">
-        <div className="w-7 h-7 rounded-lg bg-neon/15 flex items-center justify-center">
-          <Check className="w-3.5 h-3.5 text-neon" />
+      <div className="px-4 py-2.5 border-b border-primary/10 bg-primary/5 flex items-center gap-2">
+        <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center">
+          <Check className="w-3.5 h-3.5 text-primary" />
         </div>
         <div>
-          <p className="font-display text-xs text-neon font-semibold">Đã lập đội ✓</p>
+          <p className="font-display text-xs text-primary font-semibold">Đã lập đội ✓</p>
           <p className="font-body text-[10px] text-muted-foreground">Hai bạn đã chính thức thành lập đội</p>
         </div>
       </div>
@@ -76,25 +76,25 @@ export default function TeamConfirmBar({ match, currentUser, otherProfile }) {
 
   if (myConfirmed && !otherConfirmed) {
     return (
-      <div className="px-4 py-2.5 border-b border-neon/10 bg-neon/5 flex items-center gap-2">
-        <Loader2 className="w-3.5 h-3.5 text-neon animate-spin" />
+      <div className="px-4 py-2.5 border-b border-primary/10 bg-primary/5 flex items-center gap-2">
+        <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
         <p className="font-body text-xs text-foreground">
-          Đã xác nhận — chờ <span className="text-neon">{otherProfile?.display_name}</span> xác nhận
+          Đã xác nhận — chờ <span className="text-primary">{otherProfile?.display_name}</span> xác nhận
         </p>
       </div>
     );
   }
 
   return (
-    <div className="px-4 py-2.5 border-b border-neon/10 bg-neon/5">
+    <div className="px-4 py-2.5 border-b border-primary/10 bg-primary/5">
       <button
         onClick={handleConfirm}
         disabled={confirming}
-        className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-neon/15 border border-neon/40 hover:bg-neon/20 hover:border-neon/60 transition-all font-display text-xs uppercase tracking-wider text-neon disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary/15 border border-primary/40 hover:bg-primary/20 hover:border-primary/60 transition-all font-display text-xs font-medium text-primary disabled:opacity-50"
       >
         {confirming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
         Xác nhận lập đội
-        {otherConfirmed && <span className="text-[10px] normal-case text-neon/70">— đối phương đã xác nhận!</span>}
+        {otherConfirmed && <span className="text-[10px] normal-case text-primary/70">— đối phương đã xác nhận!</span>}
       </button>
     </div>
   );

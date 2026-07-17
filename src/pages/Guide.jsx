@@ -1,6 +1,7 @@
 import { db } from '@/api/base44Client';
 
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, Star, LogIn, UserPlus, Search, HeartHandshake, AlertTriangle, Lightbulb, Building2, Handshake, Code2, Palette, Database } from 'lucide-react';
 
 const STEPS = [
@@ -14,7 +15,7 @@ const STEPS = [
     icon: UserPlus,
     title: 'Hoàn thiện hồ sơ',
     desc: 'Hồ sơ càng đầy đủ thì khả năng tìm được đồng đội phù hợp càng cao. Cập nhật ảnh đại diện, họ tên, trường học, chuyên ngành, kỹ năng, ngôn ngữ lập trình, kinh nghiệm Quant/Data Science, thành tích, mục tiêu và thời gian làm việc. Sau khi hoàn tất, nhấn Lưu thông tin.',
-    color: 'text-neon',
+    color: 'text-primary',
   },
   {
     icon: Search,
@@ -76,19 +77,29 @@ const FAQ = [
 function FAQItem({ q, a }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="glass-card rounded-xl border border-neon/10 overflow-hidden">
+    <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-neon/5 transition-colors"
+        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-primary/5 transition-colors"
       >
         <span className="font-body text-sm text-foreground">{q}</span>
-        {open ? <ChevronUp className="w-4 h-4 text-neon/60 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-neon/60 flex-shrink-0" />}
+        {open ? <ChevronUp className="w-4 h-4 text-primary/60 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-primary/60 flex-shrink-0" />}
       </button>
-      {open && (
-        <div className="px-4 pb-4 font-body text-xs text-muted-foreground leading-relaxed border-t border-neon/8 pt-3 whitespace-pre-wrap">
-          {a}
-        </div>
-      )}
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.1, ease: 'easeInOut' }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-4 font-body text-xs text-muted-foreground leading-relaxed border-t border-primary/8 pt-3 whitespace-pre-wrap">
+              {a}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -96,19 +107,16 @@ function FAQItem({ q, a }) {
 export default function Guide() {
   return (
     <div className="min-h-screen p-4 md:p-8 grid-overlay">
-      <div className="max-w-2xl mx-auto space-y-8">
+      <div className="max-w-3xl mx-auto space-y-8">
 
         {/* Hero */}
         <div className="text-center space-y-3 pt-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-neon/20 bg-neon/5 text-neon text-xs font-display mb-2">
-            <Star className="w-3 h-3" /> Hướng dẫn sử dụng
-          </div>
-          <h1 className="font-display font-bold text-2xl neon-text leading-snug">
-            HƯỚNG DẪN SỬ DỤNG WEBSITE MATCHING TEAMMATE
-          </h1>
-          <p className="font-display text-sm text-neon/80">
+          <p className="font-display text-sm text-primary/80">
             Data Science Talent Competition - Vietnam Quant Challenge 2026
           </p>
+          <h1 className="font-display font-bold text-2xl text-primary leading-snug">
+            HƯỚNG DẪN SỬ DỤNG WEBSITE MATCHING TEAMMATE
+          </h1>
           <p className="font-body text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
             Chào mừng bạn đến với nền tảng <strong className="text-foreground">Matching Teammate</strong> do CTE FTU phát triển dành riêng cho Data Science Talent Competition - Vietnam Quant Challenge 2026.
           </p>
@@ -124,8 +132,8 @@ export default function Guide() {
             {STEPS.map((step, i) => {
               const Icon = step.icon;
               return (
-                <div key={i} className="glass-card rounded-xl border border-neon/10 p-4 flex items-start gap-4">
-                  <div className={`w-9 h-9 rounded-xl bg-neon/8 flex items-center justify-center flex-shrink-0 ${step.color}`}>
+                <div key={i} className="glass-card rounded-xl border border-primary/10 p-4 flex items-start gap-4">
+                  <div className={`w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center flex-shrink-0 ${step.color}`}>
                     <Icon className="w-4 h-4" />
                   </div>
                   <div>
@@ -149,7 +157,7 @@ export default function Guide() {
           <div className="glass-card rounded-xl border border-yellow-400/30 bg-yellow-400/5 p-4 space-y-3">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-yellow-400" />
-              <p className="font-display text-xs uppercase tracking-widest text-yellow-300">Lưu ý quan trọng</p>
+              <p className="font-display text-sm font-bold text-yellow-300">Lưu ý quan trọng</p>
             </div>
             <p className="font-body text-xs text-muted-foreground leading-relaxed">
               Hiện tại tính năng Matching Teammate vẫn đang trong quá trình hoàn thiện và có thể phát sinh một số lỗi.
@@ -176,10 +184,10 @@ export default function Guide() {
           </div>
 
           {/* Mẹo */}
-          <div className="glass-card rounded-xl border border-neon/10 p-4 space-y-3">
+          <div className="glass-card rounded-xl border border-primary/10 p-4 space-y-3">
             <div className="flex items-center gap-2 mb-1">
-              <Lightbulb className="w-4 h-4 text-neon" />
-              <p className="font-display text-xs uppercase tracking-widest text-neon/70">Mẹo để tìm được đồng đội phù hợp</p>
+              <Lightbulb className="w-4 h-4 text-primary" />
+              <p className="font-display text-sm font-semibold text-primary">Mẹo để tìm được đồng đội phù hợp</p>
             </div>
             <p className="font-body text-xs text-muted-foreground leading-relaxed">
               Bạn nên ưu tiên những người có:
@@ -187,7 +195,7 @@ export default function Guide() {
             <div className="space-y-2">
               {TIPS.map((tip, i) => (
                 <div key={i} className="flex gap-2 font-body text-xs text-muted-foreground leading-relaxed">
-                  <span className="text-neon">→</span>
+                  <span className="text-primary">→</span>
                   <span>{tip}</span>
                 </div>
               ))}
@@ -207,7 +215,7 @@ export default function Guide() {
         </div>
 
         {/* Closing */}
-        <div className="glass-card rounded-xl border border-neon/20 p-5 text-center">
+        <div className="glass-card rounded-xl border border-primary/20 p-5 text-center">
           <p className="font-body text-sm text-foreground leading-relaxed">
             Chúc bạn sớm tìm được đồng đội phù hợp và có một mùa Data Science Talent Competition - Vietnam Quant Challenge 2026 thật thành công!
           </p>
@@ -218,10 +226,10 @@ export default function Guide() {
           <h2 className="font-display font-bold text-base text-foreground mb-4">Credits</h2>
           <div className="space-y-4">
             {/* Đơn vị tổ chức */}
-            <div className="glass-card rounded-xl border border-neon/10 overflow-hidden">
-              <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-neon" />
-                <p className="font-display text-xs uppercase tracking-widest text-neon/70">Đơn vị tổ chức</p>
+            <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+              <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-primary" />
+                <p className="font-display text-sm font-semibold text-primary">Đơn vị tổ chức</p>
               </div>
               <div className="p-4 space-y-2 font-body text-sm text-foreground">
                 <p>Câu lạc bộ Khoa học Công nghệ trong Kinh tế và Kinh doanh (CTE FTU)</p>
@@ -231,10 +239,10 @@ export default function Guide() {
             </div>
 
             {/* Đối tác chiến lược */}
-            <div className="glass-card rounded-xl border border-neon/10 overflow-hidden">
-              <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-2">
-                <Handshake className="w-4 h-4 text-neon" />
-                <p className="font-display text-xs uppercase tracking-widest text-neon/70">Đối tác chiến lược</p>
+            <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+              <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+                <Handshake className="w-4 h-4 text-primary" />
+                <p className="font-display text-sm font-semibold text-primary">Đối tác chiến lược</p>
               </div>
               <div className="p-4 font-body text-sm text-foreground">
                 <p>XNOQuant</p>
@@ -242,10 +250,10 @@ export default function Guide() {
             </div>
 
             {/* Product owner & team */}
-            <div className="glass-card rounded-xl border border-neon/10 overflow-hidden">
-              <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-2">
-                <Code2 className="w-4 h-4 text-neon" />
-                <p className="font-display text-xs uppercase tracking-widest text-neon/70">Product Owner & Developer</p>
+            <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+              <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+                <Code2 className="w-4 h-4 text-primary" />
+                <p className="font-display text-sm font-semibold text-primary">Product Owner & Developer</p>
               </div>
               <div className="p-4 space-y-2 font-body text-sm text-foreground">
                 <p>Nguyễn Phương Vy</p>
@@ -253,10 +261,10 @@ export default function Guide() {
               </div>
             </div>
 
-            <div className="glass-card rounded-xl border border-neon/10 overflow-hidden">
-              <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-2">
-                <Palette className="w-4 h-4 text-blue-300" />
-                <p className="font-display text-xs uppercase tracking-widest text-neon/70">Design & UI/UX</p>
+            <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+              <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+                <Palette className="w-4 h-4 text-primary" />
+                <p className="font-display text-sm font-semibold text-primary">Design & UI/UX</p>
               </div>
               <div className="p-4 space-y-2 font-body text-sm text-foreground">
                 <p>Nguyễn Phương Vy</p>
@@ -264,10 +272,10 @@ export default function Guide() {
               </div>
             </div>
 
-            <div className="glass-card rounded-xl border border-neon/10 overflow-hidden">
-              <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-2">
-                <Database className="w-4 h-4 text-purple-300" />
-                <p className="font-display text-xs uppercase tracking-widest text-neon/70">Backend & Data</p>
+            <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+              <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+                <Database className="w-4 h-4 text-primary" />
+                <p className="font-display text-sm font-semibold text-primary">Backend & Data</p>
               </div>
               <div className="p-4 space-y-2 font-body text-sm text-foreground">
                 <p>Nguyễn Phương Vy</p>
@@ -278,7 +286,7 @@ export default function Guide() {
         </div>
 
         {/* Closing credits text */}
-        <div className="glass-card rounded-xl border border-neon/15 p-5 space-y-3">
+        <div className="glass-card rounded-xl border border-primary/15 p-5 space-y-3">
           <p className="font-body text-xs text-muted-foreground leading-relaxed">
             Website Matching Teammate được phát triển nhằm hỗ trợ các thí sinh Data Science Talent Competition - Vietnam Quant Challenge 2026 trong quá trình kết nối, tìm kiếm đồng đội và chuẩn bị cho Giai đoạn 2 của cuộc thi.
           </p>
@@ -288,13 +296,14 @@ export default function Guide() {
         </div>
 
         {/* Footer */}
-        <div className="text-center pb-4 space-y-2">
+        <div className="flex flex-col text-center pb-4 space-y-2 gap-2">
           <div className="flex items-center justify-center gap-3">
-            <img src="/ftu.webp" alt="FTU" className="w-7 h-7 rounded-full object-contain opacity-60" />
-            <img src="/fyu.webp" alt="Đoàn" className="w-7 h-7 rounded-full object-cover opacity-60" />
-            <img src="/cte-logo.svg" alt="CTE FTU" className="w-7 h-7 rounded object-contain opacity-60" />
+            <img src="/ftu.webp" alt="FTU" className="w-7 h-7 object-contain" />
+            <img src="/fyu.svg" alt="Đoàn" className="w-7 h-7 object-contain" />
+            <img src="/cte-logo.svg" alt="CTE FTU" className="w-6 h-6 object-contain" />
+            <img src="/dstc-key.webp" alt="DSTC" className="w-7 h-7 object-contain" />
           </div>
-          <p className="font-body text-[10px] text-muted-foreground/40">© 2026 DSTC: VQC — CTE FTU — ĐH Ngoại Thương</p>
+          <p className="font-body text-[12px] text-muted-foreground/80">Bản quyền © 2026 CLB Khoa học Công nghệ trong Kinh tế và Kinh doanh. Bảo lưu mọi quyền.</p>
         </div>
       </div>
     </div>
