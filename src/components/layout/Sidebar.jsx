@@ -5,6 +5,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { User, Heart, MessageCircle, Settings, LogOut, Sparkles, LayoutDashboard, BookOpen, Shield } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import NotificationBell from './NotificationBell';
 import { useQuery } from '@tanstack/react-query';
 
 const navItems = [
@@ -12,9 +13,7 @@ const navItems = [
   { path: '/discover', label: 'Khám phá', icon: Sparkles },
   { path: '/profile', label: 'Hồ sơ', icon: User },
   { path: '/matches', label: 'Đã match', icon: Heart },
-  { path: '/messages', label: 'Tin nhắn', icon: MessageCircle },
-  { path: '/guide', label: 'Hướng dẫn', icon: BookOpen },
-  { path: '/settings', label: 'Cài đặt', icon: Settings }];
+  { path: '/messages', label: 'Tin nhắn', icon: MessageCircle }];
 
 export default function Sidebar() {
   const location = useLocation();
@@ -24,17 +23,20 @@ export default function Sidebar() {
   });
 
   return (
-    <aside className="w-64 h-screen flex flex-col sticky top-0 glass-card border-r border-neon/10">
+    <aside className="w-64 h-screen flex flex-col sticky top-0 glass-card border-r border-primary/10">
       {/* Logo */}
-      <div className="p-5 flex items-center gap-3 border-b border-neon/10">
+      <div className="p-5 flex items-center gap-3 border-b border-primary/10">
         <img
-          src="/bnd-dstc.webp"
+          src="/dstc-key-sphere.webp"
           alt="DSTC Logo"
           className="w-10 h-10 rounded-lg object-contain" />
 
         <div className="leading-tight">
-          <div className="font-display font-bold text-sm neon-text tracking-widest">DSTC - VQC 2026</div>
-          <div className="font-display text-[9px] text-muted-foreground tracking-wider uppercase">Matching Platform</div>
+          <div className="font-display font-bold text-sm text-white">
+            DSTC 2026&ensp;<span className="text-gray-700">//</span>&ensp;VQC
+
+          </div>
+          <div className="font-display text-[12px] text-muted-foreground">Matching Platform</div>
         </div>
       </div>
 
@@ -47,64 +49,52 @@ export default function Sidebar() {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 font-mono text-sm group ${isActive ?
-                'bg-neon/10 text-neon border border-neon/30 neon-glow' :
-                'text-muted-foreground hover:bg-neon/5 hover:text-neon/80 border border-transparent'}`
-              }>
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 font-mono text-sm group ${isActive
+                ? 'bg-primary/10 text-primary'
+                : 'text-muted-foreground hover:bg-primary/5 hover:text-primary/80'
+                }`}>
 
-              <Icon className={`w-4 h-4 ${isActive ? 'neon-text' : ''}`} />
+              <Icon className={`w-4 h-4 ${isActive ? 'text-primary' : ''}`} />
               {item.label}
-              {isActive &&
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-neon animate-pulse-neon" />
-              }
             </Link>);
 
         })}
       </nav>
 
       {/* Footer logos */}
-      <div className="p-3 border-t border-neon/10 space-y-3">
-        <div className="flex items-center gap-2 px-2">
-          <img
-            src="/ftu.webp"
-            alt="FTU"
-            className="w-7 h-7 rounded-full object-contain opacity-70 flex-shrink-0" />
-
-          <span className="font-mono text-[10px] text-muted-foreground leading-tight">Trường ĐH Ngoại thương</span>
-        </div>
-        <div className="flex items-center gap-2 px-2">
-          <img
-            src="/fyu.webp"
-            alt="Đoàn trường"
-            className="w-7 h-7 rounded-full object-cover opacity-70" />
-
-          <span className="font-mono text-[10px] text-muted-foreground leading-tight">Đoàn TNCS HCM<br />ĐH Ngoại Thương</span>
-        </div>
-        <div className="flex items-center gap-2 px-2">
-          <img
-            src="/cte-logo.svg"
-            alt="CTE FTU"
-            className="w-7 h-7 rounded object-contain opacity-70 flex-shrink-0 invert" />
-
-          <span className="font-mono text-[10px] text-muted-foreground leading-tight">CTE FTU: CLB KH&CN trong KT&KD</span>
-        </div>
+      <div className="p-3 border-t border-primary/10 space-y-3">
         {currentUser?.role === 'admin' && (
           <Link
             to="/admin"
-            className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all font-mono text-xs mb-1 ${location.pathname === '/admin' ? 'bg-neon/10 text-neon border border-neon/30' : 'text-muted-foreground hover:bg-neon/5 hover:text-neon/80 border border-transparent'
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 font-mono text-sm group ${location.pathname === '/admin' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-primary/5 hover:text-primary/80'
               }`}
           >
             <Shield className="w-4 h-4" /> Admin Match Viewer
           </Link>
         )}
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive font-mono text-sm h-9"
-          onClick={() => db.auth.logout()}>
+        <div className="flex flex-col gap-1 px-2">
+          <NotificationBell />
+          <Link
+            to="/guide"
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 font-mono text-sm group ${location.pathname === '/guide' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-primary/5 hover:text-primary/80'}`}
+          >
+            <BookOpen className="w-4 h-4" /> Hướng dẫn
+          </Link>
+          <Link
+            to="/settings"
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 font-mono text-sm group ${location.pathname === '/settings' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-primary/5 hover:text-primary/80'}`}
+          >
+            <Settings className="w-4 h-4" /> Cài đặt
+          </Link>
+          <Button
+            variant="ghost"
+            className="justify-start gap-3 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 font-mono text-sm h-auto py-3 w-full"
+            onClick={() => db.auth.logout()}>
 
-          <LogOut className="w-4 h-4" />
-          Đăng xuất
-        </Button>
+            <LogOut className="w-4 h-4" />
+            Đăng xuất
+          </Button>
+        </div>
       </div>
     </aside>);
 

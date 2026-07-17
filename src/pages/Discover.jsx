@@ -53,8 +53,7 @@ function DraggableCard({ profile, onSwipe }) {
       {/* Like stamp */}
       <motion.div
         style={{ opacity: likeOpacity }}
-        className="absolute top-5 left-4 z-20 font-display text-neon text-2xl font-black border-[3px] border-neon rounded-lg px-3 py-1 rotate-[-18deg] pointer-events-none select-none"
-        style={{ opacity: likeOpacity, textShadow: '0 0 12px rgba(49,209,162,0.8)', boxShadow: '0 0 12px rgba(49,209,162,0.3)' }}
+        className="absolute top-5 left-4 z-20 font-display text-primary text-2xl font-black border-[3px] border-primary rounded-lg px-3 py-1 rotate-[-18deg] pointer-events-none select-none"
       >
         LIKE ✓
       </motion.div>
@@ -192,13 +191,13 @@ export default function Discover() {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 grid-overlay">
         <div className="text-center max-w-sm glass-card rounded-2xl p-8 border border-neon/20">
-          <Sparkles className="w-10 h-10 text-neon mx-auto mb-4" />
-          <h2 className="font-display font-bold text-base neon-text tracking-widest uppercase mb-2">Hoàn thành hồ sơ trước</h2>
+          <Sparkles className="w-10 h-10 text-neon mx-auto mb-4 text-primary" />
+          <h2 className="font-display font-bold text-base mb-2 text-primary">Hoàn thành hồ sơ trước</h2>
           <p className="text-muted-foreground font-body text-xs mb-5 leading-relaxed">
             Bạn cần hoàn thành hồ sơ để bắt đầu tìm kiếm đồng đội
           </p>
           <Link to="/profile">
-            <Button className="font-display text-xs uppercase tracking-widest gap-2 bg-neon text-background hover:bg-neon/90 neon-glow">
+            <Button className="font-display text-xs font-medium gap-2 bg-primary text-background hover:bg-primary/90 ">
               Hoàn thành hồ sơ <ChevronRight className="w-4 h-4" />
             </Button>
           </Link>
@@ -213,29 +212,27 @@ export default function Discover() {
       <div className="w-full max-w-sm pt-4 pb-3">
         <div className="flex items-center justify-between mb-1">
           <div>
-            <h1 className="font-display font-bold text-sm tracking-wide neon-text">Tìm đồng đội</h1>
+            <h1 className="font-display font-bold text-sm tracking-wide text-primary">Tìm đồng đội</h1>
             <p className="text-muted-foreground font-body text-xs">{remaining} ứng viên{activeFilters > 0 ? ` (đã lọc)` : ''}</p>
           </div>
           <button
             onClick={() => setShowFilter(true)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-body transition-all ${
-              activeFilters > 0
-                ? 'border-neon/50 bg-neon/10 text-neon'
-                : 'border-neon/15 text-muted-foreground hover:border-neon/30 hover:text-foreground'
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-body transition-all ${activeFilters > 0
+              ? 'border-primary/50 bg-primary/10 text-primary'
+              : 'border-primary/15 text-muted-foreground hover:border-primary/30 hover:text-foreground'
+              }`}
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
-            Lọc {activeFilters > 0 && <span className="bg-neon text-background rounded px-1 text-[10px] font-display font-bold">{activeFilters}</span>}
+            Lọc {activeFilters > 0 && <span className="bg-primary text-background rounded px-1 text-[10px] font-display font-bold">{activeFilters}</span>}
           </button>
         </div>
         {/* Progress */}
         {candidates.length > 0 && (
           <div className="h-1 bg-muted rounded-full overflow-hidden">
             <motion.div
-              className="h-full bg-neon rounded-full"
+              className="h-full bg-primary rounded-full"
               animate={{ width: `${Math.min(100, (currentIndex / candidates.length) * 100)}%` }}
               transition={{ duration: 0.4 }}
-              style={{ boxShadow: '0 0 6px rgba(49,209,162,0.5)' }}
             />
           </div>
         )}
@@ -266,8 +263,8 @@ export default function Discover() {
               animate={{ opacity: 1, scale: 1 }}
               className="absolute inset-0 flex items-center justify-center"
             >
-              <div className="text-center glass-card rounded-2xl p-8 border border-neon/15 w-full">
-                <RotateCcw className="w-10 h-10 text-neon/20 mx-auto mb-3" />
+              <div className="text-center glass-card rounded-2xl p-8 border border-primary/15 w-full">
+                <RotateCcw className="w-10 h-10 text-primary/20 mx-auto mb-3" />
                 <p className="font-display text-sm text-foreground font-semibold mb-1">
                   {activeFilters > 0 ? 'Không tìm thấy ứng viên' : 'Đã hết ứng viên!'}
                 </p>
@@ -276,7 +273,7 @@ export default function Discover() {
                 </p>
                 {activeFilters > 0 && (
                   <Button size="sm" variant="outline"
-                    className="font-display text-xs border-neon/30 text-neon hover:bg-neon/10"
+                    className="font-display text-xs border-primary/30 text-primary hover:bg-primary/10"
                     onClick={() => setFilters({ roles: [], experience: [], goals: [], tools: [], frameworks: [], skillset: [], soft_skills: [], cities: [] })}>
                     Bỏ lọc
                   </Button>
@@ -302,11 +299,10 @@ export default function Discover() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.88 }}
-            className="w-16 h-16 rounded-full bg-neon/15 border-2 border-neon flex items-center justify-center transition-all duration-150"
-            style={{ boxShadow: '0 0 20px rgba(49,209,162,0.4), 0 0 40px rgba(49,209,162,0.15)' }}
+            className="w-16 h-16 rounded-full bg-primary/15 border-2 border-primary flex items-center justify-center transition-all duration-150"
             onClick={() => handleSwipe('like')}
           >
-            <Heart className="w-7 h-7 text-neon fill-neon/20" />
+            <Heart className="w-7 h-7 text-primary fill-primary/20" />
           </motion.button>
         </div>
       )}

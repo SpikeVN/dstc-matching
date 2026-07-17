@@ -78,7 +78,7 @@ export default function AdminMatches() {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="font-display font-bold text-xl tracking-wide neon-text flex items-center gap-2">
+            <h1 className="font-display font-bold text-xl tracking-wide text-primary flex items-center gap-2">
               <Shield className="w-5 h-5" /> Admin — Match Viewer
             </h1>
             <p className="font-body text-xs text-muted-foreground mt-1">
@@ -86,7 +86,7 @@ export default function AdminMatches() {
             </p>
           </div>
           <div className="flex gap-3 text-xs font-body">
-            <div className="px-3 py-1.5 rounded-lg bg-neon/10 border border-neon/20 text-neon">
+            <div className="px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary">
               <span className="font-bold text-lg">{matches.length}</span> Matches
             </div>
             <div className="px-3 py-1.5 rounded-lg bg-pink-500/10 border border-pink-500/20 text-pink-300">
@@ -108,18 +108,18 @@ export default function AdminMatches() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Tìm theo tên, email, trường..."
-            className="pl-9 bg-muted/40 border-neon/15 focus:border-neon/40 font-body text-sm"
+            className="pl-9 bg-muted/40 border-primary/15 focus:border-primary/40 font-body text-sm"
           />
         </div>
 
         {/* Match list */}
         {isLoading ? (
           <div className="text-center py-16">
-            <div className="w-8 h-8 border-2 border-neon/20 border-t-neon rounded-full animate-spin mx-auto" />
+            <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
-            <Heart className="w-10 h-10 text-neon/10 mx-auto mb-3" />
+            <Heart className="w-10 h-10 text-primary/10 mx-auto mb-3" />
             <p className="font-body text-sm text-muted-foreground">Không tìm thấy match nào</p>
           </div>
         ) : (
@@ -130,7 +130,7 @@ export default function AdminMatches() {
               const msgCount = msgCountByMatch[match.id] || 0;
 
               return (
-                <div key={match.id} className="glass-card rounded-xl border border-neon/10 p-4">
+                <div key={match.id} className="glass-card rounded-xl border border-primary/10 p-4">
                   <div className="flex items-center gap-3 flex-wrap">
                     {/* Index */}
                     <span className="font-display text-xs text-muted-foreground/50 w-6 text-right flex-shrink-0">#{i + 1}</span>
@@ -157,7 +157,7 @@ export default function AdminMatches() {
                         {match.created_date ? format(addHours(new Date(match.created_date), 7), 'HH:mm dd/MM/yyyy') : '—'}
                       </span>
                       <span className={`text-[10px] px-2 py-0.5 rounded border font-body ${
-                        match.status === 'team_joined' ? 'text-neon border-neon/30 bg-neon/5' :
+                        match.status === 'team_joined' ? 'text-primary border-primary/30 bg-primary/5' :
                         match.status === 'team_invited' ? 'text-yellow-300 border-yellow-400/30 bg-yellow-400/5' :
                         'text-pink-300 border-pink-400/30 bg-pink-400/5'
                       }`}>{match.status}</span>
@@ -176,16 +176,16 @@ export default function AdminMatches() {
 function UserCard({ profile, email }) {
   return (
     <div className="flex items-center gap-2 flex-1 min-w-0 max-w-[200px]">
-      <div className="w-9 h-9 rounded-lg overflow-hidden border border-neon/20 bg-muted/50 flex-shrink-0">
+      <div className="w-9 h-9 rounded-lg overflow-hidden border border-primary/20 bg-muted/50 flex-shrink-0">
         {profile?.profile_image
           ? <img src={profile.profile_image} alt="" className="w-full h-full object-cover" />
-          : <div className="w-full h-full flex items-center justify-center"><User className="w-4 h-4 text-neon/30" /></div>
+          : <div className="w-full h-full flex items-center justify-center"><User className="w-4 h-4 text-primary/30" /></div>
         }
       </div>
       <div className="min-w-0">
         <p className="font-display font-semibold text-xs text-foreground truncate">{profile?.display_name || 'Unknown'}</p>
         <p className="font-body text-[10px] text-muted-foreground truncate">{email}</p>
-        {profile?.role && <p className="font-body text-[10px] text-neon/60 truncate">{profile.role}</p>}
+        {profile?.role && <p className="font-body text-[10px] text-primary/60 truncate">{profile.role}</p>}
       </div>
     </div>
   );

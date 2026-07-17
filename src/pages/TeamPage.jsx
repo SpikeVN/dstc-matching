@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 
 const ROLE_COLORS = {
   'Data': 'text-blue-300',
-  'ML': 'text-neon',
+  'ML': 'text-primary',
   'Backend': 'text-purple-300',
   'All-rounder': 'text-yellow-300',
 };
@@ -134,22 +134,22 @@ export default function TeamPage() {
     <div className="min-h-screen p-4 md:p-8 grid-overlay">
       <div className="max-w-2xl mx-auto space-y-5">
         <div>
-          <h1 className="font-display font-bold text-xl tracking-widest uppercase flex items-center gap-2">
-            <Users className="w-5 h-5 text-neon" />
-            <span className="neon-text">Đội của tôi</span>
+          <h1 className="font-display font-bold text-xl flex items-center gap-2">
+            <Users className="w-5 h-5 text-primary" />
+            <span className="text-primary">Đội của tôi</span>
           </h1>
         </div>
 
         {/* Pending Invites */}
         {invites.length > 0 && (
-          <div className="glass-card rounded-xl border border-neon/25 neon-glow overflow-hidden">
-            <div className="px-4 py-3 border-b border-neon/15 flex items-center gap-2">
-              <UserPlus className="w-4 h-4 text-neon" />
-              <h3 className="font-display text-xs tracking-widest uppercase neon-text">Lời mời ({invites.length})</h3>
+          <div className="glass-card rounded-xl border border-primary/25  overflow-hidden">
+            <div className="px-4 py-3 border-b border-primary/15 flex items-center gap-2">
+              <UserPlus className="w-4 h-4 text-primary" />
+              <h3 className="font-display text-sm font-semibold text-primary">Lời mời ({invites.length})</h3>
             </div>
             <div className="p-3 space-y-2">
               {invites.map(inv => (
-                <div key={inv.id} className="flex items-center justify-between p-3 bg-neon/5 rounded-lg border border-neon/10">
+                <div key={inv.id} className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/10">
                   <div>
                     <p className="font-mono text-sm font-medium text-foreground">
                       {profileMap[inv.inviter_id]?.display_name || inv.inviter_id}
@@ -157,7 +157,7 @@ export default function TeamPage() {
                     <p className="text-xs text-muted-foreground font-mono">mời bạn vào đội</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" className="h-8 w-8 p-0 bg-neon text-background hover:bg-neon/90"
+                    <Button size="sm" className="h-8 w-8 p-0 bg-primary text-background hover:bg-primary/90"
                       onClick={() => respondInviteMutation.mutate({ invite: inv, accept: true })}>
                       <Check className="w-3.5 h-3.5" />
                     </Button>
@@ -174,36 +174,36 @@ export default function TeamPage() {
 
         {/* My Team */}
         {leaderTeam ? (
-          <div className="glass-card rounded-xl border border-neon/15 overflow-hidden">
-            <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-2">
-              <Crown className="w-4 h-4 text-neon" />
-              <h3 className="font-display text-xs tracking-widest uppercase neon-text flex-1">{leaderTeam.name}</h3>
-              <span className="font-mono text-[10px] text-muted-foreground px-2 py-0.5 rounded border border-neon/10">
+          <div className="glass-card rounded-xl border border-primary/15 overflow-hidden">
+            <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+              <Crown className="w-4 h-4 text-primary" />
+              <h3 className="font-display text-sm font-semibold text-primary flex-1">{leaderTeam.name}</h3>
+              <span className="font-mono text-[10px] text-muted-foreground px-2 py-0.5 rounded border border-primary/10">
                 {(leaderTeam.member_ids || []).length}/{leaderTeam.max_members || 4}
               </span>
             </div>
 
             <div className="p-3 space-y-2">
-              <p className="font-mono text-[10px] text-neon/50 px-1">{statusLabel[leaderTeam.status]}</p>
+              <p className="font-mono text-[10px] text-primary/50 px-1">{statusLabel[leaderTeam.status]}</p>
               {(leaderTeam.member_ids || []).map(email => {
                 const p = profileMap[email];
                 const isLeader = email === leaderTeam.leader_id;
                 return (
-                  <div key={email} className="flex items-center gap-3 p-3 rounded-lg bg-neon/5 border border-neon/10">
-                    <div className="w-10 h-10 rounded-full bg-muted overflow-hidden border border-neon/15">
+                  <div key={email} className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+                    <div className="w-10 h-10 rounded-full bg-muted overflow-hidden border border-primary/15">
                       {p?.profile_image ? (
                         <img src={p.profile_image} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <User className="w-4 h-4 text-neon/30" />
+                          <User className="w-4 h-4 text-primary/30" />
                         </div>
                       )}
                     </div>
                     <div className="flex-1">
                       <p className="font-mono text-sm font-medium text-foreground">{p?.display_name || email}</p>
-                      {p?.role && <p className={`font-display text-[10px] tracking-widest ${ROLE_COLORS[p.role] || 'text-neon'}`}>{p.role}</p>}
+                      {p?.role && <p className={`font-display text-[10px] ${ROLE_COLORS[p.role] || 'text-primary'}`}>{p.role}</p>}
                     </div>
-                    {isLeader && <Crown className="w-4 h-4 text-neon" />}
+                    {isLeader && <Crown className="w-4 h-4 text-primary" />}
                   </div>
                 );
               })}
@@ -212,17 +212,17 @@ export default function TeamPage() {
             {/* Slots remaining */}
             {(leaderTeam.member_ids || []).length < (leaderTeam.max_members || 4) && (
               <div className="px-4 pb-4">
-                <p className="font-mono text-[10px] text-muted-foreground text-center py-3 border border-dashed border-neon/15 rounded-lg">
+                <p className="font-mono text-[10px] text-muted-foreground text-center py-3 border border-dashed border-primary/15 rounded-lg">
                   + {(leaderTeam.max_members || 4) - (leaderTeam.member_ids || []).length} slot còn trống · Mời thêm từ trang Matches
                 </p>
               </div>
             )}
           </div>
         ) : (
-          <div className="glass-card rounded-xl border border-neon/15 overflow-hidden">
-            <div className="px-4 py-3 border-b border-neon/10 flex items-center gap-2">
-              <Shield className="w-4 h-4 text-neon" />
-              <h3 className="font-display text-xs tracking-widest uppercase neon-text">Tạo đội mới</h3>
+          <div className="glass-card rounded-xl border border-primary/15 overflow-hidden">
+            <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+              <Shield className="w-4 h-4 text-primary" />
+              <h3 className="font-display text-sm font-semibold text-primary">Tạo đội mới</h3>
             </div>
             <div className="p-4">
               <div className="flex gap-3">
@@ -230,13 +230,13 @@ export default function TeamPage() {
                   value={teamName}
                   onChange={e => setTeamName(e.target.value)}
                   placeholder="Nhập tên đội..."
-                  className="font-mono text-sm bg-muted/50 border-neon/20 focus:border-neon/50 text-foreground placeholder:text-muted-foreground"
+                  className="font-mono text-sm bg-muted/50 border-primary/20 focus:border-primary/50 text-foreground placeholder:text-muted-foreground"
                   onKeyDown={e => e.key === 'Enter' && teamName.trim() && createTeamMutation.mutate()}
                 />
                 <Button
                   onClick={() => createTeamMutation.mutate()}
                   disabled={!teamName.trim()}
-                  className="gap-1 font-display text-xs uppercase tracking-widest bg-neon text-background hover:bg-neon/90 flex-shrink-0"
+                  className="gap-1 font-display text-xs font-medium bg-primary text-background hover:bg-primary/90 flex-shrink-0"
                 >
                   <Plus className="w-4 h-4" /> Tạo
                 </Button>

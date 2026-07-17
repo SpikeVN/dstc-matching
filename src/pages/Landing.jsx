@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 
 /* ── Logo assets ──────────────────────────────────────────── */
 const FTU_LOGO = '/ftu.webp';
-const DOAN_LOGO = '/fyu.webp';
+const DOAN_LOGO = '/fyu.svg';
 const CTE_LOGO = '/cte-logo.svg';
 
 /* ── Decorative assets ────────────────────────────────────── */
@@ -309,7 +309,7 @@ export default function Landing() {
               src={IMG_KEY}
               alt=""
               className="absolute pointer-events-none select-none
-                     w-full h-auto"
+                     w-auto h-full"
             />
           </div>
         </div>
@@ -318,47 +318,44 @@ export default function Landing() {
       {/* ── Footer ────────────────────────────────────────── */}
       <footer className="relative w-full overflow-hidden" style={{ minHeight: '360px' }}>
         {/* Bushes decoration */}
-        <img
-          src={IMG_BUSH}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover opacity-30 pointer-events-none select-none"
-          style={{ objectPosition: 'top' }}
-        />
-
         <div className="relative z-10 flex flex-col lg:flex-row items-center lg:items-start
-                        gap-6 lg:gap-[60px] px-5 lg:px-[75px] py-8 lg:py-[79px]">
+                        gap-6 lg:gap-[60px] px-5 lg:px-[75px] py-8 lg:py-[79px] justify-between">
 
           {/* CTE logo */}
-          <img
-            src={CTE_LOGO}
-            alt="CTE FTU"
-            className="w-12 h-12 lg:w-[68px] lg:h-[68px] object-contain shrink-0"
-          />
+          <div className="flex flex-col lg:flex-row gap-8 items-center justify-center">
+            <img
+              src={CTE_LOGO}
+              alt="CTE FTU"
+              className="w-12 h-12 lg:w-[68px] lg:h-[68px] object-contain shrink-0"
+            />
 
-          {/* Right column: club name + contacts */}
-          <div className="flex flex-col gap-4 lg:gap-[15px] items-center lg:items-start w-full lg:w-auto">
-            {/* Club name */}
-            <div className="font-display font-semibold text-sm lg:text-[18px] text-white text-center lg:text-left leading-relaxed">
-              <p>CLB KHOA HỌC CÔNG NGHỆ</p>
-              <p>TRONG KINH TẾ VÀ KINH DOANH</p>
+            {/* Right column: club name + contacts */}
+            <div className="flex flex-col gap-4 lg:gap-[15px] items-center lg:items-start w-full lg:w-auto">
+              {/* Club name */}
+              <div className="font-display font-semibold text-sm lg:text-[18px] text-white text-center lg:text-left leading-relaxed">
+                <p>CLB KHOA HỌC CÔNG NGHỆ</p>
+                <p>TRONG KINH TẾ VÀ KINH DOANH</p>
+              </div>
+
+              {/* Contact info */}
+
             </div>
+          </div>
 
-            {/* Contact info */}
-            <div className="flex flex-col gap-3 lg:gap-[15px] items-center lg:items-start">
-              <ContactRow icon={Mail}>
-                contact.cte.ftu@gmail.com
-              </ContactRow>
+          <div className="flex flex-col gap-3 lg:gap-[15px] items-center lg:items-start">
+            <ContactRow icon={Mail}>
+              contact.cte.ftu@gmail.com
+            </ContactRow>
 
-              <ContactRow icon={MapPin}>
-                <p>Bàn số 41, Nhà CLB, tòa B, Trường Đại học Ngoại Thương</p>
-                <p>91 Chùa Láng, phường Láng, TP. Hà Nội</p>
-              </ContactRow>
+            <ContactRow icon={MapPin}>
+              <p>Bàn số 41, Nhà CLB, tòa B, Trường Đại học Ngoại Thương</p>
+              <p>91 Chùa Láng, phường Láng, TP. Hà Nội</p>
+            </ContactRow>
 
-              <ContactRow icon={Phone}>
-                <p>094 904 1674 (Mr. Nguyễn Sỹ Bách)</p>
-                <p>094 737 5991 (Ms. Nguyễn Bảo Anh)</p>
-              </ContactRow>
-            </div>
+            <ContactRow icon={Phone}>
+              <p>094 904 1674 (Mr. Nguyễn Sỹ Bách)</p>
+              <p>094 737 5991 (Ms. Nguyễn Bảo Anh)</p>
+            </ContactRow>
           </div>
         </div>
 
@@ -373,7 +370,7 @@ export default function Landing() {
           src={IMG_TREES}
           alt=""
           className="absolute left-0 top-0 w-full h-full object-cover object-top
-                     pointer-events-none select-none opacity-40 z-10"
+                     pointer-events-none select-none opacity-40 z-5"
         />
       </footer>
     </div>

@@ -10,7 +10,7 @@ import { MessageCircle, User, Heart, GraduationCap, MapPin, Zap } from 'lucide-r
 
 const ROLE_COLORS = {
   'Data': 'bg-blue-500/10 border-blue-400/30 text-blue-300',
-  'ML': 'bg-neon/10 border-neon/30 text-neon',
+  'ML': 'bg-primary/10 border-primary/30 text-primary',
   'Backend': 'bg-purple-500/10 border-purple-400/30 text-purple-300',
   'All-rounder': 'bg-yellow-500/10 border-yellow-400/30 text-yellow-300',
 };
@@ -18,7 +18,7 @@ const ROLE_COLORS = {
 const EXP_LABEL = {
   'Chưa thi lần nào': { label: 'Lần đầu tham gia', color: 'text-muted-foreground' },
   'Đã thi cuộc thi về Quant': { label: 'Đã thi Quant', color: 'text-yellow-400' },
-  'Đã từng thi DSTC': { label: 'Alumni DSTC', color: 'text-neon' },
+  'Đã từng thi DSTC': { label: 'Alumni DSTC', color: 'text-primary' },
 };
 
 export default function Matches() {
@@ -55,16 +55,16 @@ export default function Matches() {
   if (matches.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 grid-overlay">
-        <div className="text-center glass-card rounded-2xl p-10 border border-neon/15 max-w-sm w-full">
-          <div className="w-16 h-16 rounded-2xl bg-neon/10 border border-neon/20 flex items-center justify-center mx-auto mb-4">
-            <Heart className="w-7 h-7 text-neon/40" />
+        <div className="text-center glass-card rounded-2xl p-10 border border-primary/15 max-w-sm w-full">
+          <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <Heart className="w-7 h-7" stroke="var(--accent-green)" />
           </div>
-          <h2 className="font-display font-bold text-sm neon-text tracking-widest uppercase mb-2">Chưa có match</h2>
+          <h2 className="font-display font-bold text-lg text-primary mb-2">Chưa có match</h2>
           <p className="text-muted-foreground font-mono text-xs mb-5 leading-relaxed">
-            Hãy khám phá và swipe để tìm đồng đội phù hợp
+            Hãy khám phá và swipe để tìm đồng đội phù hợp nhé!
           </p>
           <Button
-            className="font-display text-xs uppercase tracking-widest gap-2 bg-neon text-background hover:bg-neon/90 transition-all duration-200"
+            className="font-display text-xs font-medium gap-2 bg-primary text-background hover:bg-primary/90 transition-all duration-200"
             onClick={() => navigate('/discover')}
           >
             <Zap className="w-4 h-4" /> Khám phá ngay
@@ -78,7 +78,7 @@ export default function Matches() {
     <div className="min-h-screen p-4 md:p-8 grid-overlay">
       <div className="max-w-3xl mx-auto">
         <div className="mb-6">
-          <h1 className="font-display font-bold text-lg tracking-widest uppercase neon-text">Matches của bạn</h1>
+          <h1 className="font-display font-bold text-lg text-primary">Matches của bạn</h1>
           <p className="font-mono text-xs text-muted-foreground mt-1">{matches.length} kết nối thành công</p>
         </div>
 
@@ -94,19 +94,19 @@ export default function Matches() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: i * 0.06 }}
-                className="glass-card rounded-xl border border-neon/10 hover:border-neon/25 transition-all duration-200 overflow-hidden group"
+                className="glass-card rounded-xl border border-primary/10 hover:border-primary/25 transition-all duration-200 overflow-hidden group"
               >
                 {/* Top accent line */}
-                <div className="h-px bg-gradient-to-r from-transparent via-neon/40 to-transparent" />
+                <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
                 <div className="p-4">
                   <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-xl overflow-hidden border border-neon/20 bg-muted/50 flex-shrink-0">
+                    <div className="w-12 h-12 rounded-xl overflow-hidden border border-primary/20 bg-muted/50 flex-shrink-0">
                       {profile?.profile_image ? (
                         <img src={profile.profile_image} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <User className="w-5 h-5 text-neon/30" />
+                          <User className="w-5 h-5 text-primary/30" />
                         </div>
                       )}
                     </div>
@@ -114,7 +114,7 @@ export default function Matches() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-display font-bold text-sm text-foreground truncate">{profile?.display_name || 'Unknown'}</h3>
                         {profile?.role && (
-                          <span className={`font-mono text-[10px] px-2 py-0.5 rounded border ${ROLE_COLORS[profile.role] || 'border-neon/20 text-neon'}`}>
+                          <span className={`font-mono text-[10px] px-2 py-0.5 rounded border ${ROLE_COLORS[profile.role] || 'border-primary/20 text-primary'}`}>
                             {profile.role}
                           </span>
                         )}
@@ -144,7 +144,7 @@ export default function Matches() {
                   {(profile?.technical_skills || []).length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-3">
                       {profile.technical_skills.slice(0, 4).map(s => (
-                        <span key={s} className="font-mono text-[10px] px-2 py-0.5 rounded border border-neon/15 text-neon/70 bg-neon/5">{s}</span>
+                        <span key={s} className="font-mono text-[10px] px-2 py-0.5 rounded border border-primary/15 text-primary/70 bg-primary/5">{s}</span>
                       ))}
                     </div>
                   )}
@@ -153,14 +153,14 @@ export default function Matches() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="flex-1 h-8 font-display text-[11px] uppercase tracking-wider gap-1.5 border-neon/25 text-neon hover:bg-neon/10"
+                      className="flex-1 h-8 font-display text-[11px] font-medium gap-1.5 border-primary/25 text-primary hover:bg-primary/10"
                       onClick={() => navigate(`/profile-view?id=${profile?.id}`)}
                     >
                       <User className="w-3.5 h-3.5" /> Hồ sơ
                     </Button>
                     <Button
                       size="sm"
-                      className="flex-1 h-8 font-display text-[11px] uppercase tracking-wider gap-1.5 bg-neon text-background hover:bg-neon/90 transition-all duration-200"
+                      className="flex-1 h-8 font-display text-[11px] font-medium gap-1.5 bg-primary text-background hover:bg-primary/90 transition-all duration-200"
                       onClick={() => navigate(`/messages?match=${match.id}`)}
                     >
                       <MessageCircle className="w-3.5 h-3.5" /> Nhắn tin

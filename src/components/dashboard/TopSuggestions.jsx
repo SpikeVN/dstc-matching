@@ -25,7 +25,7 @@ function computeScore(myProfile, candidate) {
 
 const ROLE_COLORS = {
   'Data': 'text-blue-300 border-blue-400/30',
-  'ML': 'text-neon border-neon/30',
+  'ML': 'text-primary border-primary/30',
   'Backend': 'text-purple-300 border-purple-400/30',
   'All-rounder': 'text-yellow-300 border-yellow-400/30',
 };
@@ -35,9 +35,9 @@ function ScoreBar({ score, max }) {
   return (
     <div className="flex items-center gap-2">
       <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
-        <div className="h-full bg-neon rounded-full transition-all" style={{ width: `${pct}%`, boxShadow: '0 0 4px rgba(49,209,162,0.6)' }} />
+        <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
       </div>
-      <span className="font-body text-[10px] text-neon/60 w-8 text-right">{pct}%</span>
+      <span className="font-body text-[10px] text-primary/60 w-8 text-right">{pct}%</span>
     </div>
   );
 }
@@ -70,10 +70,10 @@ export default function TopSuggestions({ myProfile, mySwipes = [] }) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-neon" />
+          <Sparkles className="w-4 h-4 text-primary" />
           <h3 className="font-display font-semibold text-sm text-foreground">Gợi ý hàng đầu</h3>
         </div>
-        <button onClick={() => navigate('/discover')} className="font-body text-xs text-neon/70 hover:text-neon transition-colors">
+        <button onClick={() => navigate('/discover')} className="font-body text-xs text-primary/70 hover:text-primary transition-colors">
           Xem thêm →
         </button>
       </div>
@@ -82,19 +82,19 @@ export default function TopSuggestions({ myProfile, mySwipes = [] }) {
           <button
             key={p.id}
             onClick={() => navigate('/discover')}
-            className="flex items-center gap-3 p-3 rounded-xl glass-card border border-neon/8 hover:border-neon/25 transition-all text-left group"
+            className="flex items-center gap-3 p-3 rounded-xl glass-card border border-primary/8 hover:border-primary/25 transition-all text-left group"
           >
-            <div className="w-10 h-10 rounded-xl overflow-hidden border border-neon/15 bg-muted/50 flex-shrink-0">
+            <div className="w-10 h-10 rounded-xl overflow-hidden border border-primary/15 bg-muted/50 flex-shrink-0">
               {p.profile_image
                 ? <img src={p.profile_image} alt="" className="w-full h-full object-cover" />
-                : <div className="w-full h-full flex items-center justify-center"><User className="w-4 h-4 text-neon/25" /></div>
+                : <div className="w-full h-full flex items-center justify-center"><User className="w-4 h-4 text-primary/25" /></div>
               }
             </div>
             <div className="flex-1 min-w-0 space-y-1">
               <div className="flex items-center gap-2">
                 <p className="font-body font-semibold text-sm text-foreground truncate">{p.display_name}</p>
                 {p.role && (
-                  <span className={`font-display text-[9px] px-1.5 py-0.5 rounded border flex-shrink-0 ${ROLE_COLORS[p.role] || 'text-neon border-neon/30'}`}>
+                  <span className={`font-display text-[9px] px-1.5 py-0.5 rounded border flex-shrink-0 ${ROLE_COLORS[p.role] || 'text-primary border-primary/30'}`}>
                     {p.role}
                   </span>
                 )}
@@ -102,13 +102,13 @@ export default function TopSuggestions({ myProfile, mySwipes = [] }) {
               <ScoreBar score={p.score} max={maxScore} />
               <div className="flex gap-1 flex-wrap">
                 {(p.technical_skills || []).slice(0, 2).map(s => (
-                  <span key={s} className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-neon/5 border border-neon/10 text-neon/60">
+                  <span key={s} className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-primary/5 border border-primary/10 text-primary/60">
                     {SKILL_ICONS[s] || '⚙️'} {s}
                   </span>
                 ))}
               </div>
             </div>
-            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-neon transition-colors flex-shrink-0" />
+            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
           </button>
         ))}
       </div>

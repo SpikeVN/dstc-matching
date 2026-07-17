@@ -25,14 +25,14 @@ const PROFILE_FIELDS = [
   { key: 'city', label: 'Tỉnh/Thành phố' },
 ];
 
-function StatCard({ icon: Icon, value, label, color = 'text-neon', onClick }) {
+function StatCard({ icon: Icon, value, label, color = 'text-primary', onClick }) {
   return (
     <motion.div
       whileHover={{ scale: 1.03 }}
       onClick={onClick}
-      className={`glass-card rounded-xl border border-neon/10 p-4 flex items-center gap-3 ${onClick ? 'cursor-pointer hover:border-neon/25' : ''} transition-all duration-200`}
+      className={`glass-card rounded-xl border border-primary/10 p-4 flex items-center gap-3 ${onClick ? 'cursor-pointer hover:border-primary/25' : ''} transition-all duration-200`}
     >
-      <div className="w-10 h-10 rounded-lg bg-neon/8 flex items-center justify-center flex-shrink-0">
+      <div className="w-10 h-10 rounded-lg bg-primary/8 flex items-center justify-center flex-shrink-0">
         {Icon && <Icon className={`w-5 h-5 ${color}`} />}
       </div>
       <div>
@@ -52,25 +52,24 @@ function ProfileCompletion({ profile }) {
   const pct = Math.round((done / fields.length) * 100);
 
   return (
-    <div className="glass-card rounded-xl border border-neon/10 p-4 space-y-3">
+    <div className="glass-card rounded-xl border border-primary/10 p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="font-display font-semibold text-sm text-foreground">Hoàn thiện hồ sơ</h3>
-        <span className="font-display font-bold text-lg neon-text">{pct}%</span>
+        <span className="font-display font-bold text-lg text-primary">{pct}%</span>
       </div>
       <div className="h-2 rounded-full bg-muted overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
-          className="h-full rounded-full bg-neon"
-          style={{ boxShadow: '0 0 8px rgba(49,209,162,0.6)' }}
+          className="h-full rounded-full bg-primary"
         />
       </div>
       <div className="grid grid-cols-2 gap-1.5">
         {fields.map(f => (
-          <div key={f.key} className={`flex items-center gap-1.5 text-xs font-body ${f.done ? 'text-neon/80' : 'text-muted-foreground'}`}>
+          <div key={f.key} className={`flex items-center gap-1.5 text-xs font-body ${f.done ? 'text-primary/80' : 'text-muted-foreground'}`}>
             {f.done
-              ? <CheckCircle className="w-3 h-3 text-neon flex-shrink-0" />
+              ? <CheckCircle className="w-3 h-3 text-primary flex-shrink-0" />
               : <div className="w-3 h-3 rounded-full border border-muted-foreground/30 flex-shrink-0" />
             }
             {f.label}
@@ -90,12 +89,12 @@ function MatchCard({ match, currentUser, profileMap, onClick }) {
     <motion.div
       whileHover={{ x: 4 }}
       onClick={onClick}
-      className="flex items-center gap-3 p-3 rounded-lg glass-card border border-neon/8 hover:border-neon/25 cursor-pointer transition-all duration-200"
+      className="flex items-center gap-3 p-3 rounded-lg glass-card border border-primary/8 hover:border-primary/25 cursor-pointer transition-all duration-200"
     >
-      <div className="w-10 h-10 rounded-lg overflow-hidden border border-neon/20 bg-muted/50 flex-shrink-0">
+      <div className="w-10 h-10 rounded-lg overflow-hidden border border-primary/20 bg-muted/50 flex-shrink-0">
         {profile?.profile_image
           ? <img src={profile.profile_image} alt="" className="w-full h-full object-cover" />
-          : <div className="w-full h-full flex items-center justify-center"><User className="w-4 h-4 text-neon/30" /></div>
+          : <div className="w-full h-full flex items-center justify-center"><User className="w-4 h-4 text-primary/30" /></div>
         }
       </div>
       <div className="flex-1 min-w-0">
@@ -178,16 +177,25 @@ export default function Dashboard() {
 
   const recentMatches = matches.slice(0, 4);
 
+  const currentHour = new Date().getHours();
+  let greeting = "Chào buổi tối,";
+
+  if (currentHour < 12) {
+    greeting = "Chào buổi sáng,";
+  } else if (currentHour < 18) {
+    greeting = "Chào buổi chiều,";
+  }
+
   return (
     <div className="min-h-screen p-4 md:p-8 grid-overlay">
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Greeting */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
           <h1 className="font-display font-bold text-2xl text-foreground">
-            Xin chào, <span className="neon-text">{myProfile?.display_name || currentUser?.full_name || 'Thí sinh'}</span> 👋
+            {greeting} <span className="text-primary">{myProfile?.display_name || currentUser?.full_name || 'Thí sinh'}</span>!
           </h1>
           <p className="font-body text-sm text-muted-foreground mt-1">
-            {new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            Hôm nay là {new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </motion.div>
 
@@ -205,7 +213,7 @@ export default function Dashboard() {
             <ProfileCompletion profile={myProfile} />
             {!myProfile?.profile_complete && (
               <Button
-                className="w-full mt-3 h-9 font-display text-xs uppercase tracking-wider bg-neon text-background hover:bg-neon/90 gap-2"
+                className="w-full mt-3 h-9 font-display text-xs font-medium bg-primary text-background hover:bg-primary/90 gap-2"
                 onClick={() => navigate('/profile')}
               >
                 <User className="w-4 h-4" /> Hoàn thiện ngay
@@ -217,21 +225,21 @@ export default function Dashboard() {
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="space-y-3">
             <h3 className="font-display font-semibold text-sm text-foreground">Thao tác nhanh</h3>
             {[
-              { Icon: Sparkles, label: 'Khám phá đồng đội', sub: 'Swipe & match với ứng viên phù hợp', path: '/discover', color: 'text-neon' },
+              { Icon: Sparkles, label: 'Khám phá đồng đội', sub: 'Swipe & match với ứng viên phù hợp', path: '/discover', color: 'text-primary' },
               { Icon: MessageCircle, label: 'Xem tin nhắn', sub: `${unreadMessages.length} tin chưa đọc`, path: '/messages', color: 'text-blue-400' },
               { Icon: Heart, label: 'Danh sách match', sub: `${matches.length} kết nối`, path: '/matches', color: 'text-pink-400' },
             ].map(item => (
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className="w-full flex items-center gap-3 p-3 rounded-lg glass-card border border-neon/8 hover:border-neon/25 transition-all duration-200 group"
+                className="w-full flex items-center gap-3 p-3 rounded-lg glass-card border border-primary/8 hover:border-primary/25 transition-all duration-200 group"
               >
                 <item.Icon className={`w-4 h-4 ${item.color} flex-shrink-0`} />
                 <div className="flex-1 text-left min-w-0">
                   <p className="font-body font-medium text-sm text-foreground">{item.label}</p>
                   <p className="font-body text-xs text-muted-foreground">{item.sub}</p>
                 </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-neon transition-colors" />
+                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
               </button>
             ))}
           </motion.div>
@@ -249,7 +257,7 @@ export default function Dashboard() {
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-display font-semibold text-sm text-foreground">Matches gần đây</h3>
-              <button onClick={() => navigate('/matches')} className="font-body text-xs text-neon/70 hover:text-neon transition-colors">
+              <button onClick={() => navigate('/matches')} className="font-body text-xs text-primary/70 hover:text-primary transition-colors">
                 Xem tất cả →
               </button>
             </div>
@@ -270,12 +278,12 @@ export default function Dashboard() {
         {/* Empty state */}
         {matches.length === 0 && myProfile?.profile_complete && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}
-            className="glass-card rounded-xl border border-neon/10 p-8 text-center">
-            <Sparkles className="w-10 h-10 text-neon/20 mx-auto mb-3" />
+            className="glass-card rounded-xl border border-primary/10 p-8 text-center">
+            <Sparkles className="w-10 h-10 text-primary/20 mx-auto mb-3" />
             <p className="font-display font-semibold text-sm text-foreground mb-1">Chưa có match nào</p>
             <p className="font-body text-xs text-muted-foreground mb-4">Bắt đầu swipe để tìm đồng đội DSTC!</p>
             <Button
-              className="h-9 font-display text-xs uppercase tracking-wider bg-neon text-background hover:bg-neon/90 gap-2"
+              className="h-9 font-display text-xs font-medium bg-primary text-background hover:bg-primary/90 gap-2"
               onClick={() => navigate('/discover')}
             >
               <Zap className="w-4 h-4" /> Bắt đầu ngay

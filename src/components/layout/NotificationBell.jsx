@@ -65,8 +65,8 @@ export default function NotificationBell() {
     ...unreadMessages.slice(0, 5).map(msg => ({
       id: `msg-${msg.id}`,
       icon: MessageCircle,
-      color: 'text-neon',
-      bg: 'bg-neon/10',
+      color: 'text-primary',
+      bg: 'bg-primary/10',
       title: `Tin nhắn mới`,
       desc: msg.content?.slice(0, 40) + (msg.content?.length > 40 ? '...' : ''),
       time: msg.created_date,
@@ -103,11 +103,12 @@ export default function NotificationBell() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(o => !o)}
-        className="relative w-9 h-9 rounded-lg flex items-center justify-center border border-neon/15 bg-neon/5 hover:bg-neon/10 hover:border-neon/30 transition-all duration-200"
+        className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 font-mono text-sm w-full text-muted-foreground hover:bg-primary/5 hover:text-primary/80"
       >
-        <Bell className="w-4 h-4 text-neon/70" />
+        <Bell className="w-4 h-4" />
+        Thông báo
         {totalUnread > 0 && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-neon text-background text-[9px] font-display font-bold flex items-center justify-center">
+          <span className="ml-auto w-4 h-4 rounded-full bg-primary text-background text-[9px] font-display font-bold flex items-center justify-center">
             {totalUnread > 9 ? '9+' : totalUnread}
           </span>
         )}
@@ -120,10 +121,10 @@ export default function NotificationBell() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-11 w-80 glass-card border border-neon/15 rounded-xl shadow-2xl z-50 overflow-hidden"
-            style={{ boxShadow: '0 8px 40px rgba(0,0,0,0.5), 0 0 20px rgba(49,209,162,0.08)' }}
+            className="absolute left-full ml-2 bottom-0 w-80 glass-card border border-primary/15 rounded-xl shadow-2xl z-50 overflow-hidden"
+            style={{ boxShadow: '0 8px 40px rgba(0,0,0,0.5)' }}
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-neon/10">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-primary/10">
               <h4 className="font-display text-sm font-semibold text-foreground">Thông báo</h4>
               <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
                 <X className="w-4 h-4" />
@@ -132,7 +133,7 @@ export default function NotificationBell() {
 
             {notifications.length === 0 ? (
               <div className="py-8 text-center">
-                <Bell className="w-8 h-8 text-neon/15 mx-auto mb-2" />
+                <Bell className="w-8 h-8 text-primary/15 mx-auto mb-2" />
                 <p className="text-xs font-body text-muted-foreground">Không có thông báo mới</p>
               </div>
             ) : (
@@ -143,7 +144,7 @@ export default function NotificationBell() {
                     <button
                       key={n.id}
                       onClick={n.action}
-                      className="w-full flex items-start gap-3 px-4 py-3 hover:bg-neon/5 transition-colors border-b border-neon/5 last:border-0 text-left"
+                      className="w-full flex items-start gap-3 px-4 py-3 hover:bg-primary/5 transition-colors border-b border-primary/5 last:border-0 text-left"
                     >
                       <div className={`w-8 h-8 rounded-lg ${n.bg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
                         <Icon className={`w-4 h-4 ${n.color}`} />
@@ -161,10 +162,10 @@ export default function NotificationBell() {
               </div>
             )}
 
-            <div className="px-4 py-2 border-t border-neon/10">
+            <div className="px-4 py-2 border-t border-primary/10">
               <button
                 onClick={() => { navigate('/messages'); setOpen(false); }}
-                className="w-full text-center text-xs font-body text-neon/70 hover:text-neon transition-colors py-1"
+                className="w-full text-center text-xs font-body text-primary/70 hover:text-primary transition-colors py-1"
               >
                 Xem tất cả tin nhắn →
               </button>
