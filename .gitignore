@@ -31,3 +31,5 @@ dist-ssr
 .vite
 base44/.app.jsonc
 public.zip
+CHANGES.md
+PROMPT.md

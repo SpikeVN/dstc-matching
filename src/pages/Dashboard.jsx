@@ -11,6 +11,7 @@ import {
   CheckCircle, Zap, Target
 } from 'lucide-react';
 import TopSuggestions from '@/components/dashboard/TopSuggestions';
+import PageFooter from '@/components/layout/PageFooter';
 
 const PROFILE_FIELDS = [
   { key: 'display_name', label: 'Họ tên' },
@@ -187,8 +188,8 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8 grid-overlay">
-      <div className="max-w-3xl mx-auto space-y-6">
+    <div className="min-h-screen flex flex-col p-4 md:p-8 grid-overlay">
+      <div className="max-w-3xl mx-auto gap-6 w-full flex-1 flex flex-col">
         {/* Greeting */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
           <h1 className="font-display font-bold text-2xl text-foreground">
@@ -290,6 +291,7 @@ export default function Dashboard() {
             </Button>
           </motion.div>
         )}
+        <PageFooter />
       </div>
     </div>
   );

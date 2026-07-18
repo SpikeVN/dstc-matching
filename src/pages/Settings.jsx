@@ -9,6 +9,7 @@ import { LogOut, Terminal, Eye, KeyRound, Activity, Clock, Heart, UserCheck, Shi
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
+import PageFooter from '@/components/layout/PageFooter';
 
 const TABS = [
   { id: 'privacy', label: 'Quyền riêng tư', icon: Eye },
@@ -450,8 +451,8 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8 grid-overlay">
-      <div className="max-w-2xl mx-auto space-y-5">
+    <div className="min-h-screen flex flex-col p-4 md:p-8 grid-overlay">
+      <div className="max-w-2xl mx-auto gap-5 w-full flex-1 flex flex-col">
         <div>
           <h1 className="font-display font-bold text-xl tracking-wide text-primary">Cài đặt</h1>
           <p className="font-body text-xs text-muted-foreground mt-1">Quản lý tài khoản và quyền riêng tư</p>
@@ -474,6 +475,7 @@ export default function Settings() {
             {renderTab()}
           </motion.div>
         </AnimatePresence>
+        <PageFooter />
       </div>
     </div>
   );

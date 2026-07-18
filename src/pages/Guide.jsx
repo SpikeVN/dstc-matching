@@ -3,6 +3,7 @@ import { db } from '@/api/base44Client';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, Star, LogIn, UserPlus, Search, HeartHandshake, AlertTriangle, Lightbulb, Building2, Handshake, Code2, Palette, Database } from 'lucide-react';
+import PageFooter from '@/components/layout/PageFooter';
 
 const STEPS = [
   {
@@ -106,13 +107,18 @@ function FAQItem({ q, a }) {
 
 export default function Guide() {
   return (
-    <div className="min-h-screen p-4 md:p-8 grid-overlay">
-      <div className="max-w-3xl mx-auto space-y-8">
-
+    <div className="min-h-screen flex flex-col p-4 md:p-8 grid-overlay">
+      <div className="max-w-3xl mx-auto gap-4 w-full flex-1 flex flex-col">
+        <div className="flex items-center justify-center gap-3">
+          <img src="/ftu.webp" alt="FTU" className="w-12 h-12 object-contain" />
+          <img src="/fyu.svg" alt="Đoàn" className="w-12 h-12 object-contain" />
+          <img src="/cte-logo.svg" alt="CTE FTU" className="w-10 h-10 object-contain" />
+          <img src="/dstc-key.webp" alt="DSTC" className="w-12 h-12 object-contain" />
+        </div>
         {/* Hero */}
         <div className="text-center space-y-3 pt-2">
           <p className="font-display text-sm text-primary/80">
-            Data Science Talent Competition - Vietnam Quant Challenge 2026
+            Data Science Talent Competition 2026&ensp;<span className="text-gray-700">//</span>&ensp;Vietnam Quant Challenge
           </p>
           <h1 className="font-display font-bold text-2xl text-primary leading-snug">
             HƯỚNG DẪN SỬ DỤNG WEBSITE MATCHING TEAMMATE
@@ -296,15 +302,7 @@ export default function Guide() {
         </div>
 
         {/* Footer */}
-        <div className="flex flex-col text-center pb-4 space-y-2 gap-2">
-          <div className="flex items-center justify-center gap-3">
-            <img src="/ftu.webp" alt="FTU" className="w-7 h-7 object-contain" />
-            <img src="/fyu.svg" alt="Đoàn" className="w-7 h-7 object-contain" />
-            <img src="/cte-logo.svg" alt="CTE FTU" className="w-6 h-6 object-contain" />
-            <img src="/dstc-key.webp" alt="DSTC" className="w-7 h-7 object-contain" />
-          </div>
-          <p className="font-body text-[12px] text-muted-foreground/80">Bản quyền © 2026 CLB Khoa học Công nghệ trong Kinh tế và Kinh doanh. Bảo lưu mọi quyền.</p>
-        </div>
+        <PageFooter />
       </div>
     </div>
   );

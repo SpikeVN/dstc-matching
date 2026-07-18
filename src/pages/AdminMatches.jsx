@@ -7,6 +7,7 @@ import { Users, Search, Heart, MessageCircle, User, Shield } from 'lucide-react'
 import { Input } from '@/components/ui/input';
 import { format, addHours } from 'date-fns';
 import MatchDashboard from '@/components/admin/MatchDashboard';
+import PageFooter from '@/components/layout/PageFooter';
 
 export default function AdminMatches() {
   const [search, setSearch] = useState('');
@@ -73,8 +74,8 @@ export default function AdminMatches() {
   const isLoading = loadingMatches || loadingProfiles;
 
   return (
-    <div className="min-h-screen p-4 md:p-8 grid-overlay">
-      <div className="max-w-4xl mx-auto space-y-5">
+    <div className="min-h-screen flex flex-col p-4 md:p-8 grid-overlay">
+      <div className="max-w-4xl mx-auto gap-5 w-full flex-1 flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
@@ -156,11 +157,10 @@ export default function AdminMatches() {
                       <span className="text-[10px] font-body text-muted-foreground/50">
                         {match.created_date ? format(addHours(new Date(match.created_date), 7), 'HH:mm dd/MM/yyyy') : '—'}
                       </span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded border font-body ${
-                        match.status === 'team_joined' ? 'text-primary border-primary/30 bg-primary/5' :
-                        match.status === 'team_invited' ? 'text-yellow-300 border-yellow-400/30 bg-yellow-400/5' :
-                        'text-pink-300 border-pink-400/30 bg-pink-400/5'
-                      }`}>{match.status}</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded border font-body ${match.status === 'team_joined' ? 'text-primary border-primary/30 bg-primary/5' :
+                          match.status === 'team_invited' ? 'text-yellow-300 border-yellow-400/30 bg-yellow-400/5' :
+                            'text-pink-300 border-pink-400/30 bg-pink-400/5'
+                        }`}>{match.status}</span>
                     </div>
                   </div>
                 </div>
@@ -168,6 +168,7 @@ export default function AdminMatches() {
             })}
           </div>
         )}
+        <PageFooter />
       </div>
     </div>
   );
