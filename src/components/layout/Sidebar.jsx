@@ -23,7 +23,7 @@ export default function Sidebar() {
   });
 
   return (
-    <aside className="w-64 h-screen flex flex-col sticky top-0 glass-card border-r border-primary/10">
+    <aside className="w-64 h-screen flex flex-col sticky top-0 z-30 glass-card border-r border-primary/10">
       {/* Logo */}
       <div className="p-5 flex items-center gap-3 border-b border-primary/10">
         <img

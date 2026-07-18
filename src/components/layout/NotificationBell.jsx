@@ -1,6 +1,7 @@
 import { db } from '@/api/base44Client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Bell, MessageCircle, Heart, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 
@@ -10,7 +11,9 @@ import { format } from 'date-fns';
 
 export default function NotificationBell() {
   const [open, setOpen] = useState(false);
+  const [popupPos, setPopupPos] = useState(null);
   const ref = useRef(null);
+  const buttonRef = useRef(null);
   const navigate = useNavigate();
 
   const { data: currentUser } = useQuery({
@@ -54,9 +57,12 @@ export default function NotificationBell() {
 
   const totalUnread = unreadMessages.length;
 
-  // Close on outside click
+  // Close on outside click (check both button and portal popup)
   useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const handler = (e) => {
+      if (buttonRef.current?.contains(e.target) || ref.current?.contains(e.target)) return;
+      setOpen(false);
+    };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
@@ -99,10 +105,26 @@ export default function NotificationBell() {
     return `${gmt7.getUTCDate().toString().padStart(2, '0')}/${(gmt7.getUTCMonth() + 1).toString().padStart(2, '0')}`;
   };
 
+  const handleToggle = () => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPopupPos({
+        bottom: window.innerHeight - rect.bottom,
+        left: rect.right + 8,
+      });
+    }
+    setOpen(true);
+  };
+
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative">
       <button
-        onClick={() => setOpen(o => !o)}
+        ref={buttonRef}
+        onClick={handleToggle}
         className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 font-mono text-sm w-full text-muted-foreground hover:bg-primary/5 hover:text-primary/80"
       >
         <Bell className="w-4 h-4" />
@@ -113,66 +135,70 @@ export default function NotificationBell() {
           </span>
         )}
       </button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.96 }}
-            transition={{ duration: 0.15 }}
-            className="absolute left-full ml-2 bottom-0 w-80 glass-card border border-primary/15 rounded-xl shadow-2xl z-50 overflow-hidden"
-            style={{ boxShadow: '0 8px 40px rgba(0,0,0,0.5)' }}
-          >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-primary/10">
-              <h4 className="font-display text-sm font-semibold text-foreground">Thông báo</h4>
-              <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {notifications.length === 0 ? (
-              <div className="py-8 text-center">
-                <Bell className="w-8 h-8 text-primary/15 mx-auto mb-2" />
-                <p className="text-xs font-body text-muted-foreground">Không có thông báo mới</p>
+      {ReactDOM.createPortal(
+        <AnimatePresence>
+          {open && popupPos && (
+            <motion.div
+              key="notification-popup"
+              initial={{ opacity: 0, y: -8, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.96 }}
+              transition={{ duration: 0.15 }}
+              className="fixed w-80 glass-card border border-primary/15 rounded-xl shadow-2xl z-[200] overflow-hidden"
+              style={{ bottom: popupPos.bottom, left: popupPos.left, boxShadow: '0 8px 40px rgba(0,0,0,0.5)' }}
+              ref={ref}
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b border-primary/10">
+                <h4 className="font-display text-sm font-semibold text-foreground">Thông báo</h4>
+                <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-            ) : (
-              <div className="max-h-80 overflow-y-auto">
-                {notifications.map(n => {
-                  const Icon = n.icon;
-                  return (
-                    <button
-                      key={n.id}
-                      onClick={n.action}
-                      className="w-full flex items-start gap-3 px-4 py-3 hover:bg-primary/5 transition-colors border-b border-primary/5 last:border-0 text-left"
-                    >
-                      <div className={`w-8 h-8 rounded-lg ${n.bg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
-                        <Icon className={`w-4 h-4 ${n.color}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-body text-foreground leading-tight">{n.title}</p>
-                        <p className="text-xs font-body text-muted-foreground mt-0.5 truncate">{n.desc}</p>
-                      </div>
-                      <span className="text-[10px] font-body text-muted-foreground/60 flex-shrink-0 mt-0.5">
-                        {formatTime(n.time)}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
 
-            <div className="px-4 py-2 border-t border-primary/10">
-              <button
-                onClick={() => { navigate('/messages'); setOpen(false); }}
-                className="w-full text-center text-xs font-body text-primary/70 hover:text-primary transition-colors py-1"
-              >
-                Xem tất cả tin nhắn →
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              {notifications.length === 0 ? (
+                <div className="py-8 text-center">
+                  <Bell className="w-8 h-8 text-primary/15 mx-auto mb-2" />
+                  <p className="text-xs font-body text-muted-foreground">Không có thông báo mới</p>
+                </div>
+              ) : (
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.map(n => {
+                    const Icon = n.icon;
+                    return (
+                      <button
+                        key={n.id}
+                        onClick={n.action}
+                        className="w-full flex items-start gap-3 px-4 py-3 hover:bg-primary/5 transition-colors border-b border-primary/5 last:border-0 text-left"
+                      >
+                        <div className={`w-8 h-8 rounded-lg ${n.bg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
+                          <Icon className={`w-4 h-4 ${n.color}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-body text-foreground leading-tight">{n.title}</p>
+                          <p className="text-xs font-body text-muted-foreground mt-0.5 truncate">{n.desc}</p>
+                        </div>
+                        <span className="text-[10px] font-body text-muted-foreground/60 flex-shrink-0 mt-0.5">
+                          {formatTime(n.time)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="px-4 py-2 border-t border-primary/10">
+                <button
+                  onClick={() => { navigate('/messages'); setOpen(false); }}
+                  className="w-full text-center text-xs font-body text-primary/70 hover:text-primary transition-colors py-1"
+                >
+                  Xem tất cả tin nhắn →
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }
