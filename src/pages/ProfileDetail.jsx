@@ -6,6 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, MapPin, GraduationCap, Award, Star, User, MessageSquare, Wrench, Sparkles, Target, Briefcase, Medal } from 'lucide-react';
+import PageFooter from '@/components/layout/PageFooter';
 
 const ROLE_COLORS = {
   'Data Analyst': 'border-blue-400/40 text-blue-300',
@@ -65,8 +66,8 @@ export default function ProfileDetail() {
   const age = profile.birth_year ? new Date().getFullYear() - profile.birth_year : null;
 
   return (
-    <div className="min-h-screen p-4 md:p-8 grid-overlay">
-      <div className="max-w-2xl mx-auto space-y-4">
+    <div className="min-h-screen flex flex-col p-4 md:p-8 grid-overlay">
+      <div className="max-w-2xl mx-auto gap-4 w-full flex-1 flex flex-col">
         {/* Back */}
         <button
           onClick={() => navigate(-1)}
@@ -190,6 +191,7 @@ export default function ProfileDetail() {
         >
           <MessageSquare className="w-4 h-4" /> Nhắn tin
         </Button>
+        <PageFooter />
       </div>
     </div>
   );

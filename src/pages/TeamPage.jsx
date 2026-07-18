@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Users, Plus, Check, X, User, Crown, UserPlus, Shield } from 'lucide-react';
 import { toast } from 'sonner';
+import PageFooter from '@/components/layout/PageFooter';
 
 const ROLE_COLORS = {
   'Data': 'text-blue-300',
@@ -131,8 +132,8 @@ export default function TeamPage() {
   const statusLabel = { forming: '🔵 Đang thành lập', full: '🟢 Đủ thành viên', locked: '🔒 Đã khóa' };
 
   return (
-    <div className="min-h-screen p-4 md:p-8 grid-overlay">
-      <div className="max-w-2xl mx-auto space-y-5">
+    <div className="min-h-screen flex flex-col p-4 md:p-8 grid-overlay">
+      <div className="max-w-2xl mx-auto gap-5 w-full flex-1 flex flex-col">
         <div>
           <h1 className="font-display font-bold text-xl flex items-center gap-2">
             <Users className="w-5 h-5 text-primary" />
@@ -247,6 +248,7 @@ export default function TeamPage() {
             </div>
           </div>
         )}
+        <PageFooter />
       </div>
     </div>
   );

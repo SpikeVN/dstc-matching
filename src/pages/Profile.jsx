@@ -5,6 +5,7 @@ import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import InlineProfileEditor from '@/components/profile/InlineProfileEditor';
 import ProfilePreview from '@/components/profile/ProfilePreview';
+import PageFooter from '@/components/layout/PageFooter';
 import { Eye, Edit3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -63,8 +64,8 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8 grid-overlay">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen flex flex-col p-4 md:p-8 grid-overlay">
+      <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col">
         {/* Mode toggle */}
         <div className="flex items-center justify-between mb-5">
           <div>
@@ -74,17 +75,15 @@ export default function Profile() {
           <div className="flex gap-1 p-1 rounded-lg bg-muted/40 border border-primary/10">
             <button
               onClick={() => setMode('edit')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-body transition-all ${
-                mode === 'edit' ? 'bg-primary/15 text-primary border border-primary/30' : 'text-muted-foreground hover:text-foreground'
-              }`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-body transition-all ${mode === 'edit' ? 'bg-primary/15 text-primary border border-primary/30' : 'text-muted-foreground hover:text-foreground'
+                }`}
             >
               <Edit3 className="w-3.5 h-3.5" /> Chỉnh sửa
             </button>
             <button
               onClick={handleSwitchToPreview}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-body transition-all ${
-                mode === 'preview' ? 'bg-primary/15 text-primary border border-primary/30' : 'text-muted-foreground hover:text-foreground'
-              }`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-body transition-all ${mode === 'preview' ? 'bg-primary/15 text-primary border border-primary/30' : 'text-muted-foreground hover:text-foreground'
+                }`}
             >
               <Eye className="w-3.5 h-3.5" /> Xem trước
             </button>
@@ -101,6 +100,7 @@ export default function Profile() {
             <ProfilePreview profile={previewData || myProfile} />
           </motion.div>
         )}
+        <PageFooter />
       </div>
     </div>
   );

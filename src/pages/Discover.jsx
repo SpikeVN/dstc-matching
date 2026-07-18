@@ -11,6 +11,7 @@ import MatchOverlay from '@/components/discover/MatchOverlay';
 import FilterPanel from '@/components/discover/FilterPanel';
 import { COMPLEMENTARY_ROLES } from '@/lib/constants';
 import { Link } from 'react-router-dom';
+import PageFooter from '@/components/layout/PageFooter';
 
 function computeScore(myProfile, candidate) {
   let score = 0;
@@ -189,25 +190,28 @@ export default function Discover() {
 
   if (!myProfile || !myProfile.profile_complete) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 grid-overlay">
-        <div className="text-center max-w-sm glass-card rounded-2xl p-8 border border-neon/20">
-          <Sparkles className="w-10 h-10 text-neon mx-auto mb-4 text-primary" />
-          <h2 className="font-display font-bold text-base mb-2 text-primary">Hoàn thành hồ sơ trước</h2>
-          <p className="text-muted-foreground font-body text-xs mb-5 leading-relaxed">
-            Bạn cần hoàn thành hồ sơ để bắt đầu tìm kiếm đồng đội
-          </p>
-          <Link to="/profile">
-            <Button className="font-display text-xs font-medium gap-2 bg-primary text-background hover:bg-primary/90 ">
-              Hoàn thành hồ sơ <ChevronRight className="w-4 h-4" />
-            </Button>
-          </Link>
+      <div className="min-h-screen flex flex-col p-4 pb-10 grid-overlay">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center max-w-sm glass-card rounded-2xl p-8 border border-neon/20">
+            <Sparkles className="w-10 h-10 text-neon mx-auto mb-4 text-primary" />
+            <h2 className="font-display font-bold text-base mb-2 text-primary">Hoàn thành hồ sơ trước</h2>
+            <p className="text-muted-foreground font-body text-xs mb-5 leading-relaxed">
+              Bạn cần hoàn thành hồ sơ để bắt đầu tìm kiếm đồng đội
+            </p>
+            <Link to="/profile">
+              <Button className="font-display text-xs font-medium gap-2 bg-primary text-background hover:bg-primary/90 ">
+                Hoàn thành hồ sơ <ChevronRight className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
         </div>
+        <PageFooter />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center pb-4 px-4 grid-overlay">
+    <div className="min-h-screen flex flex-col items-center pb-10 px-4 grid-overlay">
       {/* Header */}
       <div className="w-full max-w-sm pt-4 pb-3">
         <div className="flex items-center justify-between mb-1">
@@ -319,6 +323,7 @@ export default function Discover() {
       />
 
       <MatchOverlay show={showMatch} matchedProfile={matchedProfile} onClose={() => setShowMatch(false)} />
+      <PageFooter />
     </div>
   );
 }

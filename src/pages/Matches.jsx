@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { MessageCircle, User, Heart, GraduationCap, MapPin, Zap } from 'lucide-react';
+import PageFooter from '@/components/layout/PageFooter';
 
 const ROLE_COLORS = {
   'Data': 'bg-blue-500/10 border-blue-400/30 text-blue-300',
@@ -54,29 +55,32 @@ export default function Matches() {
 
   if (matches.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 grid-overlay">
-        <div className="text-center glass-card rounded-2xl p-10 border border-primary/15 max-w-sm w-full">
-          <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4">
-            <Heart className="w-7 h-7" stroke="var(--accent-green)" />
+      <div className="min-h-screen flex flex-col p-4 grid-overlay">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center glass-card rounded-2xl p-10 border border-primary/15 max-w-sm w-full">
+            <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4">
+              <Heart className="w-7 h-7" stroke="var(--accent-green)" />
+            </div>
+            <h2 className="font-display font-bold text-lg text-primary mb-2">Chưa có match</h2>
+            <p className="text-muted-foreground font-mono text-xs mb-5 leading-relaxed">
+              Hãy khám phá và swipe để tìm đồng đội phù hợp nhé!
+            </p>
+            <Button
+              className="font-display text-xs font-medium gap-2 bg-primary text-background hover:bg-primary/90 transition-all duration-200"
+              onClick={() => navigate('/discover')}
+            >
+              <Zap className="w-4 h-4" /> Khám phá ngay
+            </Button>
           </div>
-          <h2 className="font-display font-bold text-lg text-primary mb-2">Chưa có match</h2>
-          <p className="text-muted-foreground font-mono text-xs mb-5 leading-relaxed">
-            Hãy khám phá và swipe để tìm đồng đội phù hợp nhé!
-          </p>
-          <Button
-            className="font-display text-xs font-medium gap-2 bg-primary text-background hover:bg-primary/90 transition-all duration-200"
-            onClick={() => navigate('/discover')}
-          >
-            <Zap className="w-4 h-4" /> Khám phá ngay
-          </Button>
         </div>
+        <PageFooter />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8 grid-overlay">
-      <div className="max-w-3xl mx-auto">
+    <div className="min-h-screen flex flex-col p-4 md:p-8 grid-overlay">
+      <div className="max-w-3xl mx-auto w-full flex-1 flex flex-col">
         <div className="mb-6">
           <h1 className="font-display font-bold text-lg text-primary">Matches của bạn</h1>
           <p className="font-mono text-xs text-muted-foreground mt-1">{matches.length} kết nối thành công</p>
@@ -171,6 +175,7 @@ export default function Matches() {
             );
           })}
         </div>
+        <PageFooter />
       </div>
     </div>
   );
