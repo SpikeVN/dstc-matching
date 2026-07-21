@@ -30,10 +30,26 @@ const AuthenticatedApp = () => {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-4">
-            <span className="text-primary-foreground font-bold text-xl" style={{ fontFamily: "'Rockwell', serif" }}>D</span>
+          <div className="relative mx-auto mb-8" style={{ width: 'fit-content' }}>
+            <div
+              className="absolute inset-0 rounded-full"
+              style={{
+                background: 'radial-gradient(circle, rgba(113,214,91,0.15) 0%, transparent 70%)',
+                filter: 'blur(40px)',
+                transform: 'scale(2.2)',
+              }}
+            />
+            <img
+              src="/dstc-key-sphere.webp"
+              alt="DSTC"
+              className="w-16 h-16 relative z-10 drop-shadow-[0_0_24px_rgba(113,214,91,0.25)] animate-pulse"
+            />
           </div>
-          <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto"></div>
+          <div className="flex justify-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
         </div>
       </div>
     );
