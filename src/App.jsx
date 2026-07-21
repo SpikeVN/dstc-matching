@@ -20,6 +20,8 @@ import Settings from '@/pages/Settings';
 import AdminMatches from '@/pages/AdminMatches';
 import Guide from '@/pages/Guide';
 import ProfileDetail from '@/pages/ProfileDetail';
+import LoginPage from '@/pages/LoginPage';
+import SignupPage from '@/pages/SignupPage';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -49,6 +51,8 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route path="/landing" element={<Landing />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
       <Route element={<AppLayout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />

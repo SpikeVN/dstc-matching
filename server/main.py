@@ -1,5 +1,7 @@
 import os
 import sys
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -7,7 +9,8 @@ from fastapi.staticfiles import StaticFiles
 # Add server directory to path so imports work
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from database import init_db
+from auth.config import CORS_ORIGINS
+from database import close_pool
 from routes.auth import router as auth_router
 from routes.profiles import router as profiles_router
 from routes.matches import router as matches_router
@@ -17,15 +20,27 @@ from routes.teams import router as teams_router
 from routes.invites import router as invites_router
 from routes.integrations import router as integrations_router
 
-app = FastAPI(title="DSTC Matching API")
 
-# CORS - allow frontend dev server
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: pool is created lazily on first request
+    print("DSTC Matching API starting...")
+    yield
+    # Shutdown: close the connection pool
+    await close_pool()
+    print("Database pool closed")
+
+
+app = FastAPI(title="DSTC Matching API", lifespan=lifespan)
+
+# CORS - allow frontend origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Mount uploads directory for serving files
@@ -44,12 +59,6 @@ app.include_router(invites_router)
 app.include_router(integrations_router)
 
 
-@app.on_event("startup")
-def on_startup():
-    init_db()
-    print("Database initialized successfully")
-
-
 @app.get("/health")
-def health():
+async def health():
     return {"status": "ok"}

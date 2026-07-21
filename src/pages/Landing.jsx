@@ -1,11 +1,9 @@
-import { db } from '@/api/base44Client';
-
 import React, { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { ArrowRight, UserPen, FolderHeart, Users, Mail, MapPin, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 /* ── Logo assets ──────────────────────────────────────────── */
 const FTU_LOGO = '/ftu.webp';
@@ -84,8 +82,9 @@ function ContactRow({ icon: Icon, children }) {
 /*  Landing Page                                                */
 /* ═══════════════════════════════════════════════════════════ */
 export default function Landing() {
+  const navigate = useNavigate();
   const handleLogin = () => {
-    db.auth.redirectToLogin('/');
+    navigate('/login');
   };
 
   useEffect(() => {

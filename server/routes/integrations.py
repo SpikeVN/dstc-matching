@@ -31,7 +31,7 @@ async def upload_file(file: UploadFile = File(...)):
 
 
 @router.post("/send-email")
-def send_email(req: EmailRequest):
+async def send_email(req: EmailRequest):
     # Stub: log to console instead of actually sending
     print(f"[EMAIL] From: {req.from_name} <{req.to}>")
     print(f"[EMAIL] Subject: {req.subject}")

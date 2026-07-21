@@ -1,0 +1,3 @@
+[Volume]
+VolumeName=supabase-db-data
+Driver=local

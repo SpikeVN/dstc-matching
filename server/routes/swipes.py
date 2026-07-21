@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 from typing import Optional
-from database import get_connection, row_to_dict, rows_to_list, generate_id, now
+from database import fetch, fetch_one, execute, generate_id, now
+from auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/swipe-actions")
 
@@ -18,90 +19,74 @@ class SwipeUpdate(BaseModel):
 
 
 @router.get("")
-def list_swipes(request: Request):
-    conn = get_connection()
+async def list_swipes(request: Request):
     query = "SELECT * FROM swipe_actions"
     params = []
     conditions = []
+    idx = 1
 
     for key in request.query_params:
         if key in ('swiper_id', 'swiped_id', 'action', 'is_match'):
             if key == 'is_match':
-                conditions.append(f"{key} = ?")
-                params.append(int(request.query_params[key] == 'true' or request.query_params[key] == '1'))
+                conditions.append(f"{key} = ${idx}")
+                params.append(request.query_params[key] in ('true', '1'))
             else:
-                conditions.append(f"{key} = ?")
+                conditions.append(f"{key} = ${idx}")
                 params.append(request.query_params[key])
+            idx += 1
 
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
 
     query += " ORDER BY created_date DESC"
-    rows = conn.execute(query, params).fetchall()
-    conn.close()
-    return rows_to_list(rows)
+    return await fetch(query, *params)
 
 
 @router.get("/{swipe_id}")
-def get_swipe(swipe_id: str):
-    conn = get_connection()
-    row = conn.execute("SELECT * FROM swipe_actions WHERE id = ?", (swipe_id,)).fetchone()
-    conn.close()
+async def get_swipe(swipe_id: str):
+    row = await fetch_one("SELECT * FROM swipe_actions WHERE id = $1", swipe_id)
     if row is None:
         raise HTTPException(status_code=404, detail="SwipeAction not found")
-    return row_to_dict(row)
+    return row
 
 
 @router.post("")
-def create_swipe(swipe: SwipeCreate):
-    conn = get_connection()
+async def create_swipe(swipe: SwipeCreate, user: dict = Depends(get_current_user)):
     sid = generate_id()
     now_ts = now()
-    conn.execute("""
+    await execute("""
         INSERT INTO swipe_actions (id, created_date, updated_date, swiper_id, swiped_id, action, is_match)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (sid, now_ts, now_ts, swipe.swiper_id, swipe.swiped_id, swipe.action, int(swipe.is_match)))
-    conn.commit()
-    row = conn.execute("SELECT * FROM swipe_actions WHERE id = ?", (sid,)).fetchone()
-    conn.close()
-    return row_to_dict(row)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+    """, sid, now_ts, now_ts, swipe.swiper_id, swipe.swiped_id, swipe.action, swipe.is_match)
+    return await fetch_one("SELECT * FROM swipe_actions WHERE id = $1", sid)
 
 
 @router.patch("/{swipe_id}")
-def update_swipe(swipe_id: str, update: SwipeUpdate):
-    conn = get_connection()
-    existing = conn.execute("SELECT * FROM swipe_actions WHERE id = ?", (swipe_id,)).fetchone()
+async def update_swipe(swipe_id: str, update: SwipeUpdate, user: dict = Depends(get_current_user)):
+    existing = await fetch_one("SELECT * FROM swipe_actions WHERE id = $1", swipe_id)
     if existing is None:
-        conn.close()
         raise HTTPException(status_code=404, detail="SwipeAction not found")
 
     fields = []
     vals = []
-    for key, value in update.dict(exclude_unset=True).items():
+    idx = 1
+    for key, value in update.model_dump(exclude_unset=True).items():
         if value is not None:
-            if key == 'is_match':
-                fields.append(f"{key} = ?")
-                vals.append(int(value))
-            else:
-                fields.append(f"{key} = ?")
-                vals.append(value)
+            fields.append(f"{key} = ${idx}")
+            vals.append(value)
+            idx += 1
 
     if fields:
-        fields.append("updated_date = ?")
+        fields.append(f"updated_date = ${idx}")
         vals.append(now())
+        idx += 1
         vals.append(swipe_id)
-        conn.execute(f"UPDATE swipe_actions SET {', '.join(fields)} WHERE id = ?", vals)
-        conn.commit()
+        await execute(f"UPDATE swipe_actions SET {', '.join(fields)} WHERE id = ${idx}", *vals)
 
-    row = conn.execute("SELECT * FROM swipe_actions WHERE id = ?", (swipe_id,)).fetchone()
-    conn.close()
-    return row_to_dict(row)
+    return await fetch_one("SELECT * FROM swipe_actions WHERE id = $1", swipe_id)
 
 
 @router.delete("/{swipe_id}")
-def delete_swipe(swipe_id: str):
-    conn = get_connection()
-    conn.execute("DELETE FROM swipe_actions WHERE id = ?", (swipe_id,))
-    conn.commit()
-    conn.close()
+async def delete_swipe(swipe_id: str, user: dict = Depends(get_current_user)):
+    await execute("DELETE FROM swipe_actions WHERE id = $1", swipe_id)
     return {"success": True}

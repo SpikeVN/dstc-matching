@@ -1,14 +1,14 @@
 import json
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 from typing import Optional
-from database import get_connection, row_to_dict, rows_to_list, generate_id, now
+from database import fetch, fetch_one, execute, generate_id, now
+from auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/contestant-profiles")
 
 
 class ProfileCreate(BaseModel):
-    created_by: str
     display_name: str = ""
     username: str = ""
     bio: str = ""
@@ -53,100 +53,85 @@ class ProfileUpdate(BaseModel):
 
 
 @router.get("")
-def list_profiles(request: Request):
-    conn = get_connection()
+async def list_profiles(request: Request):
     query = "SELECT * FROM contestant_profiles"
     params = []
     conditions = []
+    idx = 1
 
     for key in request.query_params:
         if key in ('created_by', 'team_id', 'role', 'gender', 'experience', 'display_name', 'username'):
-            conditions.append(f"{key} = ?")
+            conditions.append(f"{key} = ${idx}")
             params.append(request.query_params[key])
+            idx += 1
 
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
 
     query += " ORDER BY created_date DESC"
-    rows = conn.execute(query, params).fetchall()
-    conn.close()
-    return rows_to_list(rows)
+    return await fetch(query, *params)
 
 
 @router.get("/{profile_id}")
-def get_profile(profile_id: str):
-    conn = get_connection()
-    row = conn.execute("SELECT * FROM contestant_profiles WHERE id = ?", (profile_id,)).fetchone()
-    conn.close()
+async def get_profile(profile_id: str):
+    row = await fetch_one("SELECT * FROM contestant_profiles WHERE id = $1", profile_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Profile not found")
-    return row_to_dict(row)
+    return row
 
 
 @router.post("")
-def create_profile(profile: ProfileCreate):
-    conn = get_connection()
+async def create_profile(profile: ProfileCreate, user: dict = Depends(get_current_user)):
     pid = generate_id()
     now_ts = now()
-    conn.execute("""
+    await execute("""
         INSERT INTO contestant_profiles
         (id, created_by, created_date, updated_date, display_name, username, bio, birth_year,
          gender, city, school, major, profile_image, technical_skills, soft_skills,
          experience, goals, role, achievements, achievements_other, has_team, team_id, profile_complete)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
     """, (
-        pid, profile.created_by, now_ts, now_ts, profile.display_name, profile.username,
+        pid, user["id"], now_ts, now_ts, profile.display_name, profile.username,
         profile.bio, profile.birth_year, profile.gender, profile.city, profile.school,
         profile.major, profile.profile_image,
         json.dumps(profile.technical_skills), json.dumps(profile.soft_skills),
         profile.experience, json.dumps(profile.goals), profile.role,
         profile.achievements, profile.achievements_other,
-        int(profile.has_team), profile.team_id, int(profile.profile_complete)
+        profile.has_team, profile.team_id, profile.profile_complete
     ))
-    conn.commit()
-    row = conn.execute("SELECT * FROM contestant_profiles WHERE id = ?", (pid,)).fetchone()
-    conn.close()
-    return row_to_dict(row)
+    return await fetch_one("SELECT * FROM contestant_profiles WHERE id = $1", pid)
 
 
 @router.patch("/{profile_id}")
-def update_profile(profile_id: str, update: ProfileUpdate):
-    conn = get_connection()
-    existing = conn.execute("SELECT * FROM contestant_profiles WHERE id = ?", (profile_id,)).fetchone()
+async def update_profile(profile_id: str, update: ProfileUpdate, user: dict = Depends(get_current_user)):
+    existing = await fetch_one("SELECT * FROM contestant_profiles WHERE id = $1", profile_id)
     if existing is None:
-        conn.close()
         raise HTTPException(status_code=404, detail="Profile not found")
 
     fields = []
     vals = []
-    for key, value in update.dict(exclude_unset=True).items():
+    idx = 1
+    for key, value in update.model_dump(exclude_unset=True).items():
         if value is not None:
             if key in ('technical_skills', 'soft_skills', 'goals'):
-                fields.append(f"{key} = ?")
+                fields.append(f"{key} = ${idx}")
                 vals.append(json.dumps(value))
-            elif key in ('has_team', 'profile_complete'):
-                fields.append(f"{key} = ?")
-                vals.append(int(value))
             else:
-                fields.append(f"{key} = ?")
+                fields.append(f"{key} = ${idx}")
                 vals.append(value)
+            idx += 1
 
     if fields:
-        fields.append("updated_date = ?")
+        fields.append(f"updated_date = ${idx}")
         vals.append(now())
+        idx += 1
         vals.append(profile_id)
-        conn.execute(f"UPDATE contestant_profiles SET {', '.join(fields)} WHERE id = ?", vals)
-        conn.commit()
+        await execute(f"UPDATE contestant_profiles SET {', '.join(fields)} WHERE id = ${idx}", *vals)
 
-    row = conn.execute("SELECT * FROM contestant_profiles WHERE id = ?", (profile_id,)).fetchone()
-    conn.close()
-    return row_to_dict(row)
+    return await fetch_one("SELECT * FROM contestant_profiles WHERE id = $1", profile_id)
 
 
 @router.delete("/{profile_id}")
-def delete_profile(profile_id: str):
-    conn = get_connection()
-    conn.execute("DELETE FROM contestant_profiles WHERE id = ?", (profile_id,))
-    conn.commit()
-    conn.close()
+async def delete_profile(profile_id: str, user: dict = Depends(get_current_user)):
+    await execute("DELETE FROM contestant_profiles WHERE id = $1", profile_id)
     return {"success": True}

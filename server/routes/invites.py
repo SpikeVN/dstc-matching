@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 from typing import Optional
-from database import get_connection, row_to_dict, rows_to_list, generate_id, now
+from database import fetch, fetch_one, execute, generate_id, now
+from auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/team-invites")
 
@@ -18,82 +19,70 @@ class InviteUpdate(BaseModel):
 
 
 @router.get("")
-def list_invites(request: Request):
-    conn = get_connection()
+async def list_invites(request: Request):
     query = "SELECT * FROM team_invites"
     params = []
     conditions = []
+    idx = 1
 
     for key in request.query_params:
         if key in ('team_id', 'inviter_id', 'invitee_id', 'status'):
-            conditions.append(f"{key} = ?")
+            conditions.append(f"{key} = ${idx}")
             params.append(request.query_params[key])
+            idx += 1
 
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
 
     query += " ORDER BY created_date DESC"
-    rows = conn.execute(query, params).fetchall()
-    conn.close()
-    return rows_to_list(rows)
+    return await fetch(query, *params)
 
 
 @router.get("/{invite_id}")
-def get_invite(invite_id: str):
-    conn = get_connection()
-    row = conn.execute("SELECT * FROM team_invites WHERE id = ?", (invite_id,)).fetchone()
-    conn.close()
+async def get_invite(invite_id: str):
+    row = await fetch_one("SELECT * FROM team_invites WHERE id = $1", invite_id)
     if row is None:
         raise HTTPException(status_code=404, detail="TeamInvite not found")
-    return row_to_dict(row)
+    return row
 
 
 @router.post("")
-def create_invite(invite: InviteCreate):
-    conn = get_connection()
+async def create_invite(invite: InviteCreate, user: dict = Depends(get_current_user)):
     iid = generate_id()
     now_ts = now()
-    conn.execute("""
+    await execute("""
         INSERT INTO team_invites (id, created_date, updated_date, team_id, inviter_id, invitee_id, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (iid, now_ts, now_ts, invite.team_id, invite.inviter_id, invite.invitee_id, invite.status))
-    conn.commit()
-    row = conn.execute("SELECT * FROM team_invites WHERE id = ?", (iid,)).fetchone()
-    conn.close()
-    return row_to_dict(row)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+    """, iid, now_ts, now_ts, invite.team_id, invite.inviter_id, invite.invitee_id, invite.status)
+    return await fetch_one("SELECT * FROM team_invites WHERE id = $1", iid)
 
 
 @router.patch("/{invite_id}")
-def update_invite(invite_id: str, update: InviteUpdate):
-    conn = get_connection()
-    existing = conn.execute("SELECT * FROM team_invites WHERE id = ?", (invite_id,)).fetchone()
+async def update_invite(invite_id: str, update: InviteUpdate, user: dict = Depends(get_current_user)):
+    existing = await fetch_one("SELECT * FROM team_invites WHERE id = $1", invite_id)
     if existing is None:
-        conn.close()
         raise HTTPException(status_code=404, detail="TeamInvite not found")
 
     fields = []
     vals = []
-    for key, value in update.dict(exclude_unset=True).items():
+    idx = 1
+    for key, value in update.model_dump(exclude_unset=True).items():
         if value is not None:
-            fields.append(f"{key} = ?")
+            fields.append(f"{key} = ${idx}")
             vals.append(value)
+            idx += 1
 
     if fields:
-        fields.append("updated_date = ?")
+        fields.append(f"updated_date = ${idx}")
         vals.append(now())
+        idx += 1
         vals.append(invite_id)
-        conn.execute(f"UPDATE team_invites SET {', '.join(fields)} WHERE id = ?", vals)
-        conn.commit()
+        await execute(f"UPDATE team_invites SET {', '.join(fields)} WHERE id = ${idx}", *vals)
 
-    row = conn.execute("SELECT * FROM team_invites WHERE id = ?", (invite_id,)).fetchone()
-    conn.close()
-    return row_to_dict(row)
+    return await fetch_one("SELECT * FROM team_invites WHERE id = $1", invite_id)
 
 
 @router.delete("/{invite_id}")
-def delete_invite(invite_id: str):
-    conn = get_connection()
-    conn.execute("DELETE FROM team_invites WHERE id = ?", (invite_id,))
-    conn.commit()
-    conn.close()
+async def delete_invite(invite_id: str, user: dict = Depends(get_current_user)):
+    await execute("DELETE FROM team_invites WHERE id = $1", invite_id)
     return {"success": True}
