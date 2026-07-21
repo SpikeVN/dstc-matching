@@ -67,6 +67,10 @@ async def update_message(message_id: str, update: MessageUpdate, user: dict = De
     existing = await fetch_one("SELECT * FROM messages WHERE id = $1", message_id)
     if existing is None:
         raise HTTPException(status_code=404, detail="Message not found")
+    # Only sender or match participants can update
+    match = await fetch_one("SELECT * FROM matches WHERE id = $1", existing["match_id"])
+    if not match or user["id"] not in (match["user1_id"], match["user2_id"]):
+        raise HTTPException(status_code=403, detail="Not authorized to update this message")
 
     fields = []
     vals = []
@@ -94,6 +98,16 @@ async def bulk_update_messages(data: dict = Body(...), user: dict = Depends(get_
     if not ids:
         return {"success": False, "error": "No ids provided"}
 
+    # Verify user is a participant in the matches owning these messages
+    placeholders = ", ".join(f"${i+1}" for i in range(len(ids)))
+    rows = await fetch(
+        f"SELECT DISTINCT match_id FROM messages WHERE id IN ({placeholders})", *ids
+    )
+    for row in rows:
+        match = await fetch_one("SELECT * FROM matches WHERE id = $1", row["match_id"])
+        if not match or user["id"] not in (match["user1_id"], match["user2_id"]):
+            raise HTTPException(status_code=403, detail="Not authorized to update these messages")
+
     fields = []
     vals = []
     idx = 1
@@ -120,5 +134,11 @@ async def bulk_update_messages(data: dict = Body(...), user: dict = Depends(get_
 
 @router.delete("/{message_id}")
 async def delete_message(message_id: str, user: dict = Depends(get_current_user)):
+    existing = await fetch_one("SELECT * FROM messages WHERE id = $1", message_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="Message not found")
+    match = await fetch_one("SELECT * FROM matches WHERE id = $1", existing["match_id"])
+    if not match or user["id"] not in (match["user1_id"], match["user2_id"]):
+        raise HTTPException(status_code=403, detail="Not authorized to delete this message")
     await execute("DELETE FROM messages WHERE id = $1", message_id)
     return {"success": True}

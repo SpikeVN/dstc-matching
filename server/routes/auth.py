@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from auth.dependencies import get_current_user, get_current_user_id
+from auth.jwt import verify_token
 from auth import gotrue
 from database import fetch_one, execute, generate_id, now
 
@@ -34,8 +35,10 @@ async def signup(req: SignupRequest):
     result = await gotrue.signup(req.email, req.password, req.full_name)
 
     # GoTrue returns the user object with id, email, etc.
-    gotrue_user = result.get("user", result)
+    gotrue_user = result.get("user") or result
     user_id = gotrue_user.get("id")
+    if not user_id:
+        raise HTTPException(status_code=500, detail="GoTrue signup did not return a user ID")
 
     # Create the user in our public.users table
     now_ts = now()
@@ -65,8 +68,10 @@ async def login(req: LoginRequest):
     """Authenticate with email/password via GoTrue."""
     result = await gotrue.login(req.email, req.password)
 
-    gotrue_user = result.get("user", result)
+    gotrue_user = result.get("user") or result
     user_id = gotrue_user.get("id")
+    if not user_id:
+        raise HTTPException(status_code=500, detail="GoTrue login did not return a user ID")
 
     # Ensure user exists in public.users (in case they were created via GoTrue directly)
     user = await fetch_one("SELECT * FROM public.users WHERE id = $1", user_id)
@@ -96,9 +101,19 @@ async def google_login(req: GoogleRequest):
     """Authenticate with a Google ID token via GoTrue."""
     result = await gotrue.google_login(req.credential)
 
-    gotrue_user = result.get("user", result)
-    user_id = gotrue_user.get("id")
-    email = gotrue_user.get("email", "")
+    # Decode the access_token JWT to reliably get user_id (sub claim).
+    # GoTrue's id_token response format varies by version, but the JWT is consistent.
+    access_token = result.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=500, detail="GoTrue did not return an access token")
+    claims = verify_token(access_token)
+    user_id = claims.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=500, detail="Access token missing sub claim")
+
+    # Extract email and name from the GoTrue response (try multiple paths)
+    gotrue_user = result.get("user") or result
+    email = gotrue_user.get("email") or claims.get("email", "")
     full_name = gotrue_user.get("user_metadata", {}).get("full_name", "")
 
     # Upsert user in public.users
@@ -121,7 +136,7 @@ async def google_login(req: GoogleRequest):
     user = await fetch_one("SELECT * FROM public.users WHERE id = $1", user_id)
 
     return {
-        "access_token": result.get("access_token"),
+        "access_token": access_token,
         "refresh_token": result.get("refresh_token"),
         "user": user,
     }

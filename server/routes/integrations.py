@@ -1,7 +1,9 @@
 import os
 import uuid
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, UploadFile, File, Depends
 from pydantic import BaseModel
+
+from auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/api")
 
@@ -16,13 +18,23 @@ class EmailRequest(BaseModel):
     body: str = ""
 
 
+MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5 MB
+ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf"}
+
+
 @router.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
-    ext = os.path.splitext(file.filename)[1] if file.filename else ".bin"
+async def upload_file(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    ext = os.path.splitext(file.filename)[1].lower() if file.filename else ".bin"
+    if ext not in ALLOWED_EXTENSIONS:
+        return {"file_url": "", "error": f"File type {ext} not allowed"}
+
+    content = await file.read()
+    if len(content) > MAX_UPLOAD_SIZE:
+        return {"file_url": "", "error": "File too large (max 5 MB)"}
+
     filename = f"{uuid.uuid4()}{ext}"
     filepath = os.path.join(UPLOAD_DIR, filename)
 
-    content = await file.read()
     with open(filepath, "wb") as f:
         f.write(content)
 

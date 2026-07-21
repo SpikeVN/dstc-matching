@@ -1,4 +1,4 @@
-import { db } from '@/api/base44Client';
+import { db } from '@/api/apiClient';
 
 import React, { useState } from 'react';
 
@@ -17,7 +17,7 @@ export default function TeamConfirmBar({ match, currentUser, otherProfile }) {
     refetchInterval: 5000,
   });
 
-  const isUser1 = currentUser?.email === currentMatch?.user1_id;
+  const isUser1 = currentUser?.id === currentMatch?.user1_id;
   const myConfirmed = isUser1 ? currentMatch?.user1_confirmed : currentMatch?.user2_confirmed;
   const otherConfirmed = isUser1 ? currentMatch?.user2_confirmed : currentMatch?.user1_confirmed;
   const teamFormed = currentMatch?.status === 'team_joined';
@@ -29,8 +29,8 @@ export default function TeamConfirmBar({ match, currentUser, otherProfile }) {
       if (otherConfirmed) {
         const team = await db.entities.Team.create({
           name: `${otherProfile?.display_name || 'Team'} & ${currentUser?.full_name || 'Team'}`,
-          leader_id: currentUser.email,
-          member_ids: [currentUser.email, otherEmail],
+          leader_id: currentUser.id,
+          member_ids: [currentUser.id, otherEmail],
           max_members: 4,
           status: 'forming',
         });
@@ -39,7 +39,7 @@ export default function TeamConfirmBar({ match, currentUser, otherProfile }) {
           status: 'team_joined',
         });
         const [myProfiles, otherProfiles] = await Promise.all([
-          db.entities.ContestantProfile.filter({ created_by: currentUser.email }),
+          db.entities.ContestantProfile.filter({ created_by: currentUser.id }),
           db.entities.ContestantProfile.filter({ created_by: otherEmail }),
         ]);
         const updates = [];

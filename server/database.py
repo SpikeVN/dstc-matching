@@ -58,9 +58,9 @@ def generate_id() -> str:
     return str(uuid.uuid4())
 
 
-def now() -> str:
-    """Return the current UTC time as an ISO-format string."""
-    return datetime.now(timezone.utc).isoformat()
+def now() -> datetime:
+    """Return the current UTC time as a timezone-aware datetime."""
+    return datetime.now(timezone.utc)
 
 
 def _record_to_dict(record: asyncpg.Record) -> dict:

@@ -1,4 +1,4 @@
-import { db } from '@/api/base44Client';
+import { db } from '@/api/apiClient';
 
 import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
@@ -22,10 +22,10 @@ export default function NotificationBell() {
   });
 
   const { data: unreadMessages } = useQuery({
-    queryKey: ['unreadMessages', currentUser?.email],
+    queryKey: ['unreadMessages', currentUser?.id],
     queryFn: async () => {
       const me = await db.auth.me();
-      return db.entities.Message.filter({ receiver_id: me.email, is_read: false });
+      return db.entities.Message.filter({ receiver_id: me.id, is_read: false });
     },
     initialData: [],
     enabled: !!currentUser,
@@ -33,12 +33,12 @@ export default function NotificationBell() {
   });
 
   const { data: recentMatches } = useQuery({
-    queryKey: ['recentMatchesNotif', currentUser?.email],
+    queryKey: ['recentMatchesNotif', currentUser?.id],
     queryFn: async () => {
       const me = await db.auth.me();
       const [m1, m2] = await Promise.all([
-        db.entities.Match.filter({ user1_id: me.email }),
-        db.entities.Match.filter({ user2_id: me.email }),
+        db.entities.Match.filter({ user1_id: me.id }),
+        db.entities.Match.filter({ user2_id: me.id }),
       ]);
       const all = [...m1, ...m2].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
       return all.slice(0, 3);
@@ -79,7 +79,7 @@ export default function NotificationBell() {
       action: () => { navigate('/messages'); setOpen(false); },
     })),
     ...recentMatches.map(match => {
-      const otherEmail = match.user1_id === currentUser?.email ? match.user2_id : match.user1_id;
+      const otherEmail = match.user1_id === currentUser?.id ? match.user2_id : match.user1_id;
       const profile = profileMap[otherEmail];
       return {
         id: `match-${match.id}`,

@@ -1,4 +1,4 @@
-import { db } from '@/api/base44Client';
+import { db } from '@/api/apiClient';
 
 import { useEffect, useRef } from 'react';
 
@@ -15,13 +15,13 @@ export function useRealtimeNotifications({ currentUser, profileMap, navigate }) 
   const notifiedIds = useRef(new Set());
 
   useEffect(() => {
-    if (!currentUser?.email) return;
+    if (!currentUser?.id) return;
 
     // ── Messages ──────────────────────────────────────────────────────────
     const unsubMessage = db.entities.Message.subscribe(async (event) => {
       if (event.type !== 'create') return;
       const msg = event.data;
-      if (msg.receiver_id !== currentUser.email) return;
+      if (msg.receiver_id !== currentUser.id) return;
       if (notifiedIds.current.has(event.id)) return;
       notifiedIds.current.add(event.id);
 
@@ -68,12 +68,12 @@ Trường Đại học Ngoại thương`,
     const unsubMatch = db.entities.Match.subscribe(async (event) => {
       if (event.type !== 'create') return;
       const match = event.data;
-      if (match.user1_id !== currentUser.email && match.user2_id !== currentUser.email) return;
+      if (match.user1_id !== currentUser.id && match.user2_id !== currentUser.id) return;
       if (notifiedIds.current.has(event.id)) return;
       notifiedIds.current.add(event.id);
 
-      const otherEmail = match.user1_id === currentUser.email ? match.user2_id : match.user1_id;
-      const otherProfile = profileMap?.[otherEmail];
+      const otherId = match.user1_id === currentUser.id ? match.user2_id : match.user1_id;
+      const otherProfile = profileMap?.[otherId];
       const otherName = otherProfile?.display_name || 'Ai đó';
 
       // In-app toast
@@ -116,5 +116,5 @@ Trường Đại học Ngoại thương`,
       unsubMessage();
       unsubMatch();
     };
-  }, [currentUser?.email, profileMap, navigate]);
+  }, [currentUser?.id, profileMap, navigate]);
 }

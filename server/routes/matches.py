@@ -66,6 +66,8 @@ async def update_match(match_id: str, update: MatchUpdate, user: dict = Depends(
     existing = await fetch_one("SELECT * FROM matches WHERE id = $1", match_id)
     if existing is None:
         raise HTTPException(status_code=404, detail="Match not found")
+    if user["id"] not in (existing["user1_id"], existing["user2_id"]):
+        raise HTTPException(status_code=403, detail="Not authorized to update this match")
 
     fields = []
     vals = []
@@ -88,5 +90,10 @@ async def update_match(match_id: str, update: MatchUpdate, user: dict = Depends(
 
 @router.delete("/{match_id}")
 async def delete_match(match_id: str, user: dict = Depends(get_current_user)):
+    existing = await fetch_one("SELECT * FROM matches WHERE id = $1", match_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="Match not found")
+    if user["id"] not in (existing["user1_id"], existing["user2_id"]):
+        raise HTTPException(status_code=403, detail="Not authorized to delete this match")
     await execute("DELETE FROM matches WHERE id = $1", match_id)
     return {"success": True}

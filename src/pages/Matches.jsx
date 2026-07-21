@@ -1,4 +1,4 @@
-import { db } from '@/api/base44Client';
+import { db } from '@/api/apiClient';
 
 import React from 'react';
 
@@ -31,12 +31,12 @@ export default function Matches() {
   });
 
   const { data: matches } = useQuery({
-    queryKey: ['matches', currentUser?.email],
+    queryKey: ['matches', currentUser?.id],
     queryFn: async () => {
       const me = await db.auth.me();
       const [m1, m2] = await Promise.all([
-        db.entities.Match.filter({ user1_id: me.email }),
-        db.entities.Match.filter({ user2_id: me.email }),
+        db.entities.Match.filter({ user1_id: me.id }),
+        db.entities.Match.filter({ user2_id: me.id }),
       ]);
       return [...m1, ...m2];
     },
@@ -88,7 +88,7 @@ export default function Matches() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {matches.map((match, i) => {
-            const otherEmail = match.user1_id === currentUser?.email ? match.user2_id : match.user1_id;
+            const otherEmail = match.user1_id === currentUser?.id ? match.user2_id : match.user1_id;
             const profile = profileMap[otherEmail];
             const exp = EXP_LABEL[profile?.experience];
 

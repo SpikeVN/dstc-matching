@@ -50,7 +50,7 @@ studio.cteftu.id.vn (dashboard)           ▼
 
 ```
 ├── src/                        # React frontend
-│   ├── api/base44Client.js     # API client (fetch wrapper, token management)
+│   ├── api/apiClient.js        # API client (fetch wrapper, token management)
 │   ├── lib/
 │   │   ├── AuthContext.jsx     # Auth state provider (login, signup, logout)
 │   │   ├── supabase.js         # Thin GoTrue REST wrapper (used by AuthContext)

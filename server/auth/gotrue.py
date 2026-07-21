@@ -34,7 +34,11 @@ async def signup(email: str, password: str, full_name: str = "") -> dict:
             headers=_auth_headers(),
         )
         if resp.status_code != 200:
-            detail = resp.json().get("msg", resp.text)
+            try:
+                body = resp.json()
+                detail = body.get("msg") or body.get("error_description") or resp.text
+            except Exception:
+                detail = resp.text
             raise HTTPException(status_code=resp.status_code, detail=detail)
         return resp.json()
 
@@ -52,7 +56,11 @@ async def login(email: str, password: str) -> dict:
             headers=_auth_headers(),
         )
         if resp.status_code != 200:
-            detail = resp.json().get("error_description", resp.json().get("msg", resp.text))
+            try:
+                body = resp.json()
+                detail = body.get("error_description") or body.get("msg") or resp.text
+            except Exception:
+                detail = resp.text
             raise HTTPException(status_code=401, detail=detail)
         return resp.json()
 
@@ -70,7 +78,11 @@ async def refresh(refresh_token: str) -> dict:
             headers=_auth_headers(),
         )
         if resp.status_code != 200:
-            detail = resp.json().get("error_description", resp.json().get("msg", resp.text))
+            try:
+                body = resp.json()
+                detail = body.get("error_description") or body.get("msg") or resp.text
+            except Exception:
+                detail = resp.text
             raise HTTPException(status_code=401, detail=detail)
         return resp.json()
 
@@ -98,11 +110,16 @@ async def google_login(id_token: str) -> dict:
     """
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            f"{GOTRUE_URL}/idtoken",
+            f"{GOTRUE_URL}/token",
+            params={"grant_type": "id_token"},
             json={"provider": "google", "id_token": id_token},
             headers=_auth_headers(),
         )
         if resp.status_code != 200:
-            detail = resp.json().get("msg", resp.text)
+            try:
+                body = resp.json()
+                detail = body.get("msg") or body.get("error_description") or resp.text
+            except Exception:
+                detail = resp.text
             raise HTTPException(status_code=resp.status_code, detail=detail)
         return resp.json()

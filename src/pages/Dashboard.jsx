@@ -1,4 +1,4 @@
-import { db } from '@/api/base44Client';
+import { db } from '@/api/apiClient';
 
 import React, { useMemo } from 'react';
 
@@ -82,7 +82,7 @@ function ProfileCompletion({ profile }) {
 }
 
 function MatchCard({ match, currentUser, profileMap, onClick }) {
-  const otherEmail = match.user1_id === currentUser?.email ? match.user2_id : match.user1_id;
+  const otherEmail = match.user1_id === currentUser?.id ? match.user2_id : match.user1_id;
   const profile = profileMap[otherEmail];
   const since = match.created_date ? Math.floor((new Date() - new Date(match.created_date)) / 86400000) : 0;
 
@@ -122,7 +122,7 @@ export default function Dashboard() {
     queryKey: ['myProfile'],
     queryFn: async () => {
       const me = await db.auth.me();
-      return db.entities.ContestantProfile.filter({ created_by: me.email });
+      return db.entities.ContestantProfile.filter({ created_by: me.id });
     },
     initialData: [],
     enabled: !!currentUser,
@@ -130,12 +130,12 @@ export default function Dashboard() {
   const myProfile = myProfiles[0];
 
   const { data: matches } = useQuery({
-    queryKey: ['matches', currentUser?.email],
+    queryKey: ['matches', currentUser?.id],
     queryFn: async () => {
       const me = await db.auth.me();
       const [m1, m2] = await Promise.all([
-        db.entities.Match.filter({ user1_id: me.email }),
-        db.entities.Match.filter({ user2_id: me.email }),
+        db.entities.Match.filter({ user1_id: me.id }),
+        db.entities.Match.filter({ user2_id: me.id }),
       ]);
       return [...m1, ...m2].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
     },
@@ -144,10 +144,10 @@ export default function Dashboard() {
   });
 
   const { data: unreadMessages } = useQuery({
-    queryKey: ['unreadForDash', currentUser?.email],
+    queryKey: ['unreadForDash', currentUser?.id],
     queryFn: async () => {
       const me = await db.auth.me();
-      return db.entities.Message.filter({ receiver_id: me.email, is_read: false });
+      return db.entities.Message.filter({ receiver_id: me.id, is_read: false });
     },
     initialData: [],
     enabled: !!currentUser,
@@ -155,10 +155,10 @@ export default function Dashboard() {
   });
 
   const { data: swipes } = useQuery({
-    queryKey: ['swipesForDash', currentUser?.email],
+    queryKey: ['swipesForDash', currentUser?.id],
     queryFn: async () => {
       const me = await db.auth.me();
-      return db.entities.SwipeAction.filter({ swiper_id: me.email });
+      return db.entities.SwipeAction.filter({ swiper_id: me.id });
     },
     initialData: [],
     enabled: !!currentUser,
@@ -205,7 +205,7 @@ export default function Dashboard() {
           <StatCard icon={Heart} value={matches.length} label="Matches" onClick={() => navigate('/matches')} />
           <StatCard icon={MessageCircle} value={unreadMessages.length} label="Chưa đọc" color="text-blue-400" onClick={() => navigate('/messages')} />
           <StatCard icon={Zap} value={swipes.length} label="Đã swipe" color="text-yellow-400" />
-          <StatCard icon={Target} value={allProfiles.filter(p => p.profile_complete && p.created_by !== currentUser?.email).length} label="Ứng viên" color="text-purple-400" onClick={() => navigate('/discover')} />
+          <StatCard icon={Target} value={allProfiles.filter(p => p.profile_complete && p.created_by !== currentUser?.id).length} label="Ứng viên" color="text-purple-400" onClick={() => navigate('/discover')} />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

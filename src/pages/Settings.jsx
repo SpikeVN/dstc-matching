@@ -1,4 +1,4 @@
-import { db } from '@/api/base44Client';
+import { db } from '@/api/apiClient';
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -84,8 +84,8 @@ export default function Settings() {
     queryFn: async () => {
       const me = await db.auth.me();
       const [m1, m2] = await Promise.all([
-        db.entities.Match.filter({ user1_id: me.email }),
-        db.entities.Match.filter({ user2_id: me.email }),
+        db.entities.Match.filter({ user1_id: me.id }),
+        db.entities.Match.filter({ user2_id: me.id }),
       ]);
       return [...m1, ...m2].sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 8);
     },
@@ -197,7 +197,7 @@ export default function Settings() {
                 <p className="text-sm font-body text-muted-foreground text-center py-6">Chưa có hoạt động nào</p>
               ) : (
                 matches.map((match) => {
-                  const otherEmail = match.user1_id === currentUser?.email ? match.user2_id : match.user1_id;
+                  const otherEmail = match.user1_id === currentUser?.id ? match.user2_id : match.user1_id;
                   const profile = profileMap[otherEmail];
                   return (
                     <ActivityItem

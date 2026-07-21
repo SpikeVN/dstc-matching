@@ -53,24 +53,27 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
-    background-image: url('/background.webp');
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-    background-repeat: no-repeat;
   }
   body::before {
     content: '';
     position: fixed;
     inset: 0;
-    background: rgba(2, 10, 8, 0.82);
-    z-index: 0;
+    background: url('/background.webp') center/cover no-repeat;
+    z-index: -2;
     pointer-events: none;
   }
-  html.no-bg body {
-    background-image: none;
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 10, 8, 0.82);
+    z-index: -1;
+    pointer-events: none;
   }
   html.no-bg body::before {
+    display: none;
+  }
+  html.no-bg body::after {
     display: none;
   }
   #root {

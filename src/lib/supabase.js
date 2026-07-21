@@ -3,7 +3,7 @@
  * No @supabase/supabase-js needed; FastAPI is the single API surface.
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:6942';
+const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:6942';
 
 async function authRequest(method, path, body = null) {
   const opts = {

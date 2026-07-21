@@ -62,6 +62,8 @@ async def update_invite(invite_id: str, update: InviteUpdate, user: dict = Depen
     existing = await fetch_one("SELECT * FROM team_invites WHERE id = $1", invite_id)
     if existing is None:
         raise HTTPException(status_code=404, detail="TeamInvite not found")
+    if user["id"] not in (existing["inviter_id"], existing["invitee_id"]):
+        raise HTTPException(status_code=403, detail="Not authorized to update this invite")
 
     fields = []
     vals = []
@@ -84,5 +86,10 @@ async def update_invite(invite_id: str, update: InviteUpdate, user: dict = Depen
 
 @router.delete("/{invite_id}")
 async def delete_invite(invite_id: str, user: dict = Depends(get_current_user)):
+    existing = await fetch_one("SELECT * FROM team_invites WHERE id = $1", invite_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="TeamInvite not found")
+    if user["id"] not in (existing["inviter_id"], existing["invitee_id"]):
+        raise HTTPException(status_code=403, detail="Not authorized to delete this invite")
     await execute("DELETE FROM team_invites WHERE id = $1", invite_id)
     return {"success": True}
