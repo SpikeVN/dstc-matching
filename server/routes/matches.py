@@ -1,8 +1,8 @@
-import json
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 from typing import Optional
-from database import get_connection, row_to_dict, rows_to_list, generate_id, now
+from database import fetch, fetch_one, execute, generate_id, now
+from auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/matches")
 
@@ -22,87 +22,71 @@ class MatchUpdate(BaseModel):
 
 
 @router.get("")
-def list_matches(request: Request):
-    conn = get_connection()
+async def list_matches(request: Request):
     query = "SELECT * FROM matches"
     params = []
     conditions = []
+    idx = 1
 
     for key in request.query_params:
         if key in ('user1_id', 'user2_id', 'status'):
-            conditions.append(f"{key} = ?")
+            conditions.append(f"{key} = ${idx}")
             params.append(request.query_params[key])
+            idx += 1
 
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
 
     query += " ORDER BY created_date DESC"
-    rows = conn.execute(query, params).fetchall()
-    conn.close()
-    return rows_to_list(rows)
+    return await fetch(query, *params)
 
 
 @router.get("/{match_id}")
-def get_match(match_id: str):
-    conn = get_connection()
-    row = conn.execute("SELECT * FROM matches WHERE id = ?", (match_id,)).fetchone()
-    conn.close()
+async def get_match(match_id: str):
+    row = await fetch_one("SELECT * FROM matches WHERE id = $1", match_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Match not found")
-    return row_to_dict(row)
+    return row
 
 
 @router.post("")
-def create_match(match: MatchCreate):
-    conn = get_connection()
+async def create_match(match: MatchCreate, user: dict = Depends(get_current_user)):
     mid = generate_id()
     now_ts = now()
-    conn.execute("""
+    await execute("""
         INSERT INTO matches (id, created_date, updated_date, user1_id, user2_id, status, user1_confirmed, user2_confirmed)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (mid, now_ts, now_ts, match.user1_id, match.user2_id, match.status,
-          int(match.user1_confirmed), int(match.user2_confirmed)))
-    conn.commit()
-    row = conn.execute("SELECT * FROM matches WHERE id = ?", (mid,)).fetchone()
-    conn.close()
-    return row_to_dict(row)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    """, mid, now_ts, now_ts, match.user1_id, match.user2_id, match.status,
+          match.user1_confirmed, match.user2_confirmed)
+    return await fetch_one("SELECT * FROM matches WHERE id = $1", mid)
 
 
 @router.patch("/{match_id}")
-def update_match(match_id: str, update: MatchUpdate):
-    conn = get_connection()
-    existing = conn.execute("SELECT * FROM matches WHERE id = ?", (match_id,)).fetchone()
+async def update_match(match_id: str, update: MatchUpdate, user: dict = Depends(get_current_user)):
+    existing = await fetch_one("SELECT * FROM matches WHERE id = $1", match_id)
     if existing is None:
-        conn.close()
         raise HTTPException(status_code=404, detail="Match not found")
 
     fields = []
     vals = []
-    for key, value in update.dict(exclude_unset=True).items():
+    idx = 1
+    for key, value in update.model_dump(exclude_unset=True).items():
         if value is not None:
-            if key in ('user1_confirmed', 'user2_confirmed'):
-                fields.append(f"{key} = ?")
-                vals.append(int(value))
-            else:
-                fields.append(f"{key} = ?")
-                vals.append(value)
+            fields.append(f"{key} = ${idx}")
+            vals.append(value)
+            idx += 1
 
     if fields:
-        fields.append("updated_date = ?")
+        fields.append(f"updated_date = ${idx}")
         vals.append(now())
+        idx += 1
         vals.append(match_id)
-        conn.execute(f"UPDATE matches SET {', '.join(fields)} WHERE id = ?", vals)
-        conn.commit()
+        await execute(f"UPDATE matches SET {', '.join(fields)} WHERE id = ${idx}", *vals)
 
-    row = conn.execute("SELECT * FROM matches WHERE id = ?", (match_id,)).fetchone()
-    conn.close()
-    return row_to_dict(row)
+    return await fetch_one("SELECT * FROM matches WHERE id = $1", match_id)
 
 
 @router.delete("/{match_id}")
-def delete_match(match_id: str):
-    conn = get_connection()
-    conn.execute("DELETE FROM matches WHERE id = ?", (match_id,))
-    conn.commit()
-    conn.close()
+async def delete_match(match_id: str, user: dict = Depends(get_current_user)):
+    await execute("DELETE FROM matches WHERE id = $1", match_id)
     return {"success": True}

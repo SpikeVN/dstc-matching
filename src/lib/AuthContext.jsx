@@ -1,6 +1,7 @@
 import { db } from '@/api/base44Client';
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext();
 
@@ -8,10 +9,10 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(false); // Stub
+  const [isLoadingPublicSettings] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [appPublicSettings, setAppPublicSettings] = useState(null); // Stub
+  const [appPublicSettings] = useState(null);
 
   useEffect(() => {
     checkAppState();
@@ -21,8 +22,7 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoadingAuth(true);
       setAuthError(null);
-      
-      // In local mode, we just check if user is authenticated
+
       const currentUser = await db.auth.me();
       if (currentUser) {
         setUser(currentUser);
@@ -31,16 +31,18 @@ export const AuthProvider = ({ children }) => {
       } else {
         setIsAuthenticated(false);
         setAuthChecked(true);
+        setAuthError({ type: 'auth_required', message: 'Authentication required' });
       }
     } catch (error) {
       console.error('App state check failed:', error);
+      setIsAuthenticated(false);
+      setAuthChecked(true);
       setAuthError({
-        type: 'unknown',
-        message: error.message || 'Failed to check auth state'
+        type: 'auth_required',
+        message: error.message || 'Authentication required',
       });
     } finally {
       setIsLoadingAuth(false);
-      setIsLoadingPublicSettings(false);
     }
   };
 
@@ -51,15 +53,16 @@ export const AuthProvider = ({ children }) => {
       setUser(currentUser);
       setIsAuthenticated(true);
       setAuthChecked(true);
+      setAuthError(null);
     } catch (error) {
       console.error('User auth check failed:', error);
       setIsAuthenticated(false);
       setAuthChecked(true);
-      
+
       if (error.status === 401 || error.status === 403) {
         setAuthError({
           type: 'auth_required',
-          message: 'Authentication required'
+          message: 'Authentication required',
         });
       }
     } finally {
@@ -67,30 +70,53 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = (shouldRedirect = true) => {
+  const login = async (email, password) => {
+    const userData = await db.auth.login(email, password);
+    setUser(userData);
+    setIsAuthenticated(true);
+    setAuthError(null);
+    return userData;
+  };
+
+  const signup = async (email, password, fullName) => {
+    const userData = await db.auth.signup(email, password, fullName);
+    setUser(userData);
+    setIsAuthenticated(true);
+    setAuthError(null);
+    return userData;
+  };
+
+  const googleLogin = async (credential) => {
+    const userData = await db.auth.googleLogin(credential);
+    setUser(userData);
+    setIsAuthenticated(true);
+    setAuthError(null);
+    return userData;
+  };
+
+  const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
-    
-    if (shouldRedirect) {
-      db.auth.logout(window.location.href);
-    } else {
-      db.auth.logout();
-    }
+    setAuthError(null);
+    db.auth.logout();
   };
 
   const navigateToLogin = () => {
-    db.auth.redirectToLogin(window.location.href);
+    window.location.href = '/login';
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated, 
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated,
       isLoadingAuth,
       isLoadingPublicSettings,
       authError,
       appPublicSettings,
       authChecked,
+      login,
+      signup,
+      googleLogin,
       logout,
       navigateToLogin,
       checkUserAuth,

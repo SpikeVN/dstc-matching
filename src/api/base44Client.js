@@ -1,25 +1,93 @@
 /**
  * Local API client — replaces the proprietary base44 SDK.
- * All calls go to the FastAPI backend on localhost:6942.
- * Falls back to stubs if the server is unreachable.
+ * All calls go to the FastAPI backend.
+ * Uses Bearer token auth (stored in localStorage).
  */
 
-const API_BASE = 'http://localhost:6942';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:6942';
 
+// ── Token management ────────────────────────────────────────────────
+let accessToken = localStorage.getItem('access_token') || null;
+let refreshToken = localStorage.getItem('refresh_token') || null;
+
+function setTokens(access, refresh) {
+  accessToken = access;
+  refreshToken = refresh;
+  if (access) {
+    localStorage.setItem('access_token', access);
+  } else {
+    localStorage.removeItem('access_token');
+  }
+  if (refresh) {
+    localStorage.setItem('refresh_token', refresh);
+  } else {
+    localStorage.removeItem('refresh_token');
+  }
+}
+
+function clearTokens() {
+  accessToken = null;
+  refreshToken = null;
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+}
+
+function getAccessToken() {
+  return accessToken;
+}
+
+// ── Request helper ──────────────────────────────────────────────────
 async function request(method, path, body = null) {
-  const opts = {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-  };
+  const headers = { 'Content-Type': 'application/json' };
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+
+  const opts = { method, headers };
   if (body !== null) {
     opts.body = JSON.stringify(body);
   }
+
   const res = await fetch(`${API_BASE}${path}`, opts);
+
+  // If 401 and we have a refresh token, try to refresh
+  if (res.status === 401 && refreshToken) {
+    const refreshed = await tryRefresh();
+    if (refreshed) {
+      // Retry the original request with new token
+      headers['Authorization'] = `Bearer ${accessToken}`;
+      const retryRes = await fetch(`${API_BASE}${path}`, { method, headers, body: opts.body });
+      if (!retryRes.ok) {
+        const err = await retryRes.json().catch(() => ({ detail: retryRes.statusText }));
+        throw { status: retryRes.status, message: err.detail || retryRes.statusText, data: err };
+      }
+      return retryRes.json();
+    }
+    // Refresh failed — clear tokens
+    clearTokens();
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
     throw { status: res.status, message: err.detail || res.statusText, data: err };
   }
   return res.json();
+}
+
+async function tryRefresh() {
+  try {
+    const res = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    setTokens(data.access_token, data.refresh_token);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function buildFilterUrl(basePath, filters, sortField) {
@@ -35,7 +103,7 @@ function buildFilterUrl(basePath, filters, sortField) {
   return qs ? `${basePath}?${qs}` : basePath;
 }
 
-// ── Entity helper factory ──────────────────────────────────────────────
+// ── Entity helper factory ──────────────────────────────────────────
 function createEntityClient(entityName, basePath) {
   return {
     list: async (sortField) => {
@@ -52,8 +120,6 @@ function createEntityClient(entityName, basePath) {
     delete: async (id) => request('DELETE', `${basePath}/${id}`),
     updateMany: async (ids, updates) => request('POST', `${basePath}/bulk-update`, { ids, updates }),
     bulkUpdate: async (updates) => {
-      // bulkUpdate expects [{ id, ...fields }]
-      // We'll handle this by updating one by one for now
       const results = [];
       for (const item of updates) {
         const { id, ...fields } = item;
@@ -62,14 +128,13 @@ function createEntityClient(entityName, basePath) {
       return results;
     },
     subscribe: () => {
-      // Stub — real-time not supported in local mode
       console.log('[base44Client] subscribe() is stubbed (no real-time in local mode)');
       return () => {};
     },
   };
 }
 
-// ── Auth client ────────────────────────────────────────────────────────
+// ── Auth client ────────────────────────────────────────────────────
 const authClient = {
   me: async () => {
     try {
@@ -82,32 +147,46 @@ const authClient = {
     const user = await authClient.me();
     return user !== null;
   },
+  login: async (email, password) => {
+    const data = await request('POST', '/auth/login', { email, password });
+    setTokens(data.access_token, data.refresh_token);
+    return data.user;
+  },
+  signup: async (email, password, fullName) => {
+    const data = await request('POST', '/auth/signup', { email, password, full_name: fullName });
+    setTokens(data.access_token, data.refresh_token);
+    return data.user;
+  },
+  googleLogin: async (credential) => {
+    const data = await request('POST', '/auth/google', { credential });
+    setTokens(data.access_token, data.refresh_token);
+    return data.user;
+  },
   logout: async (redirectUrl) => {
     try {
       await request('POST', '/auth/logout');
     } catch { /* ignore */ }
-    localStorage.removeItem('currentUser');
+    clearTokens();
     if (redirectUrl) {
       window.location.href = '/';
     }
   },
-  redirectToLogin: (redirectUrl) => {
+  redirectToLogin: () => {
     window.location.href = '/login';
-  },
-  login: async (email, fullName = '') => {
-    const user = await request('POST', '/auth/login', { email, full_name: fullName });
-    localStorage.setItem('currentUser', JSON.stringify(user));
-    return user;
   },
 };
 
-// ── Integrations (stubs) ───────────────────────────────────────────────
+// ── Integrations (stubs) ───────────────────────────────────────────
 const integrationsClient = {
   Core: {
     UploadFile: async ({ file }) => {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch(`${API_BASE}/api/upload`, { method: 'POST', body: formData });
+      const headers = {};
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+      }
+      const res = await fetch(`${API_BASE}/api/upload`, { method: 'POST', headers, body: formData });
       if (!res.ok) return { file_url: '' };
       return res.json();
     },
@@ -121,7 +200,7 @@ const integrationsClient = {
   },
 };
 
-// ── Exported db object matching base44's API surface ───────────────────
+// ── Exported db object matching base44's API surface ───────────────
 export const db = {
   auth: authClient,
   entities: {

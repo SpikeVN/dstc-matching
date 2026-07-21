@@ -1,8 +1,9 @@
 import json
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 from typing import Optional
-from database import get_connection, row_to_dict, rows_to_list, generate_id, now
+from database import fetch, fetch_one, execute, generate_id, now
+from auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/teams")
 
@@ -24,86 +25,74 @@ class TeamUpdate(BaseModel):
 
 
 @router.get("")
-def list_teams(request: Request):
-    conn = get_connection()
+async def list_teams(request: Request):
     query = "SELECT * FROM teams"
     params = []
     conditions = []
+    idx = 1
 
     for key in request.query_params:
         if key in ('leader_id', 'status', 'name', 'id'):
-            conditions.append(f"{key} = ?")
+            conditions.append(f"{key} = ${idx}")
             params.append(request.query_params[key])
+            idx += 1
 
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
 
     query += " ORDER BY created_date DESC"
-    rows = conn.execute(query, params).fetchall()
-    conn.close()
-    return rows_to_list(rows)
+    return await fetch(query, *params)
 
 
 @router.get("/{team_id}")
-def get_team(team_id: str):
-    conn = get_connection()
-    row = conn.execute("SELECT * FROM teams WHERE id = ?", (team_id,)).fetchone()
-    conn.close()
+async def get_team(team_id: str):
+    row = await fetch_one("SELECT * FROM teams WHERE id = $1", team_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Team not found")
-    return row_to_dict(row)
+    return row
 
 
 @router.post("")
-def create_team(team: TeamCreate):
-    conn = get_connection()
+async def create_team(team: TeamCreate, user: dict = Depends(get_current_user)):
     tid = generate_id()
     now_ts = now()
-    conn.execute("""
+    await execute("""
         INSERT INTO teams (id, created_date, updated_date, name, leader_id, member_ids, max_members, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (tid, now_ts, now_ts, team.name, team.leader_id, json.dumps(team.member_ids), team.max_members, team.status))
-    conn.commit()
-    row = conn.execute("SELECT * FROM teams WHERE id = ?", (tid,)).fetchone()
-    conn.close()
-    return row_to_dict(row)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    """, tid, now_ts, now_ts, team.name, team.leader_id, json.dumps(team.member_ids), team.max_members, team.status)
+    return await fetch_one("SELECT * FROM teams WHERE id = $1", tid)
 
 
 @router.patch("/{team_id}")
-def update_team(team_id: str, update: TeamUpdate):
-    conn = get_connection()
-    existing = conn.execute("SELECT * FROM teams WHERE id = ?", (team_id,)).fetchone()
+async def update_team(team_id: str, update: TeamUpdate, user: dict = Depends(get_current_user)):
+    existing = await fetch_one("SELECT * FROM teams WHERE id = $1", team_id)
     if existing is None:
-        conn.close()
         raise HTTPException(status_code=404, detail="Team not found")
 
     fields = []
     vals = []
-    for key, value in update.dict(exclude_unset=True).items():
+    idx = 1
+    for key, value in update.model_dump(exclude_unset=True).items():
         if value is not None:
             if key == 'member_ids':
-                fields.append(f"{key} = ?")
+                fields.append(f"{key} = ${idx}")
                 vals.append(json.dumps(value))
             else:
-                fields.append(f"{key} = ?")
+                fields.append(f"{key} = ${idx}")
                 vals.append(value)
+            idx += 1
 
     if fields:
-        fields.append("updated_date = ?")
+        fields.append(f"updated_date = ${idx}")
         vals.append(now())
+        idx += 1
         vals.append(team_id)
-        conn.execute(f"UPDATE teams SET {', '.join(fields)} WHERE id = ?", vals)
-        conn.commit()
+        await execute(f"UPDATE teams SET {', '.join(fields)} WHERE id = ${idx}", *vals)
 
-    row = conn.execute("SELECT * FROM teams WHERE id = ?", (team_id,)).fetchone()
-    conn.close()
-    return row_to_dict(row)
+    return await fetch_one("SELECT * FROM teams WHERE id = $1", team_id)
 
 
 @router.delete("/{team_id}")
-def delete_team(team_id: str):
-    conn = get_connection()
-    conn.execute("DELETE FROM teams WHERE id = ?", (team_id,))
-    conn.commit()
-    conn.close()
+async def delete_team(team_id: str, user: dict = Depends(get_current_user)):
+    await execute("DELETE FROM teams WHERE id = $1", team_id)
     return {"success": True}
