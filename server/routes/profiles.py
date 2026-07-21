@@ -90,7 +90,7 @@ async def create_profile(profile: ProfileCreate, user: dict = Depends(get_curren
          gender, city, school, major, profile_image, technical_skills, soft_skills,
          experience, goals, role, achievements, achievements_other, has_team, team_id, profile_complete)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
-    """, (
+    """,
         pid, user["id"], now_ts, now_ts, profile.display_name, profile.username,
         profile.bio, profile.birth_year, profile.gender, profile.city, profile.school,
         profile.major, profile.profile_image,
@@ -98,7 +98,7 @@ async def create_profile(profile: ProfileCreate, user: dict = Depends(get_curren
         profile.experience, json.dumps(profile.goals), profile.role,
         profile.achievements, profile.achievements_other,
         profile.has_team, profile.team_id, profile.profile_complete
-    ))
+    )
     return await fetch_one("SELECT * FROM contestant_profiles WHERE id = $1", pid)
 
 
@@ -107,6 +107,8 @@ async def update_profile(profile_id: str, update: ProfileUpdate, user: dict = De
     existing = await fetch_one("SELECT * FROM contestant_profiles WHERE id = $1", profile_id)
     if existing is None:
         raise HTTPException(status_code=404, detail="Profile not found")
+    if existing["created_by"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized to update this profile")
 
     fields = []
     vals = []
@@ -133,5 +135,10 @@ async def update_profile(profile_id: str, update: ProfileUpdate, user: dict = De
 
 @router.delete("/{profile_id}")
 async def delete_profile(profile_id: str, user: dict = Depends(get_current_user)):
+    existing = await fetch_one("SELECT * FROM contestant_profiles WHERE id = $1", profile_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    if existing["created_by"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this profile")
     await execute("DELETE FROM contestant_profiles WHERE id = $1", profile_id)
     return {"success": True}

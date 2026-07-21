@@ -1,4 +1,4 @@
-import { db } from '@/api/base44Client';
+import { db } from '@/api/apiClient';
 
 import React, { useState, useMemo, useEffect } from 'react';
 
@@ -62,7 +62,6 @@ function DraggableCard({ profile, onSwipe }) {
       <motion.div
         style={{ opacity: passOpacity }}
         className="absolute top-5 right-4 z-20 font-display text-destructive text-2xl font-black border-[3px] border-destructive rounded-lg px-3 py-1 rotate-[18deg] pointer-events-none select-none"
-        style={{ opacity: passOpacity }}
       >
         PASS ✗
       </motion.div>
@@ -85,7 +84,7 @@ export default function Discover() {
     queryKey: ['myProfile'],
     queryFn: async () => {
       const me = await db.auth.me();
-      return db.entities.ContestantProfile.filter({ created_by: me.email });
+      return db.entities.ContestantProfile.filter({ created_by: me.id });
     },
     initialData: [],
   });
@@ -102,7 +101,7 @@ export default function Discover() {
     queryKey: ['mySwipes'],
     queryFn: async () => {
       const me = await db.auth.me();
-      return db.entities.SwipeAction.filter({ swiper_id: me.email });
+      return db.entities.SwipeAction.filter({ swiper_id: me.id });
     },
     initialData: [],
     enabled: !!myProfile,
@@ -162,15 +161,8 @@ export default function Discover() {
   const swipeMutation = useMutation({
     mutationFn: async ({ action, candidateEmail }) => {
       const me = await db.auth.me();
-      await db.entities.SwipeAction.create({ swiper_id: me.email, swiped_id: candidateEmail, action, is_match: false });
-      if (action === 'like') {
-        const reverseSwipes = await db.entities.SwipeAction.filter({ swiper_id: candidateEmail, swiped_id: me.email, action: 'like' });
-        if (reverseSwipes.length > 0) {
-          await db.entities.Match.create({ user1_id: me.email, user2_id: candidateEmail, status: 'matched' });
-          return { matched: true };
-        }
-      }
-      return { matched: false };
+      const result = await db.entities.SwipeAction.create({ swiper_id: me.id, swiped_id: candidateEmail, action });
+      return { matched: result?.is_match ?? false };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['mySwipes'] });

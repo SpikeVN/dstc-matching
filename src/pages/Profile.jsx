@@ -1,4 +1,4 @@
-import { db } from '@/api/base44Client';
+import { db } from '@/api/apiClient';
 
 import React, { useState, useRef } from 'react';
 
@@ -20,7 +20,7 @@ export default function Profile() {
     queryKey: ['myProfile'],
     queryFn: async () => {
       const me = await db.auth.me();
-      return db.entities.ContestantProfile.filter({ created_by: me.email });
+      return db.entities.ContestantProfile.filter({ created_by: me.id });
     },
     initialData: [],
     staleTime: 60_000, // Don't refetch aggressively — avoids wiping local state
@@ -38,7 +38,7 @@ export default function Profile() {
       if (profileId) {
         return db.entities.ContestantProfile.update(profileId, data);
       } else {
-        return db.entities.ContestantProfile.create({ ...data, username: me.email });
+        return db.entities.ContestantProfile.create({ ...data, username: me.id });
       }
     },
     onSuccess: (saved, variables) => {

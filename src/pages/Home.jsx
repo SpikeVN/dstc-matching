@@ -1,4 +1,4 @@
-import { db } from '@/api/base44Client';
+import { db } from '@/api/apiClient';
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -41,7 +41,7 @@ export default function Home() {
     queryKey: ['myProfile'],
     queryFn: async () => {
       const me = await db.auth.me();
-      return db.entities.ContestantProfile.filter({ created_by: me.email });
+      return db.entities.ContestantProfile.filter({ created_by: me.id });
     },
     initialData: []
   });

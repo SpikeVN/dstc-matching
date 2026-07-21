@@ -1,10 +1,10 @@
 /**
- * Local API client — replaces the proprietary base44 SDK.
- * All calls go to the FastAPI backend.
+ * API client for the DSTC Matching backend.
+ * All calls go to the FastAPI server.
  * Uses Bearer token auth (stored in localStorage).
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:6942';
+const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 
 // ── Token management ────────────────────────────────────────────────
 let accessToken = localStorage.getItem('access_token') || null;
@@ -128,7 +128,7 @@ function createEntityClient(entityName, basePath) {
       return results;
     },
     subscribe: () => {
-      console.log('[base44Client] subscribe() is stubbed (no real-time in local mode)');
+      // Real-time subscriptions not yet implemented
       return () => {};
     },
   };
@@ -200,7 +200,7 @@ const integrationsClient = {
   },
 };
 
-// ── Exported db object matching base44's API surface ───────────────
+// ── Exported db object ─────────────────────────────────────────────
 export const db = {
   auth: authClient,
   entities: {
@@ -215,6 +215,4 @@ export const db = {
   integrations: integrationsClient,
 };
 
-// Also export as base44 for compatibility
-export const base44 = db;
 export default db;

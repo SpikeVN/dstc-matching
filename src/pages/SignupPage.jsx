@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
+import PageFooter from '@/components/layout/PageFooter';
 
 const GREEN = '#71d65b';
 const BG = '#0a120b';
@@ -22,30 +23,55 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const googleBtnRef = useRef(null);
+  const gBtnNode = useRef(null);
+  const gBtnCallback = useCallback((node) => {
+    gBtnNode.current = node;
+  }, []);
+  const [gisReady, setGisReady] = useState(false);
 
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID || !window.google?.accounts?.id) return;
-    window.google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: async (response) => {
-        try {
-          await googleLogin(response.credential);
-          navigate('/');
-        } catch (err) {
-          setError(err.message || 'Google đăng ký thất bại');
-        }
-      },
-    });
-    if (googleBtnRef.current) {
-      window.google.accounts.id.renderButton(googleBtnRef.current, {
-        theme: 'filled_black',
-        size: 'large',
-        width: '100%',
-        text: 'signup_with',
+    if (!GOOGLE_CLIENT_ID) return;
+
+    const initGis = () => {
+      if (!window.google?.accounts?.id) return;
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (response) => {
+          try {
+            await googleLogin(response.credential);
+            navigate('/');
+          } catch (err) {
+            setError(err.message || 'Google đăng ký thất bại');
+          }
+        },
       });
+      setGisReady(true);
+    };
+
+    if (window.google?.accounts?.id) {
+      initGis();
+    } else {
+      const timer = setInterval(() => {
+        if (window.google?.accounts?.id) {
+          clearInterval(timer);
+          initGis();
+        }
+      }, 100);
+      return () => clearInterval(timer);
     }
   }, []);
+
+  useEffect(() => {
+    if (!gisReady || !gBtnNode.current) return;
+    const node = gBtnNode.current;
+    window.google.accounts.id.renderButton(node, {
+      theme: 'filled_black',
+      size: 'large',
+      text: 'continue_with',
+      shape: 'pill',
+      width: node.offsetWidth || 300,
+    });
+  }, [gisReady]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -72,66 +98,35 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center px-4 py-12">
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-          style={{
-            width: '600px',
-            height: '600px',
-            background: `radial-gradient(circle, ${GREEN}08 0%, transparent 70%)`,
-            filter: 'blur(80px)',
-          }}
-        />
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 w-full max-w-md"
-      >
+    <div className="relative h-screen flex flex-col items-center justify-center px-4 py-4 overflow-hidden">
+      <div className="relative z-10 w-full max-w-md flex flex-col items-center">
         {/* Card */}
         <div
-          className="rounded-2xl p-8 md:p-10"
+          className="rounded-2xl p-6 w-full"
           style={{
-            background: 'rgba(10, 18, 11, 0.8)',
-            backdropFilter: 'blur(24px)',
+            background: 'rgba(10, 18, 11, 0.95)',
             border: `1px solid ${BORDER}40`,
-            boxShadow: `0 0 80px ${GREEN}06, 0 4px 24px rgba(0,0,0,0.4)`,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
           }}
         >
           {/* Logo */}
-          <div className="flex justify-center mb-6">
-            <motion.div
+          <div className="flex justify-center mb-3">
+            <motion.img
+              src="/dstc-key-sphere.webp"
+              alt="DSTC"
+              className="w-14 h-14"
               initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              className="relative"
-            >
-              <div
-                className="absolute inset-0 rounded-full"
-                style={{
-                  background: `radial-gradient(circle, ${GREEN}18 0%, transparent 70%)`,
-                  filter: 'blur(30px)',
-                  transform: 'scale(2)',
-                }}
-              />
-              <img
-                src="/dstc-key-sphere.webp"
-                alt="DSTC"
-                className="w-20 h-20 relative z-10 drop-shadow-[0_0_24px_rgba(113,214,91,0.25)]"
-              />
-            </motion.div>
+            />
           </div>
 
           {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold tracking-tight" style={{ color: FG }}>
+          <div className="text-center mb-4">
+            <h1 className="text-xl font-bold tracking-tight" style={{ color: FG }}>
               Đăng ký
             </h1>
-            <p className="mt-2 text-sm" style={{ color: SUBTEXT }}>
+            <p className="mt-1.5 text-sm" style={{ color: SUBTEXT }}>
               Tạo tài khoản mới để bắt đầu
             </p>
           </div>
@@ -141,7 +136,7 @@ export default function SignupPage() {
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-5 p-3 rounded-lg text-sm"
+              className="mb-2 p-2 rounded-lg text-xs"
               style={{
                 background: 'rgba(239,68,68,0.1)',
                 color: '#fca5a5',
@@ -153,14 +148,14 @@ export default function SignupPage() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="grid gap-2">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2.5">
+            <div className="grid gap-1">
               <label
                 htmlFor="fullName"
-                className="text-xs font-medium uppercase tracking-wider"
+                className="text-xs font-medium"
                 style={{ color: SUBTEXT }}
               >
-                Họ và tên
+                Tên của bạn
               </label>
               <Input
                 id="fullName"
@@ -169,7 +164,7 @@ export default function SignupPage() {
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Nguyễn Văn A"
                 required
-                className="h-11 rounded-lg"
+                className="h-10 rounded-lg"
                 style={{
                   background: 'rgba(42,75,46,0.1)',
                   borderColor: `${BORDER}80`,
@@ -178,10 +173,10 @@ export default function SignupPage() {
               />
             </div>
 
-            <div className="grid gap-2">
+            <div className="grid gap-1">
               <label
                 htmlFor="email"
-                className="text-xs font-medium uppercase tracking-wider"
+                className="text-xs font-medium"
                 style={{ color: SUBTEXT }}
               >
                 Email
@@ -193,7 +188,7 @@ export default function SignupPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
-                className="h-11 rounded-lg"
+                className="h-10 rounded-lg"
                 style={{
                   background: 'rgba(42,75,46,0.1)',
                   borderColor: `${BORDER}80`,
@@ -202,10 +197,10 @@ export default function SignupPage() {
               />
             </div>
 
-            <div className="grid gap-2">
+            <div className="grid gap-1">
               <label
                 htmlFor="password"
-                className="text-xs font-medium uppercase tracking-wider"
+                className="text-xs font-medium"
                 style={{ color: SUBTEXT }}
               >
                 Mật khẩu
@@ -218,7 +213,7 @@ export default function SignupPage() {
                 placeholder="••••••••"
                 required
                 minLength={6}
-                className="h-11 rounded-lg"
+                className="h-10 rounded-lg"
                 style={{
                   background: 'rgba(42,75,46,0.1)',
                   borderColor: `${BORDER}80`,
@@ -227,10 +222,10 @@ export default function SignupPage() {
               />
             </div>
 
-            <div className="grid gap-2">
+            <div className="grid gap-1">
               <label
                 htmlFor="confirmPassword"
-                className="text-xs font-medium uppercase tracking-wider"
+                className="text-xs font-medium"
                 style={{ color: SUBTEXT }}
               >
                 Xác nhận mật khẩu
@@ -242,7 +237,7 @@ export default function SignupPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="h-11 rounded-lg"
+                className="h-10 rounded-lg"
                 style={{
                   background: 'rgba(42,75,46,0.1)',
                   borderColor: `${BORDER}80`,
@@ -254,7 +249,7 @@ export default function SignupPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-11 rounded-lg font-semibold text-sm tracking-wide transition-all duration-200 hover:shadow-[0_0_24px_rgba(113,214,91,0.3)] cursor-pointer"
+              className="w-full h-10 rounded-lg font-semibold text-sm tracking-wide transition-all duration-200 cursor-pointer"
               style={{ background: GREEN, color: BG }}
             >
               {loading ? (
@@ -272,7 +267,7 @@ export default function SignupPage() {
           </form>
 
           {/* Divider */}
-          <div className="relative my-6">
+          <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full h-px" style={{ background: `${BORDER}60` }} />
             </div>
@@ -285,12 +280,12 @@ export default function SignupPage() {
 
           {/* Google Login */}
           {GOOGLE_CLIENT_ID ? (
-            <div ref={googleBtnRef} className="w-full flex justify-center [&>div]:!rounded-lg [&>div>div]:!rounded-lg" />
+            <div ref={gBtnCallback} className="w-full flex justify-center" />
           ) : (
             <Button
               disabled
               variant="outline"
-              className="w-full h-11 rounded-lg font-medium text-sm cursor-not-allowed"
+              className="w-full h-10 rounded-lg font-medium text-sm cursor-not-allowed"
               style={{ borderColor: `${BORDER}60`, color: SUBTEXT, background: 'transparent' }}
             >
               <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
@@ -304,7 +299,7 @@ export default function SignupPage() {
           )}
 
           {/* Login link */}
-          <p className="text-center text-sm mt-8" style={{ color: SUBTEXT }}>
+          <p className="text-center text-sm mt-5" style={{ color: SUBTEXT }}>
             Đã có tài khoản?{' '}
             <Link
               to="/login"
@@ -317,10 +312,8 @@ export default function SignupPage() {
         </div>
 
         {/* Footer text */}
-        <p className="text-center text-xs mt-6" style={{ color: `${SUBTEXT}80` }}>
-          DSTC 2026 — Data Science Talent Competition
-        </p>
-      </motion.div>
+        <PageFooter compact />
+      </div>
     </div>
   );
 }

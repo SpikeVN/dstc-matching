@@ -1,4 +1,4 @@
-import { db } from '@/api/base44Client';
+import { db } from '@/api/apiClient';
 
 import React, { useState, useEffect } from 'react';
 
@@ -29,7 +29,7 @@ export default function TeamPage() {
     queryKey: ['myProfile'],
     queryFn: async () => {
       const me = await db.auth.me();
-      return db.entities.ContestantProfile.filter({ created_by: me.email });
+      return db.entities.ContestantProfile.filter({ created_by: me.id });
     },
     initialData: [],
   });
@@ -39,7 +39,7 @@ export default function TeamPage() {
     queryKey: ['allTeamsForLeader'],
     queryFn: async () => {
       const me = await db.auth.me();
-      return db.entities.Team.filter({ leader_id: me.email });
+      return db.entities.Team.filter({ leader_id: me.id });
     },
     initialData: [],
     enabled: !!currentUser,
@@ -60,7 +60,7 @@ export default function TeamPage() {
     queryKey: ['myInvites'],
     queryFn: async () => {
       const me = await db.auth.me();
-      return db.entities.TeamInvite.filter({ invitee_id: me.email, status: 'pending' });
+      return db.entities.TeamInvite.filter({ invitee_id: me.id, status: 'pending' });
     },
     initialData: [],
     enabled: !!currentUser,
@@ -78,8 +78,8 @@ export default function TeamPage() {
     mutationFn: async () => {
       const me = await db.auth.me();
       const team = await db.entities.Team.create({
-        name: teamName, leader_id: me.email,
-        member_ids: [me.email], max_members: 4, status: 'forming',
+        name: teamName, leader_id: me.id,
+        member_ids: [me.id], max_members: 4, status: 'forming',
       });
       if (myProfile) {
         await db.entities.ContestantProfile.update(myProfile.id, { team_id: team.id, has_team: true });
@@ -96,7 +96,7 @@ export default function TeamPage() {
         const teamList = await db.entities.Team.filter({ id: invite.team_id });
         const team = teamList[0];
         if (team) {
-          const newMembers = [...(team.member_ids || []), currentUser.email];
+          const newMembers = [...(team.member_ids || []), currentUser.id];
           await db.entities.Team.update(team.id, {
             member_ids: newMembers,
             status: newMembers.length >= (team.max_members || 4) ? 'full' : 'forming',
@@ -114,7 +114,7 @@ export default function TeamPage() {
     mutationFn: async (inviteeEmail) => {
       if (!leaderTeam) { toast.error('Bạn chưa có đội'); return; }
       await db.entities.TeamInvite.create({
-        team_id: leaderTeam.id, inviter_id: currentUser.email,
+        team_id: leaderTeam.id, inviter_id: currentUser.id,
         invitee_id: inviteeEmail, status: 'pending',
       });
     },

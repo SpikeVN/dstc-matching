@@ -1,4 +1,4 @@
-import { db } from '@/api/base44Client';
+import { db } from '@/api/apiClient';
 
 import React, { useState, useEffect, useRef } from 'react';
 
@@ -84,7 +84,7 @@ function ChatArea({ match, currentUser, profileMap, onBack }) {
   const [message, setMessage] = useState('');
   const messagesEndRef = useRef(null);
 
-  const otherEmail = match.user1_id === currentUser?.email ? match.user2_id : match.user1_id;
+  const otherEmail = match.user1_id === currentUser?.id ? match.user2_id : match.user1_id;
   const otherProfile = profileMap[otherEmail];
 
   const { data: messages } = useQuery({
@@ -101,10 +101,10 @@ function ChatArea({ match, currentUser, profileMap, onBack }) {
   // Mark received messages as read when viewing
   useEffect(() => {
     const markRead = async () => {
-      const unread = messages.filter(m => m.receiver_id === currentUser?.email && !m.is_read);
+      const unread = messages.filter(m => m.receiver_id === currentUser?.id && !m.is_read);
       if (unread.length > 0) {
         await db.entities.Message.updateMany(
-          { match_id: match.id, receiver_id: currentUser.email, is_read: false },
+          { match_id: match.id, receiver_id: currentUser.id, is_read: false },
           { $set: { is_read: true } }
         );
         queryClient.invalidateQueries({ queryKey: ['unreadMessages'] });
@@ -112,12 +112,12 @@ function ChatArea({ match, currentUser, profileMap, onBack }) {
       }
     };
     markRead();
-  }, [messages, match.id, currentUser?.email, queryClient]);
+  }, [messages, match.id, currentUser?.id, queryClient]);
 
   const sendMutation = useMutation({
     mutationFn: (content) => db.entities.Message.create({
       match_id: match.id,
-      sender_id: currentUser.email,
+      sender_id: currentUser.id,
       receiver_id: otherEmail,
       content,
     }),
@@ -193,7 +193,7 @@ function ChatArea({ match, currentUser, profileMap, onBack }) {
               <ChatBubble
                 key={msg.id}
                 msg={msg}
-                isMe={msg.sender_id === currentUser?.email}
+                isMe={msg.sender_id === currentUser?.id}
                 senderProfile={profileMap[msg.sender_id]}
               />
             ))}
@@ -235,12 +235,12 @@ export default function Messages() {
   });
 
   const { data: matches } = useQuery({
-    queryKey: ['matches', currentUser?.email],
+    queryKey: ['matches', currentUser?.id],
     queryFn: async () => {
       const me = await db.auth.me();
       const [m1, m2] = await Promise.all([
-        db.entities.Match.filter({ user1_id: me.email }),
-        db.entities.Match.filter({ user2_id: me.email }),
+        db.entities.Match.filter({ user1_id: me.id }),
+        db.entities.Match.filter({ user2_id: me.id }),
       ]);
       return [...m1, ...m2];
     },
@@ -249,10 +249,10 @@ export default function Messages() {
   });
 
   const { data: unreadMessages } = useQuery({
-    queryKey: ['unreadMessages', currentUser?.email],
+    queryKey: ['unreadMessages', currentUser?.id],
     queryFn: async () => {
       const me = await db.auth.me();
-      return db.entities.Message.filter({ receiver_id: me.email, is_read: false });
+      return db.entities.Message.filter({ receiver_id: me.id, is_read: false });
     },
     initialData: [],
     enabled: !!currentUser,
@@ -300,7 +300,7 @@ export default function Messages() {
             </div>
           )}
           {matches.map(match => {
-            const otherEmail = match.user1_id === currentUser?.email ? match.user2_id : match.user1_id;
+            const otherEmail = match.user1_id === currentUser?.id ? match.user2_id : match.user1_id;
             return (
               <ConversationItem
                 key={match.id}
