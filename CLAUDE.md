@@ -117,7 +117,7 @@ PostgreSQL 15 via Supabase's postgres image. Tables use UUID primary keys, `TIME
 **Tables:** `users`, `contestant_profiles`, `matches`, `messages`, `swipe_actions`, `teams`, `team_invites`
 
 **Schema files:**
-- `supabase/volumes/db/init/00-init-auth-schema.sql` — Supabase roles, schemas, extensions
+- `supabase/volumes/db/init/00-init-auth-schema.sh` — Supabase roles, schemas, extensions (shell script, reads `POSTGRES_PASSWORD` from env)
 - `supabase/volumes/db/init/01-app-tables.sql` — Application tables
 
 **Query patterns:** All queries use asyncpg with `$1, $2, ...` placeholders (not `?`). JSON fields are serialized with `json.dumps()` on write and parsed in `database._record_to_dict()`.
@@ -142,18 +142,59 @@ PostgreSQL 15 via Supabase's postgres image. Tables use UUID primary keys, `TIME
 
 ## Development
 
-```bash
-# Frontend (port 5173)
-bun install
-bun run dev
+### 1. Supabase (PostgreSQL + GoTrue + Kong)
 
-# Backend (port 8000) — needs PostgreSQL running
+Local dev uses `podman-compose` (not the Quadlet `.container` files, which are for production).
+
+```bash
+cd supabase
+
+# Create .env if you don't have one (see "Environment variables" above)
+# POSTGRES_PASSWORD, JWT_SECRET, GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID, GOTRUE_EXTERNAL_GOOGLE_SECRET
+# GOTRUE_DB_DATABASE_URL, PGRST_DB_URI, GOTRUE_JWT_SECRET, PGRST_JWT_SECRET
+# SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, AUTH_JWT_SECRET
+# POSTGRES_URL, PG_META_DB_PASSWORD, DASHBOARD_USERNAME, DASHBOARD_PASSWORD
+
+podman-compose up -d
+```
+
+This starts:
+- **supabase-db** — PostgreSQL 15 on `localhost:5432`
+- **supabase-auth** — GoTrue on `localhost:9999`
+- **rest** — PostgREST (internal only, used by Studio)
+- **kong** — API gateway on `localhost:8001`
+- **studio** — Dashboard on `localhost:3000`
+
+Init scripts in `volumes/db/init/` run automatically on first boot:
+- `00-init-auth-schema.sh` — creates Supabase roles (`supabase_auth_admin`, `authenticator`, `anon`, `authenticated`, `service_role`), schemas, extensions. Reads `POSTGRES_PASSWORD` from the container environment.
+- `01-app-tables.sql` — creates application tables (`users`, `contestant_profiles`, `matches`, `messages`, `swipe_actions`, `teams`, `team_invites`).
+
+### 2. Backend (FastAPI)
+
+```bash
 cd server
 pip install -r requirements.txt
+
+# Create .env (see "Environment variables" above)
+# DATABASE_URL, GOTRUE_URL, GOTRUE_SERVICE_KEY, JWT_SECRET, CORS_ORIGINS
+
 uvicorn main:app --reload --port 8000
 ```
 
+The backend connects to PostgreSQL at `localhost:5432` and calls GoTrue via Kong at `localhost:8001` (or `supabase.cteftu.id.vn/auth/v1/` in production).
+
+### 3. Frontend (Vite)
+
+```bash
+bun install
+bun run dev    # port 5173
+```
+
 Vite proxies `/api`, `/auth`, `/uploads` to `localhost:8000` in dev mode.
+
+### Production (Quadlet)
+
+Production Supabase runs via podman Quadlet `.container` files in `supabase/` (`supabase-db.container`, `supabase-auth.container`, `supabase-rest.container`, `supabase-kong.container`, `supabase-studio.container`, `supabase-pg-meta.container`). These load secrets from `EnvironmentFile=/home/chimse/cte/supabase/.env` on the bare metal server. The compose file is for local dev only.
 
 ## Claude Code Rules
 
