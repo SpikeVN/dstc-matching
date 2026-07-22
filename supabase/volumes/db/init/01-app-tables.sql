@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS public.contestant_profiles (
     school TEXT DEFAULT '',
     major TEXT DEFAULT '',
     profile_image TEXT DEFAULT '',
+    cv_url TEXT DEFAULT '',
     technical_skills JSONB DEFAULT '[]'::jsonb,
     soft_skills JSONB DEFAULT '[]'::jsonb,
     experience TEXT DEFAULT '',

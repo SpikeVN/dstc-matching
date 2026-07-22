@@ -32,16 +32,63 @@ services:
       - name: cors
 
   ## Auth — open routes (no key required)
-  - name: auth-v1-open
-    url: http://supabase-auth:9999/
+  ## One service per endpoint: the GoTrue path is baked into each service URL
+  ## so strip_path strips the /auth/v1/<endpoint> prefix and leaves the correct
+  ## suffix for GoTrue (e.g. /auth/v1/verify -> http://auth:9999/verify).
+  - name: auth-v1-open-verify
+    url: http://supabase-auth:9999/verify
     routes:
-      - name: auth-v1-open
+      - name: auth-v1-open-verify
         strip_path: true
         paths:
           - /auth/v1/verify
+    plugins:
+      - name: cors
+  ## Short /verify route — GoTrue email links use API_EXTERNAL_URL host
+  ## which produces https://supabase.cteftu.id.vn/verify?... (no /auth/v1/).
+  ## This route catches those links and proxies to GoTrue's /verify.
+  - name: auth-v1-open-verify-short
+    url: http://supabase-auth:9999/verify
+    routes:
+      - name: auth-v1-open-verify-short
+        strip_path: true
+        paths:
+          - /verify
+    plugins:
+      - name: cors
+  - name: auth-v1-open-authorize
+    url: http://supabase-auth:9999/authorize
+    routes:
+      - name: auth-v1-open-authorize
+        strip_path: true
+        paths:
           - /auth/v1/authorize
+    plugins:
+      - name: cors
+  - name: auth-v1-open-callback
+    url: http://supabase-auth:9999/callback
+    routes:
+      - name: auth-v1-open-callback
+        strip_path: true
+        paths:
           - /auth/v1/callback
+    plugins:
+      - name: cors
+  - name: auth-v1-open-well-known
+    url: http://supabase-auth:9999/.well-known
+    routes:
+      - name: auth-v1-open-well-known
+        strip_path: true
+        paths:
           - /auth/v1/.well-known
+    plugins:
+      - name: cors
+  - name: auth-v1-open-health
+    url: http://supabase-auth:9999/health
+    routes:
+      - name: auth-v1-open-health
+        strip_path: true
+        paths:
           - /auth/v1/health
     plugins:
       - name: cors

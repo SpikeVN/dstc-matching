@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login, googleLogin } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,6 +27,16 @@ export default function LoginPage() {
     gBtnNode.current = node;
   }, []);
   const [gisReady, setGisReady] = useState(false);
+
+  // Show error from URL query param (e.g. from GoTrue redirect with expired token)
+  useEffect(() => {
+    const urlError = searchParams.get('error');
+    if (urlError) {
+      setError(urlError);
+      // Clean the URL so refreshing doesn't re-show the error
+      navigate('/login', { replace: true });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID) return;
@@ -100,14 +111,7 @@ export default function LoginPage() {
         >
           {/* Logo */}
           <div className="flex justify-center mb-4">
-            <motion.img
-              src="/dstc-key-sphere.webp"
-              alt="DSTC"
-              className="w-14 h-14"
-              initial={{ scale: 0.85, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            />
+            <img src="/dstc-key-sphere.webp" alt="DSTC" className="w-14 h-14" />
           </div>
 
           {/* Header */}
@@ -220,7 +224,15 @@ export default function LoginPage() {
 
           {/* Google Login */}
           {GOOGLE_CLIENT_ID ? (
-            <div ref={gBtnCallback} className="w-full flex justify-center" />
+            <div
+              className="overflow-hidden"
+              style={{
+                height: 48,
+                minHeight: 0,
+              }}
+            >
+              <div ref={gBtnCallback} className="w-full flex justify-center" />
+            </div>
           ) : (
             <Button
               disabled

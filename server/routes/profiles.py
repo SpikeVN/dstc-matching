@@ -18,6 +18,7 @@ class ProfileCreate(BaseModel):
     school: str = ""
     major: str = ""
     profile_image: str = ""
+    cv_url: str = ""
     technical_skills: list = []
     soft_skills: list = []
     experience: str = ""
@@ -40,6 +41,7 @@ class ProfileUpdate(BaseModel):
     school: Optional[str] = None
     major: Optional[str] = None
     profile_image: Optional[str] = None
+    cv_url: Optional[str] = None
     technical_skills: Optional[list] = None
     soft_skills: Optional[list] = None
     experience: Optional[str] = None
@@ -87,13 +89,13 @@ async def create_profile(profile: ProfileCreate, user: dict = Depends(get_curren
     await execute("""
         INSERT INTO contestant_profiles
         (id, created_by, created_date, updated_date, display_name, username, bio, birth_year,
-         gender, city, school, major, profile_image, technical_skills, soft_skills,
+         gender, city, school, major, profile_image, cv_url, technical_skills, soft_skills,
          experience, goals, role, achievements, achievements_other, has_team, team_id, profile_complete)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
     """,
         pid, user["id"], now_ts, now_ts, profile.display_name, profile.username,
         profile.bio, profile.birth_year, profile.gender, profile.city, profile.school,
-        profile.major, profile.profile_image,
+        profile.major, profile.profile_image, profile.cv_url,
         json.dumps(profile.technical_skills), json.dumps(profile.soft_skills),
         profile.experience, json.dumps(profile.goals), profile.role,
         profile.achievements, profile.achievements_other,

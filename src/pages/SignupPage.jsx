@@ -23,6 +23,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const gBtnNode = useRef(null);
   const gBtnCallback = useCallback((node) => {
     gBtnNode.current = node;
@@ -88,8 +89,13 @@ export default function SignupPage() {
 
     setLoading(true);
     try {
-      await signup(email, password, fullName);
-      navigate('/');
+      const result = await signup(email, password, fullName);
+      // If email confirmation is required, show the "check your email" screen
+      if (result?.requires_email_confirmation) {
+        setEmailSent(true);
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       setError(err.message || 'Đăng ký thất bại');
     } finally {
@@ -111,14 +117,7 @@ export default function SignupPage() {
         >
           {/* Logo */}
           <div className="flex justify-center mb-3">
-            <motion.img
-              src="/dstc-key-sphere.webp"
-              alt="DSTC"
-              className="w-14 h-14"
-              initial={{ scale: 0.85, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            />
+            <img src="/dstc-key-sphere.webp" alt="DSTC" className="w-14 h-14" />
           </div>
 
           {/* Header */}
@@ -147,6 +146,36 @@ export default function SignupPage() {
             </motion.div>
           )}
 
+          {/* Email sent confirmation */}
+          {emailSent ? (
+            <div className="text-center">
+              <div className="flex justify-center mb-4">
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center"
+                  style={{ background: 'rgba(113, 214, 91, 0.15)' }}
+                >
+                  <svg className="w-8 h-8" style={{ color: GREEN }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
+              <h2 className="text-lg font-bold tracking-tight mb-2" style={{ color: FG }}>
+                Kiểm tra email của bạn
+              </h2>
+              <p className="text-sm mb-5" style={{ color: SUBTEXT }}>
+                Chúng tôi đã gửi email xác minh đến <strong style={{ color: FG }}>{email}</strong>.
+                Vui lòng nhấn vào liên kết trong email để kích hoạt tài khoản.
+              </p>
+              <Link
+                to="/login"
+                className="inline-block w-full h-10 rounded-lg font-semibold text-sm tracking-wide flex items-center justify-center transition-all duration-200"
+                style={{ background: GREEN, color: BG }}
+              >
+                Đến trang đăng nhập
+              </Link>
+            </div>
+          ) : (
+          <>
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-2.5">
             <div className="grid gap-1">
@@ -280,7 +309,12 @@ export default function SignupPage() {
 
           {/* Google Login */}
           {GOOGLE_CLIENT_ID ? (
-            <div ref={gBtnCallback} className="w-full flex justify-center" />
+            <div
+              className="overflow-hidden"
+              style={{ height: 48, minHeight: 0 }}
+            >
+              <div ref={gBtnCallback} className="w-full flex justify-center" />
+            </div>
           ) : (
             <Button
               disabled
@@ -309,6 +343,8 @@ export default function SignupPage() {
               Đăng nhập
             </Link>
           </p>
+          </>
+          )}
         </div>
 
         {/* Footer text */}

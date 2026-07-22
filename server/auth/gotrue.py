@@ -103,6 +103,30 @@ async def get_user(access_token: str) -> dict:
         return resp.json()
 
 
+async def verify(type: str, token: str, email: str = "") -> dict:
+    """Verify an email confirmation or recovery token via GoTrue.
+
+    Returns GoTrue's response with access_token, refresh_token, user.
+    """
+    payload = {"type": type, "token": token}
+    if email:
+        payload["email"] = email
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{GOTRUE_URL}/verify",
+            json=payload,
+            headers=_auth_headers(),
+        )
+        if resp.status_code != 200:
+            try:
+                body = resp.json()
+                detail = body.get("msg") or body.get("error_description") or resp.text
+            except Exception:
+                detail = resp.text
+            raise HTTPException(status_code=resp.status_code, detail=detail)
+        return resp.json()
+
+
 async def google_login(id_token: str) -> dict:
     """Authenticate a user with a Google ID token via GoTrue.
 

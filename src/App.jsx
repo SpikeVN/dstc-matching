@@ -2,14 +2,13 @@ import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
 import AppLayout from '@/components/layout/AppLayout';
 import Landing from '@/pages/Landing';
-import Home from '@/pages/Home';
 import Dashboard from '@/pages/Dashboard';
 import Profile from '@/pages/Profile';
 import Discover from '@/pages/Discover';
@@ -22,18 +21,20 @@ import Guide from '@/pages/Guide';
 import ProfileDetail from '@/pages/ProfileDetail';
 import LoginPage from '@/pages/LoginPage';
 import SignupPage from '@/pages/SignupPage';
+import VerifyEmail from '@/pages/VerifyEmail';
 
 const PublicRoutes = () => (
   <Routes>
     <Route path="/landing" element={<Landing />} />
     <Route path="/login" element={<LoginPage />} />
     <Route path="/signup" element={<SignupPage />} />
+    <Route path="/verify" element={<VerifyEmail />} />
     <Route path="*" element={<LoginPage />} />
   </Routes>
 );
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, authChecked } = useAuth();
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
@@ -64,12 +65,15 @@ const AuthenticatedApp = () => {
     );
   }
 
-  if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      return <PublicRoutes />;
-    }
+  // Not authenticated (or not yet confirmed) — show public routes immediately.
+  // This must come BEFORE the main Routes tree so that when checkAppState()
+  // resolves to "not authenticated", the same <PublicRoutes> tree stays mounted
+  // (no unmount/remount flash).
+  if (authError?.type === 'user_not_registered') {
+    return <UserNotRegisteredError />;
+  }
+  if (!isAuthenticated) {
+    return <PublicRoutes />;
   }
 
   return (
@@ -77,6 +81,7 @@ const AuthenticatedApp = () => {
       <Route path="/landing" element={<Landing />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
+      <Route path="/verify" element={<VerifyEmail />} />
       <Route element={<AppLayout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />
@@ -99,6 +104,9 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
+          {/* Fixed background — immune to body style changes from Radix scroll lock */}
+          <div id="app-bg" className="fixed inset-0 -z-20 pointer-events-none" style={{ background: 'url(/background.webp) center/cover no-repeat' }} />
+          <div className="fixed inset-0 -z-10 pointer-events-none" style={{ background: 'rgba(2, 10, 8, 0.82)' }} />
           <AuthenticatedApp />
         </Router>
         <Toaster />

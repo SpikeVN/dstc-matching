@@ -7,6 +7,7 @@ import { User, Heart, MessageCircle, Settings, LogOut, Sparkles, LayoutDashboard
 import { Button } from '@/components/ui/button';
 import NotificationBell from './NotificationBell';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/lib/AuthContext';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -17,6 +18,7 @@ const navItems = [
 
 export default function Sidebar() {
   const location = useLocation();
+  const { logout } = useAuth();
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => db.auth.me(),
@@ -89,7 +91,7 @@ export default function Sidebar() {
           <Button
             variant="ghost"
             className="justify-start gap-3 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 font-mono text-sm h-auto py-3 w-full"
-            onClick={() => db.auth.logout()}>
+            onClick={logout}>
 
             <LogOut className="w-4 h-4" />
             Đăng xuất
