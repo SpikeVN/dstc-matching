@@ -1,14 +1,13 @@
-import { db } from '@/api/apiClient';
+import { db, setAuthFailureCallback } from '@/api/apiClient';
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(!!localStorage.getItem('access_token'));
   const [isLoadingPublicSettings] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
@@ -16,9 +15,25 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     checkAppState();
+    // Register global 401 handler: when a request fails after refresh, force logout
+    setAuthFailureCallback(() => {
+      setUser(null);
+      setIsAuthenticated(false);
+      setAuthChecked(true);
+      setAuthError({ type: 'auth_required', message: 'Session expired' });
+    });
+    return () => setAuthFailureCallback(null);
   }, []);
 
   const checkAppState = async () => {
+    // No token → definitely not authenticated, skip the API call and loading state
+    if (!localStorage.getItem('access_token')) {
+      setIsAuthenticated(false);
+      setAuthChecked(true);
+      setAuthError({ type: 'auth_required', message: 'Authentication required' });
+      return;
+    }
+
     try {
       setIsLoadingAuth(true);
       setAuthError(null);
@@ -79,11 +94,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signup = async (email, password, fullName) => {
-    const userData = await db.auth.signup(email, password, fullName);
-    setUser(userData);
+    const result = await db.auth.signup(email, password, fullName);
+    // If email confirmation is required, don't set auth state
+    if (result.requires_email_confirmation) {
+      return result;
+    }
+    setUser(result);
     setIsAuthenticated(true);
     setAuthError(null);
-    return userData;
+    return result;
   };
 
   const googleLogin = async (credential) => {
@@ -97,7 +116,8 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
-    setAuthError(null);
+    setAuthChecked(true);
+    setAuthError({ type: 'auth_required', message: 'Logged out' });
     db.auth.logout();
   };
 

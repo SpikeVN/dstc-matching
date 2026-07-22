@@ -5,7 +5,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Camera, Save, User, Briefcase, MessageSquare, Wrench, Brain, Sparkles, Medal, Target, Award } from 'lucide-react';
+import { Camera, Save, User, Briefcase, MessageSquare, Wrench, Brain, Sparkles, Medal, Target, Award, Plus, FileText, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import {
@@ -14,13 +14,24 @@ import {
 } from
   '@/lib/constants';
 
-// ─── Inline editable text field (controlled — commits every keystroke) ──────
+// ─── Inline editable text field — underline style ──────────────────────────
 function InlineField({ label, value, onChange, placeholder, multiline, type = 'text' }) {
   const [editing, setEditing] = useState(false);
+  const [focused, setFocused] = useState(false);
   const inputRef = useRef();
 
-  const startEdit = () => { setEditing(true); setTimeout(() => inputRef.current?.focus(), 50); };
-  const commit = () => setEditing(false);
+  const startEdit = () => {
+    setEditing(true);
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        // Place cursor at end of text
+        const len = inputRef.current.value?.length ?? 0;
+        inputRef.current.setSelectionRange(len, len);
+      }
+    }, 50);
+  };
+  const commit = () => { setEditing(false); setFocused(false); };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !multiline) { e.preventDefault(); commit(); }
@@ -29,17 +40,17 @@ function InlineField({ label, value, onChange, placeholder, multiline, type = 't
 
   if (editing) {
     return (
-      <div className="space-y-1.5">
-        {label && <p className="font-display text-[10px] text-primary/60">{label}</p>}
+      <div className="space-y-1">
+        {label && <p className={`font-display text-[10px] transition-colors ${focused ? 'text-primary' : 'text-primary/60'}`}>{label}</p>}
         {multiline ? (
           <Textarea ref={inputRef} value={value || ''} onChange={(e) => onChange(e.target.value)}
-            onBlur={commit}
-            className="text-sm bg-muted/50 border-primary/40 focus:border-primary text-foreground resize-none min-h-[72px] flex-1"
+            onBlur={commit} onFocus={() => setFocused(true)}
+            className="text-sm bg-transparent border-0 border-b-2 border-primary/20 focus:border-primary rounded-none px-0 py-2 text-foreground resize-none min-h-[72px] flex-1 focus-visible:ring-0 focus-visible:ring-offset-0 transition-colors cursor-text"
             onKeyDown={(e) => e.key === 'Escape' && commit()} />
         ) : (
           <Input ref={inputRef} type={type} value={value || ''} onChange={(e) => onChange(e.target.value)}
-            onBlur={commit}
-            className="text-sm bg-muted/50 border-primary/40 focus:border-primary text-foreground h-9 flex-1"
+            onBlur={commit} onFocus={() => setFocused(true)}
+            className="text-sm bg-transparent border-0 border-b-2 border-primary/20 focus:border-primary rounded-none px-0 py-2 h-9 flex-1 focus-visible:ring-0 focus-visible:ring-offset-0 transition-colors focus:text-primary cursor-text"
             onKeyDown={handleKeyDown} />
         )}
       </div>
@@ -50,8 +61,8 @@ function InlineField({ label, value, onChange, placeholder, multiline, type = 't
     <div className="space-y-1">
       {label && <p className="font-display text-[10px] text-primary/60">{label}</p>}
       <button onClick={startEdit}
-        className="w-full text-left flex items-center gap-2 group px-3 py-2 rounded-lg border border-transparent hover:border-primary/20 hover:bg-primary/5 transition-all min-h-[36px]">
-        <span className={`font-body text-sm flex-1 ${value ? 'text-foreground' : 'text-muted-foreground/40 italic'}`}>
+        className={`w-full text-left flex items-start gap-2 group px-0 py-2 border-b-2 border-primary/10 hover:border-primary/30 transition-all cursor-text ${multiline ? 'min-h-[72px]' : 'h-9'}`}>
+        <span className={`font-body text-sm flex-1 ${value ? 'text-foreground group-hover:text-primary' : 'text-muted-foreground/40 italic'}`}>
           {value || placeholder || 'Nhấn để chỉnh sửa...'}
         </span>
       </button>
@@ -61,10 +72,10 @@ function InlineField({ label, value, onChange, placeholder, multiline, type = 't
 
 function InlineSelect({ label, value, options, onChange, placeholder }) {
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1">
       {label && <p className="font-display text-[10px] text-primary/60">{label}</p>}
       <Select value={value || ''} onValueChange={(v) => onChange(v)}>
-        <SelectTrigger className="h-9 text-sm bg-muted/40 border-primary/15 hover:border-primary/30 focus:border-primary/50 text-foreground">
+        <SelectTrigger className="h-9 text-sm bg-transparent border-0 border-b-2 border-primary/20 hover:border-primary/30 focus:border-primary rounded-none px-0 py-2 text-foreground focus:ring-0 focus:ring-offset-0 transition-colors focus:text-primary data-[state=open]:border-primary data-[state=open]:text-primary cursor-pointer">
           <SelectValue placeholder={placeholder || 'Chọn...'} />
         </SelectTrigger>
         <SelectContent className="bg-card border-primary/20 text-sm">
@@ -76,18 +87,60 @@ function InlineSelect({ label, value, options, onChange, placeholder }) {
 }
 
 function TagGroup({ label, all, selected, onToggle, variant = 'primary' }) {
-  const activeClass = variant === 'soft' ?
-    'bg-blue-500/10 border-blue-400/40 text-blue-300' :
-    'bg-primary/10 border-primary/40 text-primary';
+  const [customInput, setCustomInput] = useState('');
+  const inputRef = useRef();
+
+  const activeClass = variant === 'soft'
+    ? 'bg-blue-500/20 text-blue-200 border-blue-400/30'
+    : 'bg-primary/15 text-primary border-primary/25';
+  const inactiveClass = 'bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/50 hover:text-foreground';
+
+  // Custom tags: items in selected that aren't in the preset list
+  const customTags = selected.filter(s => !all.includes(s));
+
+  const handleAdd = () => {
+    const val = customInput.trim();
+    if (val && !selected.includes(val)) {
+      onToggle(val);
+      setCustomInput('');
+    }
+    inputRef.current?.focus();
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); handleAdd(); }
+    if (e.key === 'Escape') { setCustomInput(''); inputRef.current?.blur(); }
+  };
+
   return (
     <div className="space-y-2">
       {label && <p className="font-display text-[10px] text-primary/60">{label}</p>}
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1.5 items-center">
         {all.map((item) =>
           <button key={item} onClick={() => onToggle(item)}
-            className={`text-xs px-2.5 py-1 rounded border transition-all font-body ${selected.includes(item) ? activeClass : 'border-primary/10 text-muted-foreground hover:border-primary/25 hover:text-foreground'}`
-            }>
+            className={`text-xs px-3 py-1.5 rounded-full border transition-all font-body font-medium ${selected.includes(item) ? activeClass : inactiveClass}`}>
             {item}
+          </button>
+        )}
+        {customTags.map((item) =>
+          <button key={item} onClick={() => onToggle(item)}
+            className={`text-xs px-3 py-1.5 rounded-full border transition-all font-body font-medium ${activeClass}`}>
+            {item}
+          </button>
+        )}
+        <input
+          ref={inputRef}
+          type="text"
+          value={customInput}
+          onChange={(e) => setCustomInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Thêm..."
+          className="text-xs bg-transparent border-b border-primary/20 focus:border-primary rounded-none px-1.5 py-1.5 w-20 text-foreground placeholder:text-muted-foreground/40 outline-none cursor-text"
+        />
+        {customInput.trim() && (
+          <button onClick={handleAdd}
+            className="p-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-all">
+            <Plus className="w-3 h-3" />
           </button>
         )}
       </div>
@@ -131,6 +184,12 @@ async function compressImage(file) {
 
 // ─── Main component ──────────────────────────────────────────────────────────
 export default function InlineProfileEditor({ profile, onSave }) {
+  // Split technical_skills into three buckets so sections don't bleed into each other
+  const initialSkills = profile?.technical_skills || [];
+  const toolSkillSet = new Set(TOOL_SKILLS);
+  const frameworkSkillSet = new Set(FRAMEWORK_SKILLS);
+  const skillsetSet = new Set(SKILLSET);
+
   // Initialize once — NOT re-initialized on prop change to avoid data loss
   const [form, setForm] = useState(() => ({
     bio: profile?.bio || '',
@@ -140,7 +199,11 @@ export default function InlineProfileEditor({ profile, onSave }) {
     city: profile?.city || '',
     school: profile?.school || '',
     major: profile?.major || '',
-    technical_skills: profile?.technical_skills || [],
+    tool_skills: initialSkills.filter(s => toolSkillSet.has(s)),
+    framework_skills: initialSkills.filter(s => frameworkSkillSet.has(s)),
+    skillset_skills: initialSkills.filter(s => skillsetSet.has(s)),
+    // Custom tech skills that don't belong to any preset list
+    custom_tech_skills: initialSkills.filter(s => !toolSkillSet.has(s) && !frameworkSkillSet.has(s) && !skillsetSet.has(s)),
     soft_skills: profile?.soft_skills || [],
     experience: profile?.experience || '',
     goals: profile?.goals || [],
@@ -150,7 +213,8 @@ export default function InlineProfileEditor({ profile, onSave }) {
     role: profile?.role || '',
     achievements: profile?.achievements || '',
     achievements_other: profile?.achievements_other || '',
-    profile_image: profile?.profile_image || ''
+    profile_image: profile?.profile_image || '',
+    cv_url: profile?.cv_url || ''
   }));
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -174,7 +238,9 @@ export default function InlineProfileEditor({ profile, onSave }) {
     }
     setSaving(true);
     try {
-      await onSave({ ...form, role: form.roles?.[0] || '', profile_complete: true });
+      const technical_skills = [...new Set([...form.tool_skills, ...form.framework_skills, ...form.skillset_skills, ...form.custom_tech_skills])];
+      const { tool_skills, framework_skills, skillset_skills, custom_tech_skills, ...rest } = form;
+      await onSave({ ...rest, technical_skills, role: form.roles?.[0] || '', profile_complete: true });
       toast.success('Hồ sơ đã được lưu!', { duration: 2000 });
     } catch (err) {
       toast.error('Lưu thất bại: ' + (err?.message || 'Lỗi không xác định'), { duration: 4000 });
@@ -190,7 +256,9 @@ export default function InlineProfileEditor({ profile, onSave }) {
     const compressed = await compressImage(file);
     const { file_url } = await db.integrations.Core.UploadFile({ file: compressed });
     update('profile_image', file_url);
-    await onSave({ ...form, profile_image: file_url, profile_complete: true });
+    const technical_skills = [...new Set([...form.tool_skills, ...form.framework_skills, ...form.skillset_skills, ...form.custom_tech_skills])];
+    const { tool_skills, framework_skills, skillset_skills, custom_tech_skills, ...rest } = form;
+    await onSave({ ...rest, technical_skills, profile_image: file_url, profile_complete: true });
     setUploading(false);
     toast.success('Ảnh đã được cập nhật!', { duration: 1500 });
   };
@@ -254,26 +322,57 @@ export default function InlineProfileEditor({ profile, onSave }) {
         <p className="font-body text-[10px] text-muted-foreground/50 mt-1">Chọn 1 vai trò phù hợp nhất với bạn</p>
       </SectionCard>
 
-      {/* ── Bio ─────────────────────────────────────────────────── */}
+      {/* ── Bio + CV ───────────────────────────────────────────── */}
       <SectionCard icon={MessageSquare} title="Giới thiệu bản thân">
         <InlineField value={form.bio} onChange={(v) => update('bio', v)}
           placeholder="Viết vài dòng về bản thân, đam mê, mục tiêu..." multiline />
+        <div className="pt-2">
+          <p className="font-display text-[10px] text-primary/60 mb-2">CV / Portfolio (PDF, PNG, JPG, WEBP, DOCX, ODT)</p>
+          {form.cv_url ? (
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/15">
+              <FileText className="w-4 h-4 text-primary flex-shrink-0" />
+              <a href={form.cv_url} target="_blank" rel="noopener noreferrer"
+                className="text-sm font-body text-primary hover:underline truncate flex-1">
+                {form.cv_url.split('/').pop()}
+              </a>
+              <button onClick={() => update('cv_url', '')}
+                className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <label className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-primary/20 hover:border-primary/40 cursor-pointer transition-colors group">
+              <Upload className="w-4 h-4 text-primary/40 group-hover:text-primary/70 transition-colors" />
+              <span className="text-xs font-body text-muted-foreground/60 group-hover:text-muted-foreground transition-colors">Tải lên CV</span>
+              <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.docx,.odt" className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  try {
+                    const { file_url } = await db.integrations.Core.UploadFile({ file });
+                    if (file_url) update('cv_url', file_url);
+                    else toast.error('Tải CV thất bại');
+                  } catch { toast.error('Tải CV thất bại'); }
+                }} />
+            </label>
+          )}
+        </div>
       </SectionCard>
 
       {/* ── Tools & Libraries ───────────────────────────────────── */}
       <SectionCard icon={Wrench} title="Tools & Libraries">
         <p className="font-display text-[10px] text-primary/60 -mb-1">Tools</p>
-        <TagGroup all={TOOL_SKILLS} selected={form.technical_skills}
-          onToggle={(s) => toggleArray('technical_skills', s)} />
+        <TagGroup all={TOOL_SKILLS} selected={form.tool_skills}
+          onToggle={(s) => toggleArray('tool_skills', s)} />
         <p className="font-display text-[10px] text-primary/60 -mb-1 mt-2">Frameworks & Libraries</p>
-        <TagGroup all={FRAMEWORK_SKILLS} selected={form.technical_skills}
-          onToggle={(s) => toggleArray('technical_skills', s)} />
+        <TagGroup all={FRAMEWORK_SKILLS} selected={form.framework_skills}
+          onToggle={(s) => toggleArray('framework_skills', s)} />
       </SectionCard>
 
       {/* ── Skillset ─────────────────────────────────────────────── */}
       <SectionCard icon={Brain} title="Skillset">
-        <TagGroup all={SKILLSET} selected={form.technical_skills}
-          onToggle={(s) => toggleArray('technical_skills', s)} />
+        <TagGroup all={SKILLSET} selected={form.skillset_skills}
+          onToggle={(s) => toggleArray('skillset_skills', s)} />
       </SectionCard>
 
       {/* ── Mindset / Soft skills ───────────────────────────────── */}

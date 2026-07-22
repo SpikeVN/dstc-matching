@@ -19,7 +19,7 @@ class EmailRequest(BaseModel):
 
 
 MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5 MB
-ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf"}
+ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf", ".docx", ".odt"}
 
 
 @router.post("/upload")

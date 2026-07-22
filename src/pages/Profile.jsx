@@ -7,7 +7,7 @@ import InlineProfileEditor from '@/components/profile/InlineProfileEditor';
 import ProfilePreview from '@/components/profile/ProfilePreview';
 import PageFooter from '@/components/layout/PageFooter';
 import { Eye, Edit3 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Profile() {
   const queryClient = useQueryClient();
@@ -75,14 +75,14 @@ export default function Profile() {
           <div className="flex gap-1 p-1 rounded-lg bg-muted/40 border border-primary/10">
             <button
               onClick={() => setMode('edit')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-body transition-all ${mode === 'edit' ? 'bg-primary/15 text-primary border border-primary/30' : 'text-muted-foreground hover:text-foreground'
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-body transition-all border ${mode === 'edit' ? 'bg-primary/15 text-primary border-primary/30' : 'text-muted-foreground hover:text-foreground border-transparent'
                 }`}
             >
               <Edit3 className="w-3.5 h-3.5" /> Chỉnh sửa
             </button>
             <button
               onClick={handleSwitchToPreview}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-body transition-all ${mode === 'preview' ? 'bg-primary/15 text-primary border border-primary/30' : 'text-muted-foreground hover:text-foreground'
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-body transition-all border ${mode === 'preview' ? 'bg-primary/15 text-primary border-primary/30' : 'text-muted-foreground hover:text-foreground border-transparent'
                 }`}
             >
               <Eye className="w-3.5 h-3.5" /> Xem trước
@@ -91,14 +91,29 @@ export default function Profile() {
         </div>
 
         {!isLoading && (
-          <div className={mode === 'edit' ? 'block' : 'hidden'}>
-            <InlineProfileEditor key={myProfile?.id ?? 'new'} profile={myProfile} onSave={handleSave} />
-          </div>
-        )}
-        {mode === 'preview' && (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-            <ProfilePreview profile={previewData || myProfile} />
-          </motion.div>
+          <AnimatePresence mode="wait">
+            {mode === 'edit' ? (
+              <motion.div
+                key="edit"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.2 }}
+              >
+                <InlineProfileEditor key={myProfile?.id ?? 'new'} profile={myProfile} onSave={handleSave} />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="preview"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ProfilePreview profile={previewData || myProfile} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         )}
         <PageFooter />
       </div>

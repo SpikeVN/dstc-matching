@@ -10,6 +10,7 @@ import { LogOut, Terminal, Eye, KeyRound, Activity, Clock, Heart, UserCheck, Shi
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import PageFooter from '@/components/layout/PageFooter';
+import { useAuth } from '@/lib/AuthContext';
 
 const TABS = [
   { id: 'privacy', label: 'Quyền riêng tư', icon: Eye },
@@ -67,6 +68,7 @@ function ActivityItem({ icon: Icon, title, desc, time, color = 'text-primary' })
 }
 
 export default function Settings() {
+  const { logout } = useAuth();
   const [activeTab, setActiveTab] = useState('privacy');
   const [privacy, setPrivacy] = useState({
     showAge: true,
@@ -437,7 +439,7 @@ export default function Settings() {
             <Button
               variant="outline"
               className="w-full gap-2 font-display text-xs font-medium border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive/50 transition-all duration-200"
-              onClick={() => db.auth.logout()}
+              onClick={logout}
             >
               <LogOut className="w-4 h-4" />
               Đăng xuất

@@ -32,8 +32,45 @@ function clearTokens() {
   localStorage.removeItem('refresh_token');
 }
 
+// ── Capture tokens from URL hash (GoTrue redirect flow) ───────────
+// GoTrue's GET /verify redirects to redirect_to with tokens in the hash:
+//   http://localhost:5173/#access_token=...&refresh_token=...
+// This runs at module load, before React mounts, so AuthContext finds
+// the tokens in localStorage on its first check.
+(() => {
+  const hash = window.location.hash;
+  if (!hash) return;
+
+  const params = new URLSearchParams(hash.substring(1));
+
+  // Success case: tokens in hash from GoTrue redirect
+  if (params.has('access_token')) {
+    const at = params.get('access_token');
+    const rt = params.get('refresh_token');
+    if (at && rt) {
+      setTokens(at, rt);
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+    return;
+  }
+
+  // Error case: GoTrue redirect with error (e.g. expired token)
+  if (params.has('error')) {
+    const errorDescription = params.get('error_description') || 'Đã xảy ra lỗi';
+    // Clear the hash and redirect to login with the error message
+    window.history.replaceState(null, '', window.location.pathname);
+    window.location.href = `/login?error=${encodeURIComponent(errorDescription)}`;
+  }
+})();
+
 function getAccessToken() {
   return accessToken;
+}
+
+// Callback for global 401 handling (set by AuthContext)
+let onAuthFailure = null;
+export function setAuthFailureCallback(fn) {
+  onAuthFailure = fn;
 }
 
 // ── Request helper ──────────────────────────────────────────────────
@@ -63,8 +100,9 @@ async function request(method, path, body = null) {
       }
       return retryRes.json();
     }
-    // Refresh failed — clear tokens
+    // Refresh failed — clear tokens and notify
     clearTokens();
+    if (onAuthFailure) onAuthFailure();
   }
 
   if (!res.ok) {
@@ -154,6 +192,14 @@ const authClient = {
   },
   signup: async (email, password, fullName) => {
     const data = await request('POST', '/auth/signup', { email, password, full_name: fullName });
+    if (data.requires_email_confirmation) {
+      return { requires_email_confirmation: true, user: data.user };
+    }
+    setTokens(data.access_token, data.refresh_token);
+    return data.user;
+  },
+  verify: async (type, token, email) => {
+    const data = await request('POST', '/auth/verify', { type, token, email });
     setTokens(data.access_token, data.refresh_token);
     return data.user;
   },

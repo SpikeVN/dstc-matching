@@ -28,6 +28,12 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
+class VerifyRequest(BaseModel):
+    type: str  # "signup", "recovery", "invite", "magiclink", "email_change"
+    token: str
+    email: str = ""
+
+
 @router.post("/signup")
 async def signup(req: SignupRequest):
     """Create a new user via GoTrue, then create a row in public.users."""
@@ -56,8 +62,13 @@ async def signup(req: SignupRequest):
 
     user = await fetch_one("SELECT * FROM public.users WHERE id = $1", user_id)
 
+    # If GoTrue didn't return an access_token, email confirmation is required
+    access_token = result.get("access_token")
+    if not access_token:
+        return {"requires_email_confirmation": True, "user": user}
+
     return {
-        "access_token": result.get("access_token"),
+        "access_token": access_token,
         "refresh_token": result.get("refresh_token"),
         "user": user,
     }
@@ -155,6 +166,49 @@ async def refresh_tokens(req: RefreshRequest):
     return {
         "access_token": result.get("access_token"),
         "refresh_token": result.get("refresh_token"),
+    }
+
+
+@router.post("/verify")
+async def verify_email(req: VerifyRequest):
+    """Verify an email confirmation token from GoTrue."""
+    result = await gotrue.verify(req.type, req.token, req.email)
+
+    # Extract user info from the GoTrue response
+    gotrue_user = result.get("user") or result
+    user_id = gotrue_user.get("id")
+    if not user_id:
+        raise HTTPException(status_code=500, detail="GoTrue verify did not return a user ID")
+
+    access_token = result.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=500, detail="GoTrue verify did not return an access token")
+
+    # Upsert user in public.users (same pattern as Google login)
+    email = gotrue_user.get("email", "")
+    full_name = gotrue_user.get("user_metadata", {}).get("full_name", "")
+    now_ts = now()
+    await execute(
+        """INSERT INTO public.users (id, email, full_name, role, created_date, updated_date)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (id) DO UPDATE SET
+             email = EXCLUDED.email,
+             full_name = EXCLUDED.full_name,
+             updated_date = EXCLUDED.updated_date""",
+        user_id,
+        email,
+        full_name,
+        "user",
+        now_ts,
+        now_ts,
+    )
+
+    user = await fetch_one("SELECT * FROM public.users WHERE id = $1", user_id)
+
+    return {
+        "access_token": access_token,
+        "refresh_token": result.get("refresh_token"),
+        "user": user,
     }
 
 

@@ -50,30 +50,36 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    overflow-x: hidden;
+    overflow-y: scroll;
+    /* Reserve scrollbar gutter so opening Radix dialogs/selects (which lock
+       body scroll via RemoveScroll) doesn't cause horizontal layout shift. */
+    scrollbar-gutter: stable;
+  }
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
+    /* Let <html> be the sole scroll container. If body also scrolls, Radix's
+       RemoveScroll toggles body overflow between auto/hidden on open/close,
+       which adds/removes a body-level scrollbar and shifts the layout. */
+    overflow: visible;
   }
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: url('/background.webp') center/cover no-repeat;
-    z-index: -2;
-    pointer-events: none;
+  /* Radix RemoveScroll adds `data-scroll-locked` to <body> when a Select/
+     Dialog/Popover opens. It compensates for the scrollbar it hides by setting
+     `margin-right` and `padding-right` on body. Because <html> already uses
+     `scrollbar-gutter: stable` (reserving the gutter), that compensation is
+     redundant and causes a ~4px horizontal shift. Use `html body` for higher
+     specificity than Radix's injected `body[data-scroll-locked]` rule. */
+  html body[data-scroll-locked] {
+    margin-right: 0 !important;
+    padding-right: 0 !important;
   }
-  body::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: rgba(2, 10, 8, 0.82);
-    z-index: -1;
-    pointer-events: none;
-  }
-  html.no-bg body::before {
+  body::before, body::after {
     display: none;
   }
-  html.no-bg body::after {
+  html.no-bg #app-bg,
+  html.no-bg #app-bg + div {
     display: none;
   }
   #root {

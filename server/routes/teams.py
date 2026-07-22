@@ -32,7 +32,7 @@ async def list_teams(request: Request):
     idx = 1
 
     for key in request.query_params:
-        if key in ('leader_id', 'status', 'name', 'id'):
+        if key in ("leader_id", "status", "name", "id"):
             conditions.append(f"{key} = ${idx}")
             params.append(request.query_params[key])
             idx += 1
@@ -57,27 +57,41 @@ async def create_team(team: TeamCreate, user: dict = Depends(get_current_user)):
     tid = generate_id()
     now_ts = now()
     # Always set leader to the authenticated user
-    await execute("""
+    await execute(
+        """
         INSERT INTO teams (id, created_date, updated_date, name, leader_id, member_ids, max_members, status)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    """, tid, now_ts, now_ts, team.name, user["id"], json.dumps(team.member_ids), team.max_members, team.status)
+    """,
+        tid,
+        now_ts,
+        now_ts,
+        team.name,
+        user["id"],
+        json.dumps(team.member_ids),
+        team.max_members,
+        team.status,
+    )
     return await fetch_one("SELECT * FROM teams WHERE id = $1", tid)
 
 
 @router.patch("/{team_id}")
-async def update_team(team_id: str, update: TeamUpdate, user: dict = Depends(get_current_user)):
+async def update_team(
+    team_id: str, update: TeamUpdate, user: dict = Depends(get_current_user)
+):
     existing = await fetch_one("SELECT * FROM teams WHERE id = $1", team_id)
     if existing is None:
         raise HTTPException(status_code=404, detail="Team not found")
     if existing["leader_id"] != user["id"]:
-        raise HTTPException(status_code=403, detail="Only the team leader can update the team")
+        raise HTTPException(
+            status_code=403, detail="Only the team leader can update the team"
+        )
 
     fields = []
     vals = []
     idx = 1
     for key, value in update.model_dump(exclude_unset=True).items():
         if value is not None:
-            if key == 'member_ids':
+            if key == "member_ids":
                 fields.append(f"{key} = ${idx}")
                 vals.append(json.dumps(value))
             else:
@@ -101,6 +115,8 @@ async def delete_team(team_id: str, user: dict = Depends(get_current_user)):
     if existing is None:
         raise HTTPException(status_code=404, detail="Team not found")
     if existing["leader_id"] != user["id"]:
-        raise HTTPException(status_code=403, detail="Only the team leader can delete the team")
+        raise HTTPException(
+            status_code=403, detail="Only the team leader can delete the team"
+        )
     await execute("DELETE FROM teams WHERE id = $1", team_id)
     return {"success": True}
