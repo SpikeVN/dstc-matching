@@ -33,7 +33,7 @@ jobs:
           bun-version: latest
 
       - name: Setup Node.js
-        uses: actions/actions-node@v7
+        uses: actions/setup-node@v7
         with:
           node-version: 24
 
