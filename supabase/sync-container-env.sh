@@ -94,13 +94,15 @@ STUDIO_FILE="$SCRIPT_DIR/supabase-studio.container"
 update_env "$STUDIO_FILE" SUPABASE_ANON_KEY "${ANON_KEY:-}"
 update_env "$STUDIO_FILE" SUPABASE_SERVICE_KEY "${SERVICE_ROLE_KEY:-}"
 update_env "$STUDIO_FILE" AUTH_JWT_SECRET "${JWT_SECRET:-}"
-update_env "$STUDIO_FILE" POSTGRES_PASSWORD "$POSTGRES_PASSWORD"
+update_env "$STUDIO_FILE" POSTGRES_PASSWORD "$PG_PW_ENCODED"
+update_env "$STUDIO_FILE" PG_META_CRYPTO_KEY "${PG_META_CRYPTO_KEY:-}"
 update_env "$STUDIO_FILE" SUPABASE_PUBLIC_URL "${SUPABASE_PUBLIC_URL:-https://supabase.cteftu.id.vn}"
 echo "  ✓ supabase-studio.container"
 
 # supabase-pg-meta.container
 PGMETA_FILE="$SCRIPT_DIR/supabase-pg-meta.container"
-update_env "$PGMETA_FILE" PG_META_DB_PASSWORD "$POSTGRES_PASSWORD"
+update_url_env "$PGMETA_FILE" PG_META_DB_URL "postgres" "$PG_PW_ENCODED" "supabase-db"
+update_env "$PGMETA_FILE" CRYPTO_KEY "${PG_META_CRYPTO_KEY:-}"
 echo "  ✓ supabase-pg-meta.container"
 
 echo ""

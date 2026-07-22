@@ -150,7 +150,11 @@ async def google_login(req: GoogleRequest):
     # Extract email and name from the GoTrue response (try multiple paths)
     gotrue_user = result.get("user") or result
     email = gotrue_user.get("email") or claims.get("email", "")
-    full_name = gotrue_user.get("user_metadata", {}).get("full_name", "")
+    user_metadata = gotrue_user.get("user_metadata", {})
+    full_name = user_metadata.get("full_name") or user_metadata.get("name", "")
+
+    # Derive username from email (e.g. "name" from "name@gmail.com")
+    username = email.split("@")[0] if email else ""
 
     # Upsert user in public.users
     now_ts = now()
@@ -159,11 +163,12 @@ async def google_login(req: GoogleRequest):
            VALUES ($1, $2, $3, $4, $5, $6, $7)
            ON CONFLICT (id) DO UPDATE SET
              email = EXCLUDED.email,
+             username = EXCLUDED.username,
              full_name = EXCLUDED.full_name,
              updated_date = EXCLUDED.updated_date""",
         user_id,
         email,
-        "",
+        username,
         full_name,
         "user",
         now_ts,

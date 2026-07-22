@@ -48,6 +48,10 @@ uploads_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads"
 os.makedirs(uploads_dir, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
+# Mount GoTrue email templates (served so GoTrue can fetch them via URL)
+templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
+app.mount("/templates", StaticFiles(directory=templates_dir), name="templates")
+
 # Register routers
 app.include_router(auth_router)
 app.include_router(profiles_router)

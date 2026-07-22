@@ -4,6 +4,7 @@ from fastapi import APIRouter, UploadFile, File, Depends
 from pydantic import BaseModel
 
 from auth.dependencies import get_current_user
+from mailer import send_email as _send_email
 
 router = APIRouter(prefix="/api")
 
@@ -43,10 +44,10 @@ async def upload_file(file: UploadFile = File(...), user: dict = Depends(get_cur
 
 
 @router.post("/send-email")
-async def send_email(req: EmailRequest):
-    # Stub: log to console instead of actually sending
-    print(f"[EMAIL] From: {req.from_name} <{req.to}>")
-    print(f"[EMAIL] Subject: {req.subject}")
-    print(f"[EMAIL] Body:\n{req.body}")
-    print(f"[EMAIL] --- Email logged (not sent) ---")
-    return {"success": True, "message": "Email logged to console (stub)"}
+async def send_email_route(req: EmailRequest, user: dict = Depends(get_current_user)):
+    if not req.to or not req.subject:
+        return {"success": False, "message": "Missing 'to' or 'subject'"}
+    # Wrap plain text body in a basic HTML layout
+    html = f"<div style='font-family:sans-serif;padding:16px;'>{req.body}</div>"
+    ok = await _send_email(to=req.to, subject=req.subject, html=html)
+    return {"success": ok}

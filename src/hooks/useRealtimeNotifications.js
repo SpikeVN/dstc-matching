@@ -4,12 +4,9 @@ import { useEffect, useRef } from 'react';
 
 import { toast } from 'sonner';
 
-const APP_URL = window.location.origin;
-
 /**
- * Subscribes to real-time Message and Match events.
- * - Shows in-app toast immediately
- * - Sends email notification (once per event, deduped by id)
+ * Subscribes to real-time Message and Match events (via polling fallback).
+ * Shows in-app toasts. Email notifications are sent server-side.
  */
 export function useRealtimeNotifications({ currentUser, profileMap, navigate }) {
   const notifiedIds = useRef(new Set());
@@ -18,7 +15,7 @@ export function useRealtimeNotifications({ currentUser, profileMap, navigate }) 
     if (!currentUser?.id) return;
 
     // ── Messages ──────────────────────────────────────────────────────────
-    const unsubMessage = db.entities.Message.subscribe(async (event) => {
+    const unsubMessage = db.entities.Message.subscribe((event) => {
       if (event.type !== 'create') return;
       const msg = event.data;
       if (msg.receiver_id !== currentUser.id) return;
@@ -28,7 +25,6 @@ export function useRealtimeNotifications({ currentUser, profileMap, navigate }) 
       const senderProfile = profileMap?.[msg.sender_id];
       const senderName = senderProfile?.display_name || 'Ai đó';
 
-      // In-app toast
       toast(`${senderName} vừa nhắn tin`, {
         description: msg.content?.slice(0, 60) + (msg.content?.length > 60 ? '...' : ''),
         duration: 5000,
@@ -37,35 +33,10 @@ export function useRealtimeNotifications({ currentUser, profileMap, navigate }) 
           onClick: () => navigate('/messages'),
         },
       });
-
-      // Email notification
-      try {
-        await db.integrations.Core.SendEmail({
-          from_name: 'DSTC Matching',
-          to: currentUser.email,
-          subject: `[DSTC Matching] ${senderName} vừa gửi cho bạn một tin nhắn`,
-          body: `Xin chào ${currentUser.username || 'bạn'},
-
-${senderName} vừa gửi cho bạn một tin nhắn trên DSTC Matching:
-
-"${msg.content}"
-
-${senderProfile?.role ? `Vai trò: ${senderProfile.role}` : ''}
-${senderProfile?.school ? `Trường: ${senderProfile.school}` : ''}
-
-Đăng nhập để trả lời: ${APP_URL}/messages
-
----
-DSTC: VQC 2026 — CTE FTU
-Trường Đại học Ngoại thương`,
-        });
-      } catch (_) {
-        // Email is best-effort, silent fail
-      }
     });
 
     // ── Matches ───────────────────────────────────────────────────────────
-    const unsubMatch = db.entities.Match.subscribe(async (event) => {
+    const unsubMatch = db.entities.Match.subscribe((event) => {
       if (event.type !== 'create') return;
       const match = event.data;
       if (match.user1_id !== currentUser.id && match.user2_id !== currentUser.id) return;
@@ -76,7 +47,6 @@ Trường Đại học Ngoại thương`,
       const otherProfile = profileMap?.[otherId];
       const otherName = otherProfile?.display_name || 'Ai đó';
 
-      // In-app toast
       toast(`Match mới với ${otherName}!`, {
         description: [otherProfile?.role, otherProfile?.school].filter(Boolean).join(' — '),
         duration: 6000,
@@ -85,31 +55,6 @@ Trường Đại học Ngoại thương`,
           onClick: () => navigate(`/messages?match=${match.id}`),
         },
       });
-
-      // Email notification
-      try {
-        await db.integrations.Core.SendEmail({
-          from_name: 'DSTC Matching',
-          to: currentUser.email,
-          subject: `[DSTC Matching] Bạn đã match với ${otherName}!`,
-          body: `Xin chào ${currentUser.username || 'bạn'},
-
-Chúc mừng! Bạn và ${otherName} đã match với nhau trên DSTC Matching.
-
-${otherProfile?.role ? `Vai trò: ${otherProfile.role}` : ''}
-${otherProfile?.school ? `Trường: ${otherProfile.school}` : ''}
-${otherProfile?.bio ? `Giới thiệu: ${otherProfile.bio}` : ''}
-
-Hãy gửi tin nhắn đầu tiên để bắt đầu kết nối:
-${APP_URL}/messages?match=${match.id}
-
----
-DSTC: VQC 2026 — CTE FTU
-Trường Đại học Ngoại thương`,
-        });
-      } catch (_) {
-        // Email is best-effort, silent fail
-      }
     });
 
     return () => {
