@@ -70,6 +70,7 @@ update_env "$AUTH_FILE" GOTRUE_SMTP_PORT "${SMTP_PORT:-465}"
 update_env "$AUTH_FILE" GOTRUE_SMTP_USER "${SMTP_USER:-resend}"
 update_env "$AUTH_FILE" GOTRUE_SMTP_PASS "${SMTP_PASS:-}"
 update_env "$AUTH_FILE" GOTRUE_SMTP_SENDER_NAME "${SMTP_SENDER_NAME:-Data Science Talent Competition}"
+update_env "$AUTH_FILE" GOTRUE_SITE_URL "${GOTRUE_SITE_URL:-https://matching.cteftu.id.vn}"
 echo "  ✓ supabase-auth.container"
 
 # supabase-rest.container
@@ -94,6 +95,7 @@ update_env "$STUDIO_FILE" SUPABASE_ANON_KEY "${ANON_KEY:-}"
 update_env "$STUDIO_FILE" SUPABASE_SERVICE_KEY "${SERVICE_ROLE_KEY:-}"
 update_env "$STUDIO_FILE" AUTH_JWT_SECRET "${JWT_SECRET:-}"
 update_env "$STUDIO_FILE" POSTGRES_PASSWORD "$POSTGRES_PASSWORD"
+update_env "$STUDIO_FILE" SUPABASE_PUBLIC_URL "${SUPABASE_PUBLIC_URL:-https://supabase.cteftu.id.vn}"
 echo "  ✓ supabase-studio.container"
 
 # supabase-pg-meta.container

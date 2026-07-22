@@ -1,12 +1,24 @@
-name: Deploy to Cloudflare Pages
+name: Deploy Frontend
 
 on:
   push:
     branches: [main]
+    paths:
+      - src/**
+      - public/**
+      - index.html
+      - package.json
+      - bun.lock
+      - vite.config.js
+      - tailwind.config.js
+      - postcss.config.js
+      - jsconfig.json
+      - components.json
+      - eslint.config.js
+      - .github/workflows/deploy-frontend.yml
 
-# Cancel in-progress runs for the same branch
 concurrency:
-  group: deploy-${{ github.ref }}
+  group: deploy-frontend-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

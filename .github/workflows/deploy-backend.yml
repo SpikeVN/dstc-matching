@@ -1,0 +1,59 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - server/**
+      - .github/workflows/deploy-backend.yml
+
+concurrency:
+  group: deploy-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image (podman)
+        working-directory: server
+        env:
+          OWNER: ${{ github.repository_owner }}
+          SHA: ${{ github.sha }}
+        run: |
+          owner_lc="${OWNER,,}"
+          short="${SHA::7}"
+          image="ghcr.io/${owner_lc}/dstc-matching"
+          echo "IMAGE=${image}" >> "$GITHUB_ENV"
+          echo "SHORT_SHA=${short}" >> "$GITHUB_ENV"
+          podman build \
+            --tag "${image}:latest" \
+            --tag "${image}:${SHA}" \
+            --tag "${image}:sha-${short}" \
+            -f Containerfile .
+
+      - name: Log in to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" \
+            | podman login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Push to GHCR
+        run: |
+          podman push --tls-verify "${IMAGE}:latest"
+          podman push --tls-verify "${IMAGE}:${{ github.sha }}"
+          podman push --tls-verify "${IMAGE}:sha-${SHORT_SHA}"
+
+      - name: Summary
+        run: |
+          {
+            echo "### Backend image pushed"
+            echo ""
+            echo "\`${IMAGE}:latest\`"
+            echo "\`${IMAGE}:sha-${SHORT_SHA}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
