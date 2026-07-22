@@ -1,0 +1,44 @@
+# DSTC Matching — FastAPI backend image (OCI/Containerfile, podman-native).
+# Built and pushed to GHCR by .github/workflows/deploy.yml.
+#
+# Build locally:
+#   podman build -t dstc-matching -f server/Containerfile server/
+# Run:
+#   podman run --rm -p 8000:8000 --env-file server/.env dstc-matching
+
+# ── Builder: compile C extensions (asyncpg, cryptography) ───────────────
+FROM python:3.14-alpine AS builder
+ENV PIP_NO_CACHE_DIR=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /install
+
+# gcc + musl-dev for any package without a cp314 wheel; asyncpg has no
+# libpq runtime dep so the runtime stage stays toolchain-free.
+RUN apk add --no-cache gcc musl-dev
+
+COPY requirements.txt .
+# Install into a prefix we copy verbatim into the runtime image (same Python 3.14).
+RUN pip install --prefix=/install -r requirements.txt
+
+# ── Runtime: alpine, no toolchain ───────────────────────────────────────
+FROM python:3.14-alpine AS runtime
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+WORKDIR /app
+
+# Installed packages from the builder stage.
+COPY --from=builder /install /usr/local
+
+# Application code (see .dockerignore for what is excluded).
+COPY . .
+
+# Uploads dir is a volume mount target; create it so StaticFiles works on
+# a fresh container before the volume is attached.
+RUN mkdir -p /app/uploads
+
+EXPOSE 8000
+
+# uvicorn is installed into /usr/local/bin via the prefix copy above.
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

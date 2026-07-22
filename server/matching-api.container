@@ -1,0 +1,42 @@
+# ──────────────────────────────────────────────────────────────────────
+# Quadlet unit for the DSTC Matching FastAPI backend.
+#
+# The image is built and pushed to GHCR by .github/workflows/deploy.yml:
+#   ghcr.io/spikevn/dstc-matching:latest
+#
+# Deploy on the bare-metal server:
+#   1. sudo cp matching-api.container /etc/containers/systemd/
+#      (or ~/.config/containers/systemd/ for rootless)
+#   2. Create the env file (gitignored, secrets only):
+#        sudo mkdir -p /home/chimse/cte/matching-api
+#        sudo nano /home/chimse/cte/matching-api/.env   # see server/.env.example
+#   3. Reload & start:
+#        sudo systemctl daemon-reload
+#        sudo systemctl enable --now matching-api.service
+#
+# Networking: the backend must share a podman network with the supabase
+# stack so it can resolve `supabase-db` (Postgres) and `supabase-kong`
+# (GoTrue via Kong). The compose and production Quadlet stacks use
+# the network named `supabase-net`.
+# ──────────────────────────────────────────────────────────────────────
+
+[Container]
+Image=ghcr.io/spikevn/dstc-matching:latest
+ContainerName=matching-api
+# Pull new image automatically when GHCR pushes a new :latest.
+AutoUpdate=registry
+# Shared network with the supabase stack (supabase-net.network Quadlet unit).
+Network=supabase-net.network
+# Secrets live in the env file on the server, not in this committed unit.
+EnvironmentFile=/home/chimse/cte/matching-api/.env
+# Expose to host loopback so nginx can reverse-proxy matching-api.cteftu.id.vn.
+PublishPort=127.0.0.1:8000:8000
+# Persist uploaded files across image rebuilds.
+Volume=matching-api-uploads:/app/uploads
+
+[Service]
+Restart=always
+TimeoutStartSec=60
+
+[Install]
+WantedBy=multi-user.target

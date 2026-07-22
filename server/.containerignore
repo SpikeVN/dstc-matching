@@ -1,0 +1,25 @@
+# Local venv & caches
+.venv
+__pycache__
+**/__pycache__
+*.pyc
+*.pyo
+
+# Local SQLite dev DB (prod uses Postgres)
+data.db
+
+# Secrets — never bake into the image
+.env
+.env.*
+
+# Uploaded files are runtime data, not part of the image
+uploads/*
+!uploads/.gitkeep
+
+# Build artifacts & logs
+*.log
+
+# These don't belong in the image
+Dockerfile
+.dockerignore
+.gitignore

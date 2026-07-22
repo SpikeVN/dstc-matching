@@ -1,8 +1,8 @@
 version: "3.8"
 
 networks:
-  supabase:
-    name: supabase
+  supabase-net:
+    name: supabase-net
     driver: bridge
 
 volumes:
@@ -15,7 +15,7 @@ services:
   supabase-db:
     image: docker.io/supabase/postgres:15.14.1.150
     container_name: supabase-db
-    networks: [supabase]
+    networks: [supabase-net]
     volumes:
       - db-data:/var/lib/postgresql/data:Z
       - ./volumes/db/init:/docker-entrypoint-initdb.d:Z
@@ -41,7 +41,7 @@ services:
     container_name: supabase-auth
     depends_on:
       supabase-db: { condition: service_healthy }
-    networks: [supabase]
+    networks: [supabase-net]
     environment:
       GOTRUE_API_HOST: 0.0.0.0
       GOTRUE_API_PORT: 9999
@@ -79,7 +79,7 @@ services:
     container_name: supabase-rest
     depends_on:
       supabase-db: { condition: service_healthy }
-    networks: [supabase]
+    networks: [supabase-net]
     environment:
       PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD_ENCODED}@supabase-db:5432/postgres
       PGRST_DB_SCHEMAS: public,storage,graphql_public
@@ -99,7 +99,7 @@ services:
       supabase-auth: { condition: service_started }
       rest: { condition: service_started }
     networks:
-      supabase:
+      supabase-net:
         aliases:
           - api-gw
     ports:
@@ -134,7 +134,7 @@ services:
     depends_on:
       supabase-db: { condition: service_healthy }
       kong: { condition: service_started }
-    networks: [supabase]
+    networks: [supabase-net]
     ports:
       - "127.0.0.1:3000:3000"
     environment:
