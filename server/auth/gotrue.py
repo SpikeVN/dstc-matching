@@ -9,11 +9,6 @@ from fastapi import HTTPException
 
 from auth.config import GOTRUE_URL, GOTRUE_SERVICE_KEY
 
-# GoTrue sends confirmation/recovery emails synchronously during signup/verify,
-# which can take ~10s over SMTP. httpx's default 5s read timeout is too short,
-# so bump it for all GoTrue calls.
-GOTRUE_TIMEOUT = httpx.Timeout(30.0, connect=10.0)
-
 
 def _auth_headers() -> dict:
     """Return headers needed to call GoTrue (apikey header when going through Kong)."""
@@ -28,7 +23,7 @@ async def signup(email: str, password: str, username: str = "") -> dict:
 
     Returns GoTrue's response with access_token, refresh_token, user.
     """
-    async with httpx.AsyncClient(timeout=GOTRUE_TIMEOUT) as client:
+    async with httpx.AsyncClient() as client:
         resp = await client.post(
             f"{GOTRUE_URL}/signup",
             json={
@@ -53,7 +48,7 @@ async def login(email: str, password: str) -> dict:
 
     Returns {access_token, refresh_token, token_type, expires_in, user}.
     """
-    async with httpx.AsyncClient(timeout=GOTRUE_TIMEOUT) as client:
+    async with httpx.AsyncClient() as client:
         resp = await client.post(
             f"{GOTRUE_URL}/token",
             params={"grant_type": "password"},
@@ -75,7 +70,7 @@ async def refresh(refresh_token: str) -> dict:
 
     Returns {access_token, refresh_token, ...}.
     """
-    async with httpx.AsyncClient(timeout=GOTRUE_TIMEOUT) as client:
+    async with httpx.AsyncClient() as client:
         resp = await client.post(
             f"{GOTRUE_URL}/token",
             params={"grant_type": "refresh_token"},
@@ -97,7 +92,7 @@ async def get_user(access_token: str) -> dict:
 
     Returns the GoTrue user object.
     """
-    async with httpx.AsyncClient(timeout=GOTRUE_TIMEOUT) as client:
+    async with httpx.AsyncClient() as client:
         headers = {**_auth_headers(), "Authorization": f"Bearer {access_token}"}
         resp = await client.get(
             f"{GOTRUE_URL}/user",
@@ -116,7 +111,7 @@ async def verify(type: str, token: str, email: str = "") -> dict:
     payload = {"type": type, "token": token}
     if email:
         payload["email"] = email
-    async with httpx.AsyncClient(timeout=GOTRUE_TIMEOUT) as client:
+    async with httpx.AsyncClient() as client:
         resp = await client.post(
             f"{GOTRUE_URL}/verify",
             json=payload,
@@ -139,7 +134,7 @@ async def admin_update_password(user_id: str, new_password: str) -> dict:
     role key, so it can be called from a recovery flow where we only have
     the user_id (verified via a scoped recovery JWT).
     """
-    async with httpx.AsyncClient(timeout=GOTRUE_TIMEOUT) as client:
+    async with httpx.AsyncClient() as client:
         headers = {**_auth_headers()}
         if GOTRUE_SERVICE_KEY:
             headers["Authorization"] = f"Bearer {GOTRUE_SERVICE_KEY}"
@@ -166,7 +161,7 @@ async def google_login(id_token: str) -> dict:
 
     Returns {access_token, refresh_token, ...}.
     """
-    async with httpx.AsyncClient(timeout=GOTRUE_TIMEOUT) as client:
+    async with httpx.AsyncClient() as client:
         resp = await client.post(
             f"{GOTRUE_URL}/token",
             params={"grant_type": "id_token"},
