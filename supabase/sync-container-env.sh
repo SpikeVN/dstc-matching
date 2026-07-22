@@ -66,7 +66,9 @@ update_env "$AUTH_FILE" GOTRUE_EXTERNAL_EMAIL_ENABLED "${ENABLE_EMAIL_SIGNUP:-tr
 update_env "$AUTH_FILE" GOTRUE_MAILER_AUTOCONFIRM "${ENABLE_EMAIL_AUTOCONFIRM:-true}"
 update_env "$AUTH_FILE" GOTRUE_SMTP_ADMIN_EMAIL "${SMTP_ADMIN_EMAIL:-noreply@cteftu.id.vn}"
 update_env "$AUTH_FILE" GOTRUE_SMTP_HOST "${SMTP_HOST:-smtp.resend.com}"
-update_env "$AUTH_FILE" GOTRUE_SMTP_PORT "${SMTP_PORT:-465}"
+# Port 587 (STARTTLS) — GoTrue speaks STARTTLS sequentially; implicit-SSL port 465
+# makes it hang ~10s until timeout, which exceeded the signup client's read timeout.
+update_env "$AUTH_FILE" GOTRUE_SMTP_PORT "${SMTP_PORT:-587}"
 update_env "$AUTH_FILE" GOTRUE_SMTP_USER "${SMTP_USER:-resend}"
 update_env "$AUTH_FILE" GOTRUE_SMTP_PASS "${SMTP_PASS:-}"
 update_env "$AUTH_FILE" GOTRUE_SMTP_SENDER_NAME "${SMTP_SENDER_NAME:-Data Science Talent Competition}"

@@ -63,7 +63,8 @@ services:
       GOTRUE_DISABLE_SIGNUP: "false"
       GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL:-noreply@cteftu.id.vn}
       GOTRUE_SMTP_HOST: ${SMTP_HOST:-smtp.resend.com}
-      GOTRUE_SMTP_PORT: ${SMTP_PORT:-465}
+      # Port 587 (STARTTLS). Port 465 (implicit SSL) makes GoTrue hang ~10s.
+      GOTRUE_SMTP_PORT: ${SMTP_PORT:-587}
       GOTRUE_SMTP_USER: ${SMTP_USER:-resend}
       GOTRUE_SMTP_PASS: ${SMTP_PASS}
       GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME:-"Data Science Talent Competition"}
