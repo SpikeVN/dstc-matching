@@ -193,7 +193,7 @@ export default function Dashboard() {
         {/* Greeting */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
           <h1 className="font-display font-bold text-2xl text-foreground">
-            {greeting} <span className="text-primary">{myProfile?.display_name || currentUser?.full_name || 'Thí sinh'}</span>!
+            {greeting} <span className="text-primary">{myProfile?.display_name || (currentUser?.username ? `@${currentUser.username}` : 'Thí sinh')}</span>!
           </h1>
           <p className="font-body text-sm text-muted-foreground mt-1">
             Hôm nay là {new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}

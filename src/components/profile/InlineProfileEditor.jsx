@@ -2,10 +2,8 @@ import { db } from '@/api/apiClient';
 
 import React, { useState, useRef, useCallback } from 'react';
 
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Camera, Save, User, Briefcase, MessageSquare, Wrench, Brain, Sparkles, Medal, Target, Award, Plus, FileText, Upload, X } from 'lucide-react';
+import { ChevronDown, Camera, Save, User, Briefcase, MessageSquare, Wrench, Brain, Sparkles, Medal, Target, Award, Plus, FileText, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import {
@@ -15,57 +13,19 @@ import {
   '@/lib/constants';
 
 // ─── Inline editable text field — underline style ──────────────────────────
-function InlineField({ label, value, onChange, placeholder, multiline, type = 'text' }) {
-  const [editing, setEditing] = useState(false);
-  const [focused, setFocused] = useState(false);
-  const inputRef = useRef();
-
-  const startEdit = () => {
-    setEditing(true);
-    setTimeout(() => {
-      if (inputRef.current) {
-        inputRef.current.focus();
-        // Place cursor at end of text
-        const len = inputRef.current.value?.length ?? 0;
-        inputRef.current.setSelectionRange(len, len);
-      }
-    }, 50);
-  };
-  const commit = () => { setEditing(false); setFocused(false); };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !multiline) { e.preventDefault(); commit(); }
-    if (e.key === 'Escape') commit();
-  };
-
-  if (editing) {
-    return (
-      <div className="space-y-1">
-        {label && <p className={`font-display text-[10px] transition-colors ${focused ? 'text-primary' : 'text-primary/60'}`}>{label}</p>}
-        {multiline ? (
-          <Textarea ref={inputRef} value={value || ''} onChange={(e) => onChange(e.target.value)}
-            onBlur={commit} onFocus={() => setFocused(true)}
-            className="text-sm bg-transparent border-0 border-b-2 border-primary/20 focus:border-primary rounded-none px-0 py-2 text-foreground resize-none min-h-[72px] flex-1 focus-visible:ring-0 focus-visible:ring-offset-0 transition-colors cursor-text"
-            onKeyDown={(e) => e.key === 'Escape' && commit()} />
-        ) : (
-          <Input ref={inputRef} type={type} value={value || ''} onChange={(e) => onChange(e.target.value)}
-            onBlur={commit} onFocus={() => setFocused(true)}
-            className="text-sm bg-transparent border-0 border-b-2 border-primary/20 focus:border-primary rounded-none px-0 py-2 h-9 flex-1 focus-visible:ring-0 focus-visible:ring-offset-0 transition-colors focus:text-primary cursor-text"
-            onKeyDown={handleKeyDown} />
-        )}
-      </div>
-    );
-  }
-
+function InlineField({ label, value, onChange, placeholder, multiline = false, type = 'text' }) {
   return (
     <div className="space-y-1">
       {label && <p className="font-display text-[10px] text-primary/60">{label}</p>}
-      <button onClick={startEdit}
-        className={`w-full text-left flex items-start gap-2 group px-0 py-2 border-b-2 border-primary/10 hover:border-primary/30 transition-all cursor-text ${multiline ? 'min-h-[72px]' : 'h-9'}`}>
-        <span className={`font-body text-sm flex-1 ${value ? 'text-foreground group-hover:text-primary' : 'text-muted-foreground/40 italic'}`}>
-          {value || placeholder || 'Nhấn để chỉnh sửa...'}
-        </span>
-      </button>
+      {multiline ? (
+        <Textarea value={value || ''} onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder || 'Nhấn để chỉnh sửa...'}
+          className="text-sm bg-transparent border-0 border-b-2 border-primary/20 focus:border-primary rounded-none px-0 py-2 text-foreground resize-none min-h-[72px] flex-1 focus-visible:ring-0 focus-visible:ring-offset-0 transition-colors cursor-text" />
+      ) : (
+        <input type={type} value={value || ''} onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder || 'Nhấn để chỉnh sửa...'}
+          className="text-sm bg-transparent border-0 border-b-2 border-primary/20 focus:border-primary rounded-none px-0 py-2 h-9 w-full focus-visible:ring-0 focus-visible:ring-offset-0 transition-colors focus:text-primary cursor-text outline-none" />
+      )}
     </div>
   );
 }
@@ -74,14 +34,22 @@ function InlineSelect({ label, value, options, onChange, placeholder }) {
   return (
     <div className="space-y-1">
       {label && <p className="font-display text-[10px] text-primary/60">{label}</p>}
-      <Select value={value || ''} onValueChange={(v) => onChange(v)}>
-        <SelectTrigger className="h-9 text-sm bg-transparent border-0 border-b-2 border-primary/20 hover:border-primary/30 focus:border-primary rounded-none px-0 py-2 text-foreground focus:ring-0 focus:ring-offset-0 transition-colors focus:text-primary data-[state=open]:border-primary data-[state=open]:text-primary cursor-pointer">
-          <SelectValue placeholder={placeholder || 'Chọn...'} />
-        </SelectTrigger>
-        <SelectContent className="bg-card border-primary/20 text-sm">
-          {options.map((o) => <SelectItem key={o.value || o} value={o.value || o}>{o.label || o}</SelectItem>)}
-        </SelectContent>
-      </Select>
+      <div className="relative">
+        <select
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 text-sm bg-transparent border-0 border-b-2 border-primary/20 hover:border-primary/30 focus:border-primary rounded-none pl-0 pr-6 py-2 w-full text-foreground focus:ring-0 focus:ring-offset-0 transition-colors focus:text-primary cursor-pointer appearance-none outline-none [&>option]:bg-card [&>option]:text-foreground"
+          style={{ colorScheme: 'dark' }}
+        >
+          <option value="" disabled>{placeholder || 'Chọn...'}</option>
+          {options.map((o) => {
+            const v = typeof o === 'string' ? o : o.value;
+            const lbl = typeof o === 'string' ? o : o.label;
+            return <option key={v} value={v}>{lbl}</option>;
+          })}
+        </select>
+        <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40 pointer-events-none" />
+      </div>
     </div>
   );
 }
@@ -118,13 +86,13 @@ function TagGroup({ label, all, selected, onToggle, variant = 'primary' }) {
       <div className="flex flex-wrap gap-1.5 items-center">
         {all.map((item) =>
           <button key={item} onClick={() => onToggle(item)}
-            className={`text-xs px-3 py-1.5 rounded-full border transition-all font-body font-medium ${selected.includes(item) ? activeClass : inactiveClass}`}>
+            className={`text-xs px-3 py-1.5 rounded-full border transition-all font-body font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring ${selected.includes(item) ? activeClass : inactiveClass}`}>
             {item}
           </button>
         )}
         {customTags.map((item) =>
           <button key={item} onClick={() => onToggle(item)}
-            className={`text-xs px-3 py-1.5 rounded-full border transition-all font-body font-medium ${activeClass}`}>
+            className={`text-xs px-3 py-1.5 rounded-full border transition-all font-body font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring ${activeClass}`}>
             {item}
           </button>
         )}
@@ -139,7 +107,7 @@ function TagGroup({ label, all, selected, onToggle, variant = 'primary' }) {
         />
         {customInput.trim() && (
           <button onClick={handleAdd}
-            className="p-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-all">
+            className="p-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-all outline-none focus-visible:ring-1 focus-visible:ring-ring">
             <Plus className="w-3 h-3" />
           </button>
         )}

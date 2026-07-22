@@ -12,11 +12,11 @@ router = APIRouter(prefix="/auth")
 class SignupRequest(BaseModel):
     email: str
     password: str
-    full_name: str = ""
+    username: str = ""
 
 
 class LoginRequest(BaseModel):
-    email: str
+    email_or_username: str
     password: str
 
 
@@ -36,25 +36,30 @@ class VerifyRequest(BaseModel):
 
 @router.post("/signup")
 async def signup(req: SignupRequest):
-    """Create a new user via GoTrue, then create a row in public.users."""
+    """Create a new user via GoTrue, then create a row in public.users.
+    The username is stored in public.users.username.
+    """
     # GoTrue handles password hashing and user creation in auth.users
-    result = await gotrue.signup(req.email, req.password, req.full_name)
+    result = await gotrue.signup(req.email, req.password, req.username)
 
     # GoTrue returns the user object with id, email, etc.
     gotrue_user = result.get("user") or result
     user_id = gotrue_user.get("id")
     if not user_id:
-        raise HTTPException(status_code=500, detail="GoTrue signup did not return a user ID")
+        raise HTTPException(
+            status_code=500, detail="GoTrue signup did not return a user ID"
+        )
 
     # Create the user in our public.users table
     now_ts = now()
     await execute(
-        """INSERT INTO public.users (id, email, full_name, role, created_date, updated_date)
-           VALUES ($1, $2, $3, $4, $5, $6)
+        """INSERT INTO public.users (id, email, username, full_name, role, created_date, updated_date)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
            ON CONFLICT (id) DO NOTHING""",
         user_id,
         req.email,
-        req.full_name,
+        req.username,
+        "",  # full_name is empty at signup; can be set later in profile
         "user",
         now_ts,
         now_ts,
@@ -76,23 +81,41 @@ async def signup(req: SignupRequest):
 
 @router.post("/login")
 async def login(req: LoginRequest):
-    """Authenticate with email/password via GoTrue."""
-    result = await gotrue.login(req.email, req.password)
+    """Authenticate with email (or username) and password via GoTrue.
+
+    Accepts either an email address or a username. If a username is provided,
+    it looks up the corresponding email from public.users first.
+    """
+    email = req.email_or_username
+
+    # If the input doesn't look like an email, treat it as a username
+    if "@" not in email:
+        user_row = await fetch_one(
+            "SELECT email FROM public.users WHERE username = $1", email
+        )
+        if not user_row:
+            raise HTTPException(status_code=401, detail="Invalid username or password")
+        email = user_row["email"]
+
+    result = await gotrue.login(email, req.password)
 
     gotrue_user = result.get("user") or result
     user_id = gotrue_user.get("id")
     if not user_id:
-        raise HTTPException(status_code=500, detail="GoTrue login did not return a user ID")
+        raise HTTPException(
+            status_code=500, detail="GoTrue login did not return a user ID"
+        )
 
     # Ensure user exists in public.users (in case they were created via GoTrue directly)
     user = await fetch_one("SELECT * FROM public.users WHERE id = $1", user_id)
     if not user:
         now_ts = now()
         await execute(
-            """INSERT INTO public.users (id, email, full_name, role, created_date, updated_date)
-               VALUES ($1, $2, $3, $4, $5, $6)""",
+            """INSERT INTO public.users (id, email, username, full_name, role, created_date, updated_date)
+               VALUES ($1, $2, $3, $4, $5, $6, $7)""",
             user_id,
-            gotrue_user.get("email", req.email),
+            gotrue_user.get("email", email),
+            "",
             gotrue_user.get("user_metadata", {}).get("full_name", ""),
             "user",
             now_ts,
@@ -116,7 +139,9 @@ async def google_login(req: GoogleRequest):
     # GoTrue's id_token response format varies by version, but the JWT is consistent.
     access_token = result.get("access_token")
     if not access_token:
-        raise HTTPException(status_code=500, detail="GoTrue did not return an access token")
+        raise HTTPException(
+            status_code=500, detail="GoTrue did not return an access token"
+        )
     claims = verify_token(access_token)
     user_id = claims.get("sub")
     if not user_id:
@@ -130,14 +155,15 @@ async def google_login(req: GoogleRequest):
     # Upsert user in public.users
     now_ts = now()
     await execute(
-        """INSERT INTO public.users (id, email, full_name, role, created_date, updated_date)
-           VALUES ($1, $2, $3, $4, $5, $6)
+        """INSERT INTO public.users (id, email, username, full_name, role, created_date, updated_date)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
            ON CONFLICT (id) DO UPDATE SET
              email = EXCLUDED.email,
              full_name = EXCLUDED.full_name,
              updated_date = EXCLUDED.updated_date""",
         user_id,
         email,
+        "",
         full_name,
         "user",
         now_ts,
@@ -178,25 +204,30 @@ async def verify_email(req: VerifyRequest):
     gotrue_user = result.get("user") or result
     user_id = gotrue_user.get("id")
     if not user_id:
-        raise HTTPException(status_code=500, detail="GoTrue verify did not return a user ID")
+        raise HTTPException(
+            status_code=500, detail="GoTrue verify did not return a user ID"
+        )
 
     access_token = result.get("access_token")
     if not access_token:
-        raise HTTPException(status_code=500, detail="GoTrue verify did not return an access token")
+        raise HTTPException(
+            status_code=500, detail="GoTrue verify did not return an access token"
+        )
 
     # Upsert user in public.users (same pattern as Google login)
     email = gotrue_user.get("email", "")
     full_name = gotrue_user.get("user_metadata", {}).get("full_name", "")
     now_ts = now()
     await execute(
-        """INSERT INTO public.users (id, email, full_name, role, created_date, updated_date)
-           VALUES ($1, $2, $3, $4, $5, $6)
+        """INSERT INTO public.users (id, email, username, full_name, role, created_date, updated_date)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
            ON CONFLICT (id) DO UPDATE SET
              email = EXCLUDED.email,
              full_name = EXCLUDED.full_name,
              updated_date = EXCLUDED.updated_date""",
         user_id,
         email,
+        "",
         full_name,
         "user",
         now_ts,

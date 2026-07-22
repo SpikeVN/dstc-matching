@@ -1,3 +1,41 @@
+# User
+id
+(
+text, required)
+
+UUID từ GoTrue
+email
+(
+text, required)
+
+Email đăng nhập
+username
+(
+text)
+
+Tên đăng nhập (dùng để đăng nhập thay email)
+full_name
+(
+text)
+
+Họ tên đầy đủ (từ Google login, có thể để trống)
+role
+(
+text)
+
+Vai trò hệ thống
+Default: "user"
+created_date
+(
+timestamp)
+
+Ngày tạo
+updated_date
+(
+timestamp)
+
+Ngày cập nhật
+
 # ContestantProfile
 display_name
 (

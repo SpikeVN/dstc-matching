@@ -85,16 +85,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (email, password) => {
-    const userData = await db.auth.login(email, password);
+  const login = async (emailOrUsername, password) => {
+    const userData = await db.auth.login(emailOrUsername, password);
     setUser(userData);
     setIsAuthenticated(true);
     setAuthError(null);
     return userData;
   };
 
-  const signup = async (email, password, fullName) => {
-    const result = await db.auth.signup(email, password, fullName);
+  const signup = async (email, password, username) => {
+    const result = await db.auth.signup(email, password, username);
     // If email confirmation is required, don't set auth state
     if (result.requires_email_confirmation) {
       return result;

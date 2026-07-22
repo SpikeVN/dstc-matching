@@ -28,7 +28,7 @@ export default function TeamConfirmBar({ match, currentUser, otherProfile }) {
     try {
       if (otherConfirmed) {
         const team = await db.entities.Team.create({
-          name: `${otherProfile?.display_name || 'Team'} & ${currentUser?.full_name || 'Team'}`,
+          name: `${otherProfile?.display_name || 'Team'} & ${currentUser?.username || 'Team'}`,
           leader_id: currentUser.id,
           member_ids: [currentUser.id, otherEmail],
           max_members: 4,

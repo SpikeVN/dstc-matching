@@ -44,7 +44,7 @@ export function useRealtimeNotifications({ currentUser, profileMap, navigate }) 
           from_name: 'DSTC Matching',
           to: currentUser.email,
           subject: `[DSTC Matching] ${senderName} vừa gửi cho bạn một tin nhắn`,
-          body: `Xin chào ${currentUser.full_name || 'bạn'},
+          body: `Xin chào ${currentUser.username || 'bạn'},
 
 ${senderName} vừa gửi cho bạn một tin nhắn trên DSTC Matching:
 
@@ -92,7 +92,7 @@ Trường Đại học Ngoại thương`,
           from_name: 'DSTC Matching',
           to: currentUser.email,
           subject: `[DSTC Matching] Bạn đã match với ${otherName}!`,
-          body: `Xin chào ${currentUser.full_name || 'bạn'},
+          body: `Xin chào ${currentUser.username || 'bạn'},
 
 Chúc mừng! Bạn và ${otherName} đã match với nhau trên DSTC Matching.
 
