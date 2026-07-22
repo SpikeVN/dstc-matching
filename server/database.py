@@ -65,7 +65,13 @@ def now() -> datetime:
 
 def _record_to_dict(record: asyncpg.Record) -> dict:
     """Convert an asyncpg Record to a plain dict, parsing JSON fields."""
-    d = dict(record)
+    d = {}
+    for k, v in dict(record).items():
+        # Convert UUID objects to strings so comparisons with Pydantic str fields work
+        if isinstance(v, uuid.UUID):
+            d[k] = str(v)
+        else:
+            d[k] = v
     # Parse JSONB fields that asyncpg returns as strings
     for field in ("technical_skills", "soft_skills", "goals", "member_ids"):
         if field in d and isinstance(d[field], str):
@@ -74,7 +80,7 @@ def _record_to_dict(record: asyncpg.Record) -> dict:
             except (json.JSONDecodeError, TypeError):
                 d[field] = []
     # Convert boolean fields (PostgreSQL returns real bools, but just in case)
-    for field in ("has_team", "profile_complete", "is_match", "is_read", "user1_confirmed", "user2_confirmed"):
+    for field in ("has_team", "profile_complete", "visited_profile", "is_match", "is_read", "user1_confirmed", "user2_confirmed"):
         if field in d and d[field] is not None:
             d[field] = bool(d[field])
     return d

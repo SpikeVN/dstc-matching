@@ -1,18 +1,28 @@
 import { db } from '@/api/apiClient';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { LogOut, Terminal, Eye, KeyRound, Activity, Clock, Heart, UserCheck, Shield, FileText, HelpCircle, Info, Mail, BarChart2, Wrench, Trophy, MapPin, Link2, Users, Star, Award } from 'lucide-react';
+import { LogOut, Terminal, Eye, KeyRound, Activity, Clock, Heart, UserCheck, Shield, FileText, HelpCircle, Info, Mail, BarChart2, Wrench, Trophy, MapPin, Link2, Users, Star, Award, User, Check, X, Shuffle } from 'lucide-react';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PageFooter from '@/components/layout/PageFooter';
 import { useAuth } from '@/lib/AuthContext';
 
+function randomUsername() {
+  const adjectives = ['nhanh', 'thong', 'manh', 'dep', 'vui', 'tot', 'moi', 'dau', 'cao', 'sang'];
+  const nouns = ['ho', 'long', 'sa', 'lua', 'gio', 'mua', 'nui', 'song', 'trang', 'sao'];
+  const a = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const n = nouns[Math.floor(Math.random() * nouns.length)];
+  const suffix = Math.floor(Math.random() * 900 + 100);
+  return `${a}_${n}${suffix}`;
+}
+
 const TABS = [
+  { id: 'account', label: 'Tài khoản', icon: User },
   { id: 'privacy', label: 'Quyền riêng tư', icon: Eye },
   { id: 'password', label: 'Mật khẩu', icon: KeyRound },
   { id: 'activity', label: 'Nhật ký', icon: Activity },
@@ -69,7 +79,8 @@ function ActivityItem({ icon: Icon, title, desc, time, color = 'text-primary' })
 
 export default function Settings() {
   const { logout } = useAuth();
-  const [activeTab, setActiveTab] = useState('privacy');
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState('account');
   const [privacy, setPrivacy] = useState({
     showAge: true,
     showGender: true,
@@ -80,6 +91,9 @@ export default function Settings() {
   });
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
   const [pwMsg, setPwMsg] = useState('');
+  const [usernameForm, setUsernameForm] = useState('');
+  const [usernameMsg, setUsernameMsg] = useState('');
+  const [usernameLoading, setUsernameLoading] = useState(false);
 
   const { data: matches } = useQuery({
     queryKey: ['matchesForActivity'],
@@ -107,11 +121,41 @@ export default function Settings() {
     queryFn: () => db.auth.me(),
   });
 
+  // Initialize username form when currentUser loads
+  useEffect(() => {
+    if (currentUser?.username && !usernameForm) {
+      setUsernameForm(currentUser.username);
+    }
+  }, [currentUser?.username]);
+
   const handlePasswordChange = () => {
     if (!pwForm.current) { setPwMsg('Vui lòng nhập mật khẩu hiện tại'); return; }
     if (pwForm.next.length < 6) { setPwMsg('Mật khẩu mới ít nhất 6 ký tự'); return; }
     if (pwForm.next !== pwForm.confirm) { setPwMsg('Mật khẩu xác nhận không khớp'); return; }
     setPwMsg('✓ Tính năng đổi mật khẩu được quản lý bởi BTC — liên hệ admin để thay đổi.');
+  };
+
+  const handleUsernameChange = async () => {
+    const username = usernameForm.trim();
+    if (username.length < 3 || username.length > 20) {
+      setUsernameMsg('Tên đăng nhập phải từ 3 đến 20 ký tự');
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      setUsernameMsg('Chỉ chứa chữ cái, số và dấu gạch dưới');
+      return;
+    }
+    setUsernameLoading(true);
+    setUsernameMsg('');
+    try {
+      await db.auth.updateUsername(username);
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      setUsernameMsg('✓ Đã cập nhật tên đăng nhập');
+    } catch (err) {
+      setUsernameMsg(err.message || 'Không thể cập nhật tên đăng nhập');
+    } finally {
+      setUsernameLoading(false);
+    }
   };
 
   const formatTime = (dateStr) => {
@@ -126,6 +170,79 @@ export default function Settings() {
 
   const renderTab = () => {
     switch (activeTab) {
+      case 'account':
+        return (
+          <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+            <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+              <User className="w-4 h-4 text-primary" />
+              <h3 className="font-display text-sm font-semibold text-primary">Thông tin tài khoản</h3>
+            </div>
+            <div className="p-4 space-y-4">
+              {/* Email (read-only) */}
+              <div className="space-y-1.5">
+                <Label className="font-body text-xs text-muted-foreground">Email</Label>
+                <Input
+                  value={currentUser?.email || ''}
+                  disabled
+                  className="text-sm bg-muted/30 border-primary/10 font-body text-muted-foreground cursor-not-allowed"
+                />
+              </div>
+
+              {/* Username (editable) */}
+              <div className="space-y-1.5">
+                <Label className="font-body text-xs text-muted-foreground">Tên đăng nhập</Label>
+                <div className="relative flex items-center gap-1.5">
+                  <Input
+                    value={usernameForm}
+                    onChange={(e) => {
+                      setUsernameForm(e.target.value);
+                      setUsernameMsg('');
+                    }}
+                    placeholder="ten_dang_nhap"
+                    maxLength={20}
+                    className="text-sm bg-muted/50 border-primary/15 focus:border-primary/50 font-body pr-24"
+                  />
+                  {usernameForm.trim().length >= 1 && (
+                    <img
+                      src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(usernameForm.trim())}&scale=80`}
+                      alt=""
+                      className="absolute right-14 top-1/2 -translate-y-1/2 w-6 h-6 rounded"
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUsernameForm(randomUsername());
+                      setUsernameMsg('');
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10 transition-colors"
+                    title="Tạo tên ngẫu nhiên"
+                  >
+                    <Shuffle className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                </div>
+                <p className="text-[11px] font-body text-muted-foreground/50">
+                  3–20 ký tự, chỉ chữ cái, số và dấu gạch dưới
+                </p>
+              </div>
+
+              {usernameMsg && (
+                <p className={`text-xs font-body ${usernameMsg.startsWith('✓') ? 'text-primary' : 'text-destructive'}`}>
+                  {usernameMsg}
+                </p>
+              )}
+
+              <Button
+                onClick={handleUsernameChange}
+                disabled={usernameLoading || usernameForm.trim() === (currentUser?.username || '')}
+                className="w-full h-9 font-display text-xs font-medium bg-primary text-background hover:bg-primary/90 transition-all duration-200"
+              >
+                {usernameLoading ? 'Đang lưu...' : 'Cập nhật tên đăng nhập'}
+              </Button>
+            </div>
+          </div>
+        );
+
       case 'privacy':
         return (
           <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
@@ -162,9 +279,9 @@ export default function Settings() {
                 Mật khẩu nên có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số.
               </p>
               {[
-                { label: 'Mật khẩu hiện tại', field: 'current', placeholder: '••••••••' },
-                { label: 'Mật khẩu mới', field: 'next', placeholder: '••••••••' },
-                { label: 'Xác nhận mật khẩu mới', field: 'confirm', placeholder: '••••••••' },
+                { label: 'Mật khẩu hiện tại', field: 'current', placeholder: 'Nhập mật khẩu hiện tại' },
+                { label: 'Mật khẩu mới', field: 'next', placeholder: 'Nhập mật khẩu mới' },
+                { label: 'Xác nhận mật khẩu mới', field: 'confirm', placeholder: 'Nhập lại mật khẩu mới' },
               ].map(({ label, field, placeholder }) => (
                 <div key={field} className="space-y-1.5">
                   <Label className="font-body text-xs text-muted-foreground">{label}</Label>
@@ -177,6 +294,20 @@ export default function Settings() {
                   />
                 </div>
               ))}
+              {pwForm.confirm.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-1.5 text-xs font-body"
+                  style={{ color: pwForm.next === pwForm.confirm ? 'var(--primary, #71d65b)' : '#fca5a5' }}
+                >
+                  {pwForm.next === pwForm.confirm ? (
+                    <><Check className="w-3.5 h-3.5" /> Mật khẩu khớp</>
+                  ) : (
+                    <><X className="w-3.5 h-3.5" /> Mật khẩu không khớp</>
+                  )}
+                </motion.div>
+              )}
               {pwMsg && (
                 <p className={`text-xs font-body ${pwMsg.startsWith('✓') ? 'text-primary' : 'text-destructive'}`}>{pwMsg}</p>
               )}

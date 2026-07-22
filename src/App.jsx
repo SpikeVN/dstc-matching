@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -22,6 +22,22 @@ import ProfileDetail from '@/pages/ProfileDetail';
 import LoginPage from '@/pages/LoginPage';
 import SignupPage from '@/pages/SignupPage';
 import VerifyEmail from '@/pages/VerifyEmail';
+import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
+import ResetPasswordPage from '@/pages/ResetPasswordPage';
+
+/** Redirect authenticated users away from login/signup/forgot pages. */
+function GuestOnly({ children }) {
+  const { isAuthenticated } = useAuth();
+  if (isAuthenticated) return <Navigate to="/" replace />;
+  return children;
+}
+
+/** Catch-all for unauthenticated users — redirect to login with return URL. */
+function LoginRedirect() {
+  const location = useLocation();
+  const returnTo = location.pathname + location.search;
+  return <Navigate to={`/login?redirect=${encodeURIComponent(returnTo)}`} replace />;
+}
 
 const PublicRoutes = () => (
   <Routes>
@@ -29,7 +45,9 @@ const PublicRoutes = () => (
     <Route path="/login" element={<LoginPage />} />
     <Route path="/signup" element={<SignupPage />} />
     <Route path="/verify" element={<VerifyEmail />} />
-    <Route path="*" element={<LoginPage />} />
+    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+    <Route path="/reset-password" element={<ResetPasswordPage />} />
+    <Route path="*" element={<LoginRedirect />} />
   </Routes>
 );
 
@@ -79,9 +97,11 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route path="/landing" element={<Landing />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<SignupPage />} />
+      <Route path="/login" element={<GuestOnly><LoginPage /></GuestOnly>} />
+      <Route path="/signup" element={<GuestOnly><SignupPage /></GuestOnly>} />
       <Route path="/verify" element={<VerifyEmail />} />
+      <Route path="/forgot-password" element={<GuestOnly><ForgotPasswordPage /></GuestOnly>} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route element={<AppLayout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />

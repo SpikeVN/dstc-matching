@@ -21,6 +21,7 @@ export default function LoginPage() {
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const gBtnNode = useRef(null);
   const gBtnCallback = useCallback((node) => {
@@ -28,12 +29,20 @@ export default function LoginPage() {
   }, []);
   const [gisReady, setGisReady] = useState(false);
 
+  // After login, go back to the page the user was trying to visit (or /)
+  const returnTo = searchParams.get('redirect') || '/';
+
   // Show error from URL query param (e.g. from GoTrue redirect with expired token)
+  // Show success message after password reset
   useEffect(() => {
     const urlError = searchParams.get('error');
     if (urlError) {
       setError(urlError);
-      // Clean the URL so refreshing doesn't re-show the error
+      navigate('/login', { replace: true });
+      return;
+    }
+    if (searchParams.get('reset') === 'success') {
+      setResetSuccess(true);
       navigate('/login', { replace: true });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -48,7 +57,7 @@ export default function LoginPage() {
         callback: async (response) => {
           try {
             await googleLogin(response.credential);
-            navigate('/');
+            navigate(returnTo, { replace: true });
           } catch (err) {
             setError(err.message || 'Google login failed');
           }
@@ -89,7 +98,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(emailOrUsername, password);
-      navigate('/');
+      navigate(returnTo, { replace: true });
     } catch (err) {
       setError(err.message || 'Login failed');
     } finally {
@@ -140,6 +149,22 @@ export default function LoginPage() {
             </motion.div>
           )}
 
+          {/* Password reset success */}
+          {resetSuccess && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-2 p-2 rounded-lg text-xs"
+              style={{
+                background: 'rgba(113,214,91,0.1)',
+                color: GREEN,
+                border: '1px solid rgba(113,214,91,0.2)',
+              }}
+            >
+              Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập bằng mật khẩu mới.
+            </motion.div>
+          )}
+
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="grid gap-1.5">
@@ -155,7 +180,7 @@ export default function LoginPage() {
                 type="text"
                 value={emailOrUsername}
                 onChange={(e) => setEmailOrUsername(e.target.value)}
-                placeholder="you@example.com"
+                placeholder="Nhập email hoặc tên đăng nhập"
                 required
                 className="h-10 rounded-lg"
                 style={{
@@ -179,7 +204,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Nhập mật khẩu của bạn"
                 required
                 className="h-10 rounded-lg"
                 style={{
@@ -188,6 +213,16 @@ export default function LoginPage() {
                   color: FG,
                 }}
               />
+            </div>
+
+            <div className="flex justify-end -mt-2">
+              <Link
+                to="/forgot-password"
+                className="text-xs font-medium hover:underline underline-offset-4 transition-colors"
+                style={{ color: GREEN }}
+              >
+                Quên mật khẩu?
+              </Link>
             </div>
 
             <Button

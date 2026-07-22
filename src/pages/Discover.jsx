@@ -160,8 +160,7 @@ export default function Discover() {
 
   const swipeMutation = useMutation({
     mutationFn: async ({ action, candidateEmail }) => {
-      const me = await db.auth.me();
-      const result = await db.entities.SwipeAction.create({ swiper_id: me.id, swiped_id: candidateEmail, action });
+      const result = await db.entities.SwipeAction.create({ swiper_id: myProfile.created_by, swiped_id: candidateEmail, action });
       return { matched: result?.is_match ?? false };
     },
     onSuccess: (result) => {
@@ -180,7 +179,7 @@ export default function Discover() {
     setTimeout(() => { setSwipeDir(null); }, 200);
   };
 
-  if (!myProfile || !myProfile.profile_complete) {
+  if (!myProfile || !myProfile.profile_complete || !myProfile.visited_profile) {
     return (
       <div className="min-h-screen flex flex-col p-4 pb-10 grid-overlay">
         <div className="flex-1 flex items-center justify-center">

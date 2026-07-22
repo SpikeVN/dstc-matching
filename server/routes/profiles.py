@@ -144,3 +144,24 @@ async def delete_profile(profile_id: str, user: dict = Depends(get_current_user)
         raise HTTPException(status_code=403, detail="Not authorized to delete this profile")
     await execute("DELETE FROM contestant_profiles WHERE id = $1", profile_id)
     return {"success": True}
+
+
+@router.patch("/{profile_id}/visit")
+async def mark_profile_visited(profile_id: str, user: dict = Depends(get_current_user)):
+    """Mark a profile as visited (visited_profile = true).
+
+    Called when the user opens the Profile page for the first time.
+    Discover uses this to prompt users who haven't visited their profile yet.
+    """
+    existing = await fetch_one("SELECT * FROM contestant_profiles WHERE id = $1", profile_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    if existing["created_by"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized to update this profile")
+
+    await execute(
+        "UPDATE contestant_profiles SET visited_profile = true, updated_date = $1 WHERE id = $2",
+        now(),
+        profile_id,
+    )
+    return {"success": True}

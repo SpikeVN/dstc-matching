@@ -14,7 +14,7 @@ export default function MatchOverlay({ show, matchedProfile, onClose }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
+        className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
         onClick={onClose}
       >
         <motion.div
@@ -25,21 +25,8 @@ export default function MatchOverlay({ show, matchedProfile, onClose }) {
           className="glass-card rounded-2xl p-8 max-w-sm w-full text-center border border-primary/30 "
           onClick={e => e.stopPropagation()}
         >
-          {/* Pulse rings animation */}
-          <div className="relative w-20 h-20 mx-auto mb-4">
-            <motion.div
-              animate={{ scale: [1, 1.4, 1], opacity: [0.8, 0, 0.8] }}
-              transition={{ repeat: Infinity, duration: 1.5 }}
-              className="absolute inset-0 rounded-full border-2 border-primary/60"
-            />
-            <motion.div
-              animate={{ scale: [1, 1.7, 1], opacity: [0.5, 0, 0.5] }}
-              transition={{ repeat: Infinity, duration: 1.5, delay: 0.3 }}
-              className="absolute inset-0 rounded-full border border-primary/30"
-            />
-            <div className="relative w-20 h-20 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center ">
-              <Zap className="w-8 h-8 text-primary" />
-            </div>
+          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center">
+            <Zap className="w-8 h-8 text-primary" />
           </div>
 
           <h2 className="font-display font-bold text-xl text-primary mb-1">

@@ -217,12 +217,25 @@ const authClient = {
       window.location.href = '/';
     }
   },
+  forgotPassword: async (email) => {
+    return request('POST', '/auth/forgot-password', { email });
+  },
+  resetPassword: async (token, password) => {
+    return request('POST', '/auth/reset-password', { token, password });
+  },
+  updateUsername: async (username) => {
+    return request('PATCH', '/auth/username', { username });
+  },
   redirectToLogin: () => {
     window.location.href = '/login';
   },
 };
 
 // ── Integrations (stubs) ───────────────────────────────────────────
+export async function markProfileVisited(profileId) {
+  return request('PATCH', `/api/contestant-profiles/${profileId}/visit`);
+}
+
 const integrationsClient = {
   Core: {
     UploadFile: async ({ file }) => {
