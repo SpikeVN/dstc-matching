@@ -37,7 +37,8 @@ CREATE TABLE IF NOT EXISTS public.contestant_profiles (
     achievements_other TEXT DEFAULT '',
     has_team BOOLEAN DEFAULT false,
     team_id TEXT DEFAULT '',
-    profile_complete BOOLEAN DEFAULT false
+    profile_complete BOOLEAN DEFAULT false,
+    visited_profile BOOLEAN DEFAULT false
 );
 
 -- Matches (created when two users swipe right on each other)
@@ -99,7 +100,7 @@ CREATE TABLE IF NOT EXISTS public.team_invites (
 );
 
 -- Indexes for common queries
-CREATE INDEX IF NOT EXISTS idx_contestant_profiles_created_by ON public.contestant_profiles(created_by);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_contestant_profiles_created_by ON public.contestant_profiles(created_by);
 CREATE INDEX IF NOT EXISTS idx_matches_user1 ON public.matches(user1_id);
 CREATE INDEX IF NOT EXISTS idx_matches_user2 ON public.matches(user2_id);
 CREATE INDEX IF NOT EXISTS idx_messages_match ON public.messages(match_id);

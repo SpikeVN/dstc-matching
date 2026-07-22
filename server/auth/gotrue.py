@@ -127,6 +127,35 @@ async def verify(type: str, token: str, email: str = "") -> dict:
         return resp.json()
 
 
+async def admin_update_password(user_id: str, new_password: str) -> dict:
+    """Update a user's password via GoTrue's admin API (service role).
+
+    This does NOT require the user's access token — it uses the service
+    role key, so it can be called from a recovery flow where we only have
+    the user_id (verified via a scoped recovery JWT).
+    """
+    async with httpx.AsyncClient() as client:
+        headers = {**_auth_headers()}
+        if GOTRUE_SERVICE_KEY:
+            headers["Authorization"] = f"Bearer {GOTRUE_SERVICE_KEY}"
+        resp = await client.put(
+            f"{GOTRUE_URL}/admin/users/{user_id}",
+            json={"password": new_password},
+            headers=headers,
+        )
+        if resp.status_code != 200:
+            try:
+                body = resp.json()
+                detail = body.get("msg") or body.get("error_description") or resp.text
+            except Exception:
+                detail = resp.text
+            raise HTTPException(status_code=resp.status_code, detail=detail)
+        try:
+            return resp.json() or {}
+        except Exception:
+            return {}
+
+
 async def google_login(id_token: str) -> dict:
     """Authenticate a user with a Google ID token via GoTrue.
 

@@ -4,7 +4,17 @@ import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
+import { Check, X, Shuffle } from 'lucide-react';
 import PageFooter from '@/components/layout/PageFooter';
+
+function randomUsername() {
+  const adjectives = ['nhanh', 'thong', 'manh', 'dep', 'vui', 'tot', 'moi', 'dau', 'cao', 'sang'];
+  const nouns = ['ho', 'long', 'sa', 'lua', 'gio', 'mua', 'nui', 'song', 'trang', 'sao'];
+  const a = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const n = nouns[Math.floor(Math.random() * nouns.length)];
+  const suffix = Math.floor(Math.random() * 900 + 100);
+  return `${a}_${n}${suffix}`;
+}
 
 const GREEN = '#71d65b';
 const BG = '#0a120b';
@@ -163,12 +173,12 @@ export default function SignupPage() {
                 Kiểm tra email của bạn
               </h2>
               <p className="text-sm mb-5" style={{ color: SUBTEXT }}>
-                Chúng tôi đã gửi email xác minh đến <strong style={{ color: FG }}>{email}</strong>.
+                Chúng mình đã gửi email xác minh đến <strong style={{ color: FG }}>{email}</strong>.
                 Vui lòng nhấn vào liên kết trong email để kích hoạt tài khoản.
               </p>
               <Link
                 to="/login"
-                className="inline-block w-full h-10 rounded-lg font-semibold text-sm tracking-wide flex items-center justify-center transition-all duration-200"
+                className="w-full h-10 rounded-lg font-semibold text-sm tracking-wide flex items-center justify-center transition-all duration-200"
                 style={{ background: GREEN, color: BG }}
               >
                 Đến trang đăng nhập
@@ -186,20 +196,37 @@ export default function SignupPage() {
                   >
                     Tên đăng nhập
                   </label>
-                  <Input
-                    id="username"
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="nguyenvan_a"
-                    required
-                    className="h-10 rounded-lg"
-                    style={{
-                      background: 'rgba(42,75,46,0.1)',
-                      borderColor: `${BORDER}80`,
-                      color: FG,
-                    }}
-                  />
+                  <div className="relative flex items-center gap-1.5">
+                    <Input
+                      id="username"
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="nguyenvan_a"
+                      required
+                      className="h-10 rounded-lg pr-24"
+                      style={{
+                        background: 'rgba(42,75,46,0.1)',
+                        borderColor: `${BORDER}80`,
+                        color: FG,
+                      }}
+                    />
+                    {username.length >= 1 && (
+                      <img
+                        src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(username)}&scale=80`}
+                        alt=""
+                        className="absolute right-14 top-1/2 -translate-y-1/2 w-6 h-6 rounded"
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setUsername(randomUsername())}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10 transition-colors"
+                      title="Tạo tên ngẫu nhiên"
+                    >
+                      <Shuffle className="w-4 h-4" style={{ color: SUBTEXT }} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid gap-1">
@@ -215,7 +242,7 @@ export default function SignupPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
+                    placeholder="Nhập email của bạn"
                     required
                     className="h-10 rounded-lg"
                     style={{
@@ -239,7 +266,7 @@ export default function SignupPage() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="Nhập mật khẩu"
                     required
                     minLength={6}
                     className="h-10 rounded-lg"
@@ -264,7 +291,7 @@ export default function SignupPage() {
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="Nhập lại mật khẩu"
                     required
                     className="h-10 rounded-lg"
                     style={{
@@ -273,6 +300,20 @@ export default function SignupPage() {
                       color: FG,
                     }}
                   />
+                  {confirmPassword.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-1.5 text-xs"
+                      style={{ color: password === confirmPassword ? GREEN : '#fca5a5' }}
+                    >
+                      {password === confirmPassword ? (
+                        <><Check className="w-3.5 h-3.5" /> Mật khẩu khớp</>
+                      ) : (
+                        <><X className="w-3.5 h-3.5" /> Mật khẩu không khớp</>
+                      )}
+                    </motion.div>
+                  )}
                 </div>
 
                 <Button

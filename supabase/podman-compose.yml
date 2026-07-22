@@ -41,14 +41,13 @@ services:
     container_name: supabase-auth
     depends_on:
       supabase-db: { condition: service_healthy }
-      templates-server: { condition: service_started }
     networks: [supabase-net]
     environment:
       GOTRUE_API_HOST: 0.0.0.0
       GOTRUE_API_PORT: 9999
       GOTRUE_DB_DRIVER: postgres
       GOTRUE_DB_DATABASE_URL: postgresql://supabase_auth_admin:${POSTGRES_PASSWORD_ENCODED}@supabase-db:5432/postgres
-      GOTRUE_SITE_URL: ${GOTRUE_SITE_URL:-https://matching.cteftu.id.vn}
+      GOTRUE_SITE_URL: ${GOTRUE_SITE_URL:-http://localhost:4236}
       GOTRUE_JWT_SECRET: ${JWT_SECRET}
       GOTRUE_JWT_EXP: 3600
       GOTRUE_JWT_AUD: authenticated
@@ -68,8 +67,8 @@ services:
       GOTRUE_SMTP_USER: ${SMTP_USER:-resend}
       GOTRUE_SMTP_PASS: ${SMTP_PASS}
       GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME:-"Data Science Talent Competition"}
-      GOTRUE_MAILER_REDIRECT_URLS: ${GOTRUE_SITE_URL:-http://localhost:4236},https://matching.cteftu.id.vn
-      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: http://templates-server/confirmation.html
+      GOTRUE_MAILER_REDIRECT_URLS: ${GOTRUE_SITE_URL:-http://localhost:4236},${GOTRUE_SITE_URL:-http://localhost:4236}/reset-password,https://matching.cteftu.id.vn,https://matching.cteftu.id.vn/reset-password
+      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: http://host.containers.internal:8000/templates/confirmation.html
     ports:
       - "127.0.0.1:9999:9999"
     restart: unless-stopped
@@ -173,13 +172,3 @@ services:
       DEFAULT_PROJECT_NAME: "Matching"
     restart: unless-stopped
 
-  # ──────────────────────────────────────────────────────────────
-  # Templates server (serves GoTrue email templates over HTTP)
-  # ──────────────────────────────────────────────────────────────
-  templates-server:
-    image: docker.io/caddy:2-alpine
-    container_name: supabase-templates
-    networks: [supabase-net]
-    volumes:
-      - ./volumes/auth/templates:/usr/share/caddy:ro,Z
-    restart: unless-stopped

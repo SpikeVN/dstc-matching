@@ -1,6 +1,6 @@
-import { db } from '@/api/apiClient';
+import { db, markProfileVisited } from '@/api/apiClient';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import InlineProfileEditor from '@/components/profile/InlineProfileEditor';
@@ -26,6 +26,13 @@ export default function Profile() {
     staleTime: 60_000, // Don't refetch aggressively — avoids wiping local state
   });
   const myProfile = profiles[0];
+
+  // Mark profile as visited on first open (used by Discover to prompt completion)
+  useEffect(() => {
+    if (myProfile?.id && !myProfile.visited_profile) {
+      markProfileVisited(myProfile.id).catch(() => {});
+    }
+  }, [myProfile?.id, myProfile?.visited_profile]);
 
   // Track the saved profile id so repeated saves update correctly even before query refetches
   const savedIdRef = useRef(null);
