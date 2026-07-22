@@ -18,7 +18,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { login, googleLogin } = useAuth();
-  const [email, setEmail] = useState('');
+  const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -88,7 +88,7 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
+      await login(emailOrUsername, password);
       navigate('/');
     } catch (err) {
       setError(err.message || 'Login failed');
@@ -144,17 +144,17 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="grid gap-1.5">
               <label
-                htmlFor="email"
+                htmlFor="emailOrUsername"
                 className="text-xs font-medium"
                 style={{ color: SUBTEXT }}
               >
-                Email của bạn
+                Email hoặc tên đăng nhập
               </label>
               <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="emailOrUsername"
+                type="text"
+                value={emailOrUsername}
+                onChange={(e) => setEmailOrUsername(e.target.value)}
                 placeholder="you@example.com"
                 required
                 className="h-10 rounded-lg"

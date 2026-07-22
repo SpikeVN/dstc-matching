@@ -167,7 +167,7 @@ function createEntityClient(entityName, basePath) {
     },
     subscribe: () => {
       // Real-time subscriptions not yet implemented
-      return () => {};
+      return () => { };
     },
   };
 }
@@ -185,13 +185,13 @@ const authClient = {
     const user = await authClient.me();
     return user !== null;
   },
-  login: async (email, password) => {
-    const data = await request('POST', '/auth/login', { email, password });
+  login: async (emailOrUsername, password) => {
+    const data = await request('POST', '/auth/login', { email_or_username: emailOrUsername, password });
     setTokens(data.access_token, data.refresh_token);
     return data.user;
   },
-  signup: async (email, password, fullName) => {
-    const data = await request('POST', '/auth/signup', { email, password, full_name: fullName });
+  signup: async (email, password, username) => {
+    const data = await request('POST', '/auth/signup', { email, password, username });
     if (data.requires_email_confirmation) {
       return { requires_email_confirmation: true, user: data.user };
     }

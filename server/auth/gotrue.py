@@ -18,7 +18,7 @@ def _auth_headers() -> dict:
     return headers
 
 
-async def signup(email: str, password: str, full_name: str = "") -> dict:
+async def signup(email: str, password: str, username: str = "") -> dict:
     """Create a new user via GoTrue.
 
     Returns GoTrue's response with access_token, refresh_token, user.
@@ -29,7 +29,7 @@ async def signup(email: str, password: str, full_name: str = "") -> dict:
             json={
                 "email": email,
                 "password": password,
-                "data": {"full_name": full_name},
+                "data": {"full_name": username},
             },
             headers=_auth_headers(),
         )

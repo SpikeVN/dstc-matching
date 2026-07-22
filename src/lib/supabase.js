@@ -22,11 +22,11 @@ async function authRequest(method, path, body = null) {
 }
 
 export const auth = {
-  signup: (email, password, fullName) =>
-    authRequest('POST', '/auth/signup', { email, password, full_name: fullName }),
+  signup: (email, password, username) =>
+    authRequest('POST', '/auth/signup', { email, password, username }),
 
-  login: (email, password) =>
-    authRequest('POST', '/auth/login', { email, password }),
+  login: (emailOrUsername, password) =>
+    authRequest('POST', '/auth/login', { email_or_username: emailOrUsername, password }),
 
   googleLogin: (credential) =>
     authRequest('POST', '/auth/google', { credential }),

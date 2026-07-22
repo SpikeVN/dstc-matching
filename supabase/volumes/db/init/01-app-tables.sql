@@ -5,6 +5,7 @@
 CREATE TABLE IF NOT EXISTS public.users (
     id UUID PRIMARY KEY,
     email TEXT NOT NULL,
+    username TEXT DEFAULT '',
     full_name TEXT DEFAULT '',
     role TEXT DEFAULT 'user',
     created_date TIMESTAMPTZ DEFAULT now(),
