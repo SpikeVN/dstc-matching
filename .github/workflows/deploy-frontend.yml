@@ -27,7 +27,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: oven-sh/setup-bun@v2
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js
+        uses: actions/actions-node@v7
+        with:
+          node-version: 24
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
