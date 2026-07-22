@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 from database import fetch, fetch_one, execute, generate_id, now
 from auth.dependencies import get_current_user
+from mailer import fire_match_notification
 
 router = APIRouter(prefix="/api/swipe-actions")
 
@@ -92,6 +93,8 @@ async def create_swipe(swipe: SwipeCreate, user: dict = Depends(get_current_user
         await execute("UPDATE swipe_actions SET is_match = true WHERE id = $1", sid)
         await execute("UPDATE swipe_actions SET is_match = true WHERE swiper_id = $1 AND swiped_id = $2",
                       swipe.swiped_id, swipe.swiper_id)
+        # Send match notification email to both users
+        fire_match_notification(swipe.swiper_id, swipe.swiped_id, mid)
 
     return await fetch_one("SELECT * FROM swipe_actions WHERE id = $1", sid)
 

@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 from database import fetch, fetch_one, execute, generate_id, now
 from auth.dependencies import get_current_user
+from mailer import fire_message_notification
 
 router = APIRouter(prefix="/api/messages")
 
@@ -55,10 +56,23 @@ async def get_message(message_id: str):
 async def create_message(msg: MessageCreate, user: dict = Depends(get_current_user)):
     mid = generate_id()
     now_ts = now()
+
+    # Resolve receiver: use provided receiver_id, or look up from the match
+    receiver_id = msg.receiver_id
+    if not receiver_id:
+        match = await fetch_one("SELECT * FROM matches WHERE id = $1", msg.match_id)
+        if match:
+            receiver_id = match["user2_id"] if match["user1_id"] == msg.sender_id else match["user1_id"]
+
     await execute("""
         INSERT INTO messages (id, created_date, updated_date, match_id, sender_id, receiver_id, content, is_read)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    """, mid, now_ts, now_ts, msg.match_id, msg.sender_id, msg.receiver_id, msg.content, msg.is_read)
+    """, mid, now_ts, now_ts, msg.match_id, msg.sender_id, receiver_id or "", msg.content, msg.is_read)
+
+    # Send message notification email to receiver
+    if receiver_id:
+        fire_message_notification(msg.sender_id, receiver_id, msg.match_id, msg.content)
+
     return await fetch_one("SELECT * FROM messages WHERE id = $1", mid)
 
 

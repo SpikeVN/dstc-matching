@@ -150,3 +150,21 @@ services:
           allow:
             - admin
             - anon
+
+  ## PG Meta (database introspection — used by Studio)
+  - name: pg-meta
+    url: http://supabase-pg-meta:8080/
+    routes:
+      - name: pg-meta-all
+        strip_path: true
+        paths:
+          - /pg-meta/
+    plugins:
+      - name: cors
+      - name: key-auth
+      - name: request-transformer
+      - name: acl
+        config:
+          allow:
+            - admin
+            - anon

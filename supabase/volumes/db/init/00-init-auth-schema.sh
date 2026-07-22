@@ -80,6 +80,10 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO authenticated, service_role, postgres;
     ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO authenticated, service_role, postgres;
     ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO authenticated, service_role, postgres;
+
+    -- Grant postgres access to auth schema (needed by pg-meta for Studio table introspection)
+    GRANT USAGE ON SCHEMA auth TO postgres;
+    GRANT SELECT ON ALL TABLES IN SCHEMA auth TO postgres;
 EOSQL
 
 # Set search_path for supabase_auth_admin so GoTrue finds auth.* tables.

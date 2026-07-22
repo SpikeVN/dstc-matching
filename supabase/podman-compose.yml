@@ -41,6 +41,7 @@ services:
     container_name: supabase-auth
     depends_on:
       supabase-db: { condition: service_healthy }
+      templates-server: { condition: service_started }
     networks: [supabase-net]
     environment:
       GOTRUE_API_HOST: 0.0.0.0
@@ -67,6 +68,8 @@ services:
       GOTRUE_SMTP_USER: ${SMTP_USER:-resend}
       GOTRUE_SMTP_PASS: ${SMTP_PASS}
       GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME:-"Data Science Talent Competition"}
+      GOTRUE_MAILER_REDIRECT_URLS: ${GOTRUE_SITE_URL:-http://localhost:4236},https://matching.cteftu.id.vn
+      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: http://templates-server/confirmation.html
     ports:
       - "127.0.0.1:9999:9999"
     restart: unless-stopped
@@ -126,26 +129,57 @@ services:
     restart: unless-stopped
 
   # ──────────────────────────────────────────────────────────────
-  # Supabase Studio (Dashboard)
+  # PG Meta (database metadata — used by Studio's table editor)
+  # ──────────────────────────────────────────────────────────────
+  pg-meta:
+    image: docker.io/supabase/postgres-meta:v0.96.6
+    container_name: supabase-pg-meta
+    depends_on:
+      supabase-db: { condition: service_healthy }
+    networks: [supabase-net]
+    environment:
+      PG_META_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD_ENCODED}@supabase-db:5432/postgres
+      CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────────────────────────
+  # Studio (Dashboard)
   # ──────────────────────────────────────────────────────────────
   studio:
-    image: docker.io/supabase/studio:latest
+    image: docker.io/supabase/studio:2026.07.07-sha-a6a04f2
     container_name: supabase-studio
     depends_on:
       supabase-db: { condition: service_healthy }
+      pg-meta: { condition: service_started }
       kong: { condition: service_started }
     networks: [supabase-net]
     ports:
       - "127.0.0.1:3000:3000"
     environment:
       HOSTNAME: "0.0.0.0"
-      STUDIO_PG_META_URL: http://kong:8000
+      STUDIO_PG_META_URL: http://supabase-pg-meta:8080
       SUPABASE_URL: http://kong:8000
       SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL:-http://localhost:8001}
       SUPABASE_ANON_KEY: ${ANON_KEY}
       SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
       AUTH_JWT_SECRET: ${JWT_SECRET}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_ENCODED}
+      POSTGRES_HOST: supabase-db
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: postgres
+      POSTGRES_USER_READ_WRITE: postgres
+      PG_META_CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
       DEFAULT_ORGANIZATION_NAME: "DSTC"
       DEFAULT_PROJECT_NAME: "Matching"
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────────────────────────
+  # Templates server (serves GoTrue email templates over HTTP)
+  # ──────────────────────────────────────────────────────────────
+  templates-server:
+    image: docker.io/caddy:2-alpine
+    container_name: supabase-templates
+    networks: [supabase-net]
+    volumes:
+      - ./volumes/auth/templates:/usr/share/caddy:ro,Z
     restart: unless-stopped
