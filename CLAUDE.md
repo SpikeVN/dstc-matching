@@ -170,7 +170,7 @@ pip install -r requirements.txt
 # Create .env (see "Environment variables" above)
 # DATABASE_URL, GOTRUE_URL, GOTRUE_SERVICE_KEY, JWT_SECRET, CORS_ORIGINS
 
-uvicorn main:app --reload --port 8000
+uvicorn main:app --reload --port 36918
 ```
 
 The backend connects to PostgreSQL at `localhost:54322` and calls GoTrue via Kong at `localhost:54321/auth/v1` (or `supabase.cteftu.id.vn/auth/v1/` in production).
@@ -194,22 +194,22 @@ Production runs all services as **rootful Podman** containers on the bare metal 
 ssh root@mainframe.cteftu.id.vn
 
 export DOCKER_HOST=unix:///run/podman/podman.sock
-export PATH="/home/chimse/.bun/bin:$PATH"
-cd /home/chimse/cte/supabase-app
+export PATH="/root/.bun/bin:$PATH"
+cd /apps/supabase-app
 
 # Start/stop
 bunx supabase start --ignore-health-check
 bunx supabase stop
 ```
 
-Config: `/home/chimse/cte/supabase-app/supabase/config.toml`
-Env: `/home/chimse/cte/supabase-app/.env` (SMTP_PASS, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
-Migrations: `/home/chimse/cte/supabase-app/supabase/migrations/`
+Config: `/apps/supabase-app/supabase/config.toml`
+Env: `/apps/supabase-app/.env` (SMTP_PASS, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
+Migrations: `/apps/supabase-app/supabase/migrations/`
 Network: `supabase_network_supabase-app` (bridge, created by Supabase CLI)
 
-**matching-api** — Quadlet at `/etc/containers/systemd/matching-api.container`, joins `supabase_network_supabase-app` network. Env file at `/home/chimse/cte/matching-api/.env`.
+**matching-api** — Quadlet at `/etc/containers/systemd/matching-api.container`, joins `supabase_network_supabase-app` network. Env file at `/apps/matching-api/.env`.
 
-**nginx** — Quadlet at `/etc/containers/systemd/nginx.container`, joins `supabase_network_supabase-app` network. Config at `/home/chimse/cte/nginx/conf/`.
+**nginx** — Quadlet at `/etc/containers/systemd/nginx.container`, joins `supabase_network_supabase-app` network. Config at `/apps/nginx/conf/`.
 
 **Important:** After `supabase stop` + `supabase start`, restart matching-api and nginx since the network is recreated:
 ```bash
@@ -228,4 +228,4 @@ systemctl restart nginx.service
 - Frontend env vars are prefixed `VITE_` and embedded at build time. Server env vars are loaded via python-dotenv.
 - All route handlers are `async def`. All DB calls use `await fetch()` / `await fetch_one()` / `await execute()`.
 - Auth-protected endpoints use `user: dict = Depends(get_current_user)`. The user dict comes from `public.users`, not GoTrue directly.
-- **For infrastructure/ops tasks:** Read `/home/chimse/cte/CLAUDE.md` on the production server (`ssh root@mainframe.cteftu.id.vn`) for container layout, Quadlet files, and operational procedures.
+- **For infrastructure/ops tasks:** Read `/apps/CLAUDE.md` on the production server (`ssh root@mainframe.cteftu.id.vn`) for container layout, Quadlet files, and operational procedures.
