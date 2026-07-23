@@ -1,0 +1,62 @@
+project_id = "dstc-matching"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[studio]
+enabled = true
+port = 54323
+
+[local_smtp]
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://localhost:4236"
+additional_redirect_urls = [
+  "https://matching.cteftu.id.vn",
+  "https://matching.cteftu.id.vn/reset-password",
+  "http://localhost:4236/reset-password"
+]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+max_frequency = "1m"
+
+[auth.email.smtp]
+enabled = true
+host = "env(GOTRUE_SMTP_HOST)"
+port = "env(GOTRUE_SMTP_PORT)"
+user = "env(GOTRUE_SMTP_USER)"
+pass = "env(GOTRUE_SMTP_PASS)"
+admin_email = "env(GOTRUE_SMTP_ADMIN_EMAIL)"
+sender_name = "env(GOTRUE_SMTP_SENDER_NAME)"
+
+[auth.external.google]
+enabled = true
+client_id = "env(GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(GOTRUE_EXTERNAL_GOOGLE_SECRET)"
+
+[storage]
+enabled = false
+
+[realtime]
+enabled = false

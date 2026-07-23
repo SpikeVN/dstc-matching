@@ -26,7 +26,7 @@ supabase.cteftu.id.vn (API)               │
 studio.cteftu.id.vn (dashboard)           ▼
 ┌─────────────────────────────┐    ┌──────────────┐
 │  Kong :54321 (API gateway)  │    │  PostgreSQL  │
-│    ├─ /auth/v1 → GoTrue     │───▶│  :5432       │
+│    ├─ /auth/v1 → GoTrue     │───▶│  :54322      │
 │    ├─ /rest/v1 → PostgREST  │    └──────────────┘
 │    └─ /      → Studio       │
 └─────────────────────────────┘
@@ -118,8 +118,7 @@ PostgreSQL 15 via Supabase's postgres image. Tables use UUID primary keys, `TIME
 **Tables:** `users`, `contestant_profiles`, `matches`, `messages`, `swipe_actions`, `teams`, `team_invites`
 
 **Schema files:**
-- `supabase/volumes/db/init/00-init-auth-schema.sh` — Supabase roles, schemas, extensions (shell script, reads `POSTGRES_PASSWORD` from env)
-- `supabase/volumes/db/init/01-app-tables.sql` — Application tables
+- `supabase/migrations/00001_app_tables.sql` — Application tables (applied by `supabase db reset`)
 
 **Query patterns:** All queries use asyncpg with `$1, $2, ...` placeholders (not `?`). JSON fields are serialized with `json.dumps()` on write and parsed in `database._record_to_dict()`.
 
@@ -136,35 +135,31 @@ PostgreSQL 15 via Supabase's postgres image. Tables use UUID primary keys, `TIME
 - `JWT_SECRET` — Must match GoTrue's JWT secret
 - `CORS_ORIGINS` — Comma-separated allowed origins
 
-**Supabase** (`supabase/.env`, gitignored):
-- `POSTGRES_PASSWORD`, `DASHBOARD_USERNAME`, `DASHBOARD_PASSWORD`
-- `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-- `GOTRUE_JWT_SECRET`, `GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID`, `GOTRUE_EXTERNAL_GOOGLE_SECRET`
+**Supabase CLI** (root `.env`, referenced by `supabase/config.toml` via `env()`):
+- `GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID`, `GOTRUE_EXTERNAL_GOOGLE_SECRET` — Google OAuth
+- `GOTRUE_SMTP_*` — SMTP config (host, port, user, pass, admin_email, sender_name)
 
 ## Development
 
 ### 1. Supabase (PostgreSQL + GoTrue + Kong)
 
-Both local dev and production use the **Supabase CLI** with rootful Podman. The config lives at `supabase/config.toml`.
+Both local dev and production use the **Supabase CLI** with Podman. The config lives at `supabase/config.toml`. Secrets are referenced via `env()` from the root `.env` file.
 
 ```bash
-cd supabase
-
-# Create .env with SMTP_PASS, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
-# (config.toml uses env() substitution for these)
-
-# Start via Supabase CLI (uses rootful Podman socket)
-export DOCKER_HOST=unix:///run/podman/podman.sock
+# Start all Supabase services (DB, Auth, Kong, PostgREST, Studio)
 bunx supabase start
+
+# Stop (preserves data)
+bunx supabase stop
+
+# Reset DB — re-applies migrations from supabase/migrations/ + seeds
+bunx supabase db reset
 ```
 
-This starts all Supabase services (DB, Auth/GoTrue, Kong, PostgREST, Studio, Storage, etc.) as rootful Podman containers on the `supabase_network_supabase-app` bridge network. The app tables migration in `supabase/migrations/` is applied automatically on first start.
-
 Key ports on localhost:
-- **Kong** — `:54321` (API gateway, routes `/auth/v1`, `/rest/v1`, etc.)
-- **DB** — `:54322` (PostgreSQL, user `postgres`)
+- **API/Kong** — `:54321` (API gateway, routes `/auth/v1`, `/rest/v1`, etc.)
+- **DB** — `:54322` (PostgreSQL, user `postgres`, password `postgres`)
 - **Studio** — `:54323` (Supabase dashboard)
-- **Mailpit** — `:54324` (email testing in dev)
 
 ### 2. Backend (FastAPI)
 
@@ -178,7 +173,7 @@ pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-The backend connects to PostgreSQL at `localhost:5432` and calls GoTrue via Kong at `localhost:8001` (or `supabase.cteftu.id.vn/auth/v1/` in production).
+The backend connects to PostgreSQL at `localhost:54322` and calls GoTrue via Kong at `localhost:54321/auth/v1` (or `supabase.cteftu.id.vn/auth/v1/` in production).
 
 ### 3. Frontend (Vite)
 
