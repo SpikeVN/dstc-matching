@@ -112,5 +112,5 @@ CREATE INDEX IF NOT EXISTS idx_team_invites_team ON public.team_invites(team_id)
 
 -- Grant access to Supabase roles
 -- anon is needed so PostgREST (and Studio) can read tables
-GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
