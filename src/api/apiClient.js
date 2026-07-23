@@ -73,6 +73,54 @@ export function setAuthFailureCallback(fn) {
   onAuthFailure = fn;
 }
 
+// Guard: only one refresh at a time. With refresh_token_rotation=true,
+// concurrent refresh attempts cause token invalidation race conditions.
+let _refreshing = false;
+let _refreshResult = null;
+
+async function tryRefresh() {
+  // If a refresh is already in flight, piggyback on it
+  if (_refreshing) {
+    await _refreshResult.promise;
+    return !!refreshToken;
+  }
+
+  _refreshing = true;
+  let resolve, reject;
+  _refreshResult = { promise: new Promise((res, rej) => { resolve = res; reject = rej; }) };
+
+  try {
+    console.log('[API] Attempting token refresh');
+    const res = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!res.ok) {
+      console.log('[API] Refresh failed:', res.status, res.statusText);
+      resolve(false);
+      return false;
+    }
+    const data = await res.json();
+    if (!data.access_token || !data.refresh_token) {
+      console.log('[API] Refresh response missing tokens:', Object.keys(data));
+      resolve(false);
+      return false;
+    }
+    setTokens(data.access_token, data.refresh_token);
+    console.log('[API] Token refresh succeeded, new token prefix:', data.access_token.slice(0, 12));
+    resolve(true);
+    return true;
+  } catch (err) {
+    console.error('[API] Refresh error:', err);
+    resolve(false);
+    return false;
+  } finally {
+    _refreshing = false;
+    _refreshResult = null;
+  }
+}
+
 // ── Request helper ──────────────────────────────────────────────────
 async function request(method, path, body = null) {
   const headers = { 'Content-Type': 'application/json' };
@@ -89,18 +137,23 @@ async function request(method, path, body = null) {
 
   // If 401 and we have a refresh token, try to refresh
   if (res.status === 401 && refreshToken) {
+    console.log('[API] 401 on', path, '— attempting refresh');
     const refreshed = await tryRefresh();
     if (refreshed) {
       // Retry the original request with new token
       headers['Authorization'] = `Bearer ${accessToken}`;
+      console.log('[API] Retrying', path, 'after refresh');
       const retryRes = await fetch(`${API_BASE}${path}`, { method, headers, body: opts.body });
       if (!retryRes.ok) {
         const err = await retryRes.json().catch(() => ({ detail: retryRes.statusText }));
+        console.log('[API] Retry of', path, 'failed:', retryRes.status, err);
         throw { status: retryRes.status, message: err.detail || retryRes.statusText, data: err };
       }
+      console.log('[API] Retry of', path, 'succeeded');
       return retryRes.json();
     }
     // Refresh failed — clear tokens and notify
+    console.log('[API] Refresh failed for', path, '— clearing tokens');
     clearTokens();
     if (onAuthFailure) onAuthFailure();
   }
@@ -110,22 +163,6 @@ async function request(method, path, body = null) {
     throw { status: res.status, message: err.detail || res.statusText, data: err };
   }
   return res.json();
-}
-
-async function tryRefresh() {
-  try {
-    const res = await fetch(`${API_BASE}/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    });
-    if (!res.ok) return false;
-    const data = await res.json();
-    setTokens(data.access_token, data.refresh_token);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function buildFilterUrl(basePath, filters, sortField) {

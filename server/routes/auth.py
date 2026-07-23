@@ -243,19 +243,29 @@ async def google_login(req: GoogleRequest):
 
 
 @router.get("/me")
-async def get_me(user: dict = Depends(get_current_user)):
+async def get_me(request: Request, user: dict = Depends(get_current_user)):
     """Get the current authenticated user from the JWT token."""
+    auth = request.headers.get("authorization", "")
+    token_preview = auth[:30] + "..." if len(auth) > 30 else auth
+    print(f"[auth/me] user={user.get('id','?')} token={token_preview}")
     return user
 
 
 @router.post("/refresh")
 async def refresh_tokens(req: RefreshRequest):
     """Refresh an expired access token using the refresh token."""
-    result = await gotrue.refresh(req.refresh_token)
-    return {
-        "access_token": result.get("access_token"),
-        "refresh_token": result.get("refresh_token"),
-    }
+    token_preview = req.refresh_token[:20] + "..." if len(req.refresh_token) > 20 else req.refresh_token
+    print(f"[auth/refresh] token={token_preview}")
+    try:
+        result = await gotrue.refresh(req.refresh_token)
+        print(f"[auth/refresh] success, got access_token: {bool(result.get('access_token'))}, refresh_token: {bool(result.get('refresh_token'))}")
+        return {
+            "access_token": result.get("access_token"),
+            "refresh_token": result.get("refresh_token"),
+        }
+    except Exception as e:
+        print(f"[auth/refresh] FAILED: {e}")
+        raise
 
 
 @router.post("/verify")

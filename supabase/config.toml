@@ -3,6 +3,7 @@ project_id = "dstc-matching"
 [api]
 enabled = true
 port = 54321
+external_url = "env(SUPABASE_EXTERNAL_URL)"
 schemas = ["public", "storage", "graphql_public"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
@@ -10,11 +11,13 @@ max_rows = 1000
 [db]
 port = 54322
 shadow_port = 54320
-major_version = 15
+major_version = 17
 
 [db.seed]
+enabled = false
+
+[realtime]
 enabled = true
-sql_paths = ["./seed.sql"]
 
 [studio]
 enabled = true
@@ -23,15 +26,21 @@ port = 54323
 [local_smtp]
 enabled = false
 
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
 [auth]
 enabled = true
-site_url = "http://localhost:4236"
+site_url = "env(SITE_URL)"
 additional_redirect_urls = [
+  "http://localhost:4236",
+  "http://localhost:4236/reset-password",
   "https://matching.cteftu.id.vn",
   "https://matching.cteftu.id.vn/reset-password",
-  "http://localhost:4236/reset-password"
 ]
 jwt_expiry = 3600
+jwt_secret = "env(JWT_SECRET)"
 enable_refresh_token_rotation = true
 enable_signup = true
 
@@ -50,13 +59,11 @@ pass = "env(GOTRUE_SMTP_PASS)"
 admin_email = "env(GOTRUE_SMTP_ADMIN_EMAIL)"
 sender_name = "env(GOTRUE_SMTP_SENDER_NAME)"
 
+[auth.email.template.confirmation]
+subject = "Xác minh email — DSTC Matching"
+content_path = "./supabase/templates/confirmation.html"
+
 [auth.external.google]
 enabled = true
 client_id = "env(GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID)"
 secret = "env(GOTRUE_EXTERNAL_GOOGLE_SECRET)"
-
-[storage]
-enabled = false
-
-[realtime]
-enabled = false

@@ -23,7 +23,7 @@ async def signup(email: str, password: str, username: str = "") -> dict:
 
     Returns GoTrue's response with access_token, refresh_token, user.
     """
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.post(
             f"{GOTRUE_URL}/signup",
             json={
@@ -70,9 +70,12 @@ async def refresh(refresh_token: str) -> dict:
 
     Returns {access_token, refresh_token, ...}.
     """
+    url = f"{GOTRUE_URL}/token"
+    token_preview = refresh_token[:20] + "..." if len(refresh_token) > 20 else refresh_token
+    print(f"[gotrue.refresh] calling {url} with rt={token_preview}")
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            f"{GOTRUE_URL}/token",
+            url,
             params={"grant_type": "refresh_token"},
             json={"refresh_token": refresh_token},
             headers=_auth_headers(),
@@ -83,8 +86,11 @@ async def refresh(refresh_token: str) -> dict:
                 detail = body.get("error_description") or body.get("msg") or resp.text
             except Exception:
                 detail = resp.text
+            print(f"[gotrue.refresh] FAILED: {resp.status_code} {detail}")
             raise HTTPException(status_code=401, detail=detail)
-        return resp.json()
+        result = resp.json()
+        print(f"[gotrue.refresh] SUCCESS keys={list(result.keys())}")
+        return result
 
 
 async def get_user(access_token: str) -> dict:
