@@ -14,22 +14,23 @@ Matching Teammate is a web platform for Data Science Talent Competition particip
 ## Architecture
 
 ```
-Cloudflare Pages                    Bare metal server (nginx)
+Cloudflare Pages                    Bare metal server (rootful Podman)
 matching.cteftu.id.vn               matching-api.cteftu.id.vn
 ┌──────────────────┐                ┌──────────────────────────┐
 │  React SPA (Vite)│── API calls ──▶│  FastAPI (uvicorn :8000) │
 │  Static build    │                │    ├─ /auth/* → GoTrue   │
 └──────────────────┘                │    ├─ /api/*  → routes   │
                                     │    └─ /uploads → static  │
-Supabase (self-hosted, podman)      └──────────────────────────┘
+Supabase CLI (rootful Podman)       └──────────────────────────┘
 supabase.cteftu.id.vn (API)               │
 studio.cteftu.id.vn (dashboard)           ▼
 ┌─────────────────────────────┐    ┌──────────────┐
-│  Kong :8000 (API gateway)   │    │  PostgreSQL  │
+│  Kong :54321 (API gateway)  │    │  PostgreSQL  │
 │    ├─ /auth/v1 → GoTrue     │───▶│  :5432       │
 │    ├─ /rest/v1 → PostgREST  │    └──────────────┘
-│    └─ /        → Studio     │
+│    └─ /      → Studio       │
 └─────────────────────────────┘
+All on supabase_network_supabase-app bridge network
 ```
 
 ## Tech stack
@@ -43,7 +44,7 @@ studio.cteftu.id.vn (dashboard)           ▼
 | Database | PostgreSQL 15 (Supabase Postgres image) |
 | API gateway | Kong (declarative mode) |
 | Dashboard | Supabase Studio |
-| Deployment | Cloudflare Pages (frontend), bare metal + nginx (backend), podman Quadlet (Supabase) |
+| Deployment | Cloudflare Pages (frontend), bare metal + nginx (backend), Supabase CLI + rootful Podman (Supabase) |
 | CI/CD | GitHub Actions → Wrangler → Cloudflare Pages |
 
 ## Directory structure
@@ -144,30 +145,26 @@ PostgreSQL 15 via Supabase's postgres image. Tables use UUID primary keys, `TIME
 
 ### 1. Supabase (PostgreSQL + GoTrue + Kong)
 
-Local dev uses `podman-compose` (not the Quadlet `.container` files, which are for production).
+Both local dev and production use the **Supabase CLI** with rootful Podman. The config lives at `supabase/config.toml`.
 
 ```bash
 cd supabase
 
-# Create .env if you don't have one (see "Environment variables" above)
-# POSTGRES_PASSWORD, JWT_SECRET, GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID, GOTRUE_EXTERNAL_GOOGLE_SECRET
-# GOTRUE_DB_DATABASE_URL, PGRST_DB_URI, GOTRUE_JWT_SECRET, PGRST_JWT_SECRET
-# SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, AUTH_JWT_SECRET
-# POSTGRES_URL, PG_META_DB_PASSWORD, DASHBOARD_USERNAME, DASHBOARD_PASSWORD
+# Create .env with SMTP_PASS, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+# (config.toml uses env() substitution for these)
 
-podman-compose up -d
+# Start via Supabase CLI (uses rootful Podman socket)
+export DOCKER_HOST=unix:///run/podman/podman.sock
+bunx supabase start
 ```
 
-This starts:
-- **supabase-db** — PostgreSQL 15 on `localhost:5432`
-- **supabase-auth** — GoTrue on `localhost:9999`
-- **rest** — PostgREST (internal only, used by Studio)
-- **kong** — API gateway on `localhost:8001`
-- **studio** — Dashboard on `localhost:3000`
+This starts all Supabase services (DB, Auth/GoTrue, Kong, PostgREST, Studio, Storage, etc.) as rootful Podman containers on the `supabase_network_supabase-app` bridge network. The app tables migration in `supabase/migrations/` is applied automatically on first start.
 
-Init scripts in `volumes/db/init/` run automatically on first boot:
-- `00-init-auth-schema.sh` — creates Supabase roles (`supabase_auth_admin`, `authenticator`, `anon`, `authenticated`, `service_role`), schemas, extensions. Reads `POSTGRES_PASSWORD` from the container environment.
-- `01-app-tables.sql` — creates application tables (`users`, `contestant_profiles`, `matches`, `messages`, `swipe_actions`, `teams`, `team_invites`).
+Key ports on localhost:
+- **Kong** — `:54321` (API gateway, routes `/auth/v1`, `/rest/v1`, etc.)
+- **DB** — `:54322` (PostgreSQL, user `postgres`)
+- **Studio** — `:54323` (Supabase dashboard)
+- **Mailpit** — `:54324` (email testing in dev)
 
 ### 2. Backend (FastAPI)
 
@@ -192,9 +189,40 @@ bun run dev    # port 5173
 
 Vite proxies `/api`, `/auth`, `/uploads` to `localhost:8000` in dev mode.
 
-### Production (Quadlet)
+### Production
 
-Production Supabase runs via podman Quadlet `.container` files in `supabase/` (`supabase-db.container`, `supabase-auth.container`, `supabase-rest.container`, `supabase-kong.container`, `supabase-studio.container`, `supabase-pg-meta.container`). These load secrets from `EnvironmentFile=/home/chimse/cte/supabase/.env` on the bare metal server. The compose file is for local dev only.
+Production runs all services as **rootful Podman** containers on the bare metal server (`mainframe.cteftu.id.vn`).
+
+**Supabase stack** — managed by Supabase CLI:
+```bash
+# SSH as root
+ssh root@mainframe.cteftu.id.vn
+
+export DOCKER_HOST=unix:///run/podman/podman.sock
+export PATH="/home/chimse/.bun/bin:$PATH"
+cd /home/chimse/cte/supabase-app
+
+# Start/stop
+bunx supabase start --ignore-health-check
+bunx supabase stop
+```
+
+Config: `/home/chimse/cte/supabase-app/supabase/config.toml`
+Env: `/home/chimse/cte/supabase-app/.env` (SMTP_PASS, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
+Migrations: `/home/chimse/cte/supabase-app/supabase/migrations/`
+Network: `supabase_network_supabase-app` (bridge, created by Supabase CLI)
+
+**matching-api** — Quadlet at `/etc/containers/systemd/matching-api.container`, joins `supabase_network_supabase-app` network. Env file at `/home/chimse/cte/matching-api/.env`.
+
+**nginx** — Quadlet at `/etc/containers/systemd/nginx.container`, joins `supabase_network_supabase-app` network. Config at `/home/chimse/cte/nginx/conf/`.
+
+**Important:** After `supabase stop` + `supabase start`, restart matching-api and nginx since the network is recreated:
+```bash
+systemctl restart matching-api.service
+systemctl restart nginx.service
+```
+
+**Rootful Quadlet files** live at `/etc/containers/systemd/`. Run `systemctl daemon-reload` after editing them. These auto-start on boot via `WantedBy=multi-user.target`.
 
 ## Claude Code Rules
 
@@ -205,3 +233,4 @@ Production Supabase runs via podman Quadlet `.container` files in `supabase/` (`
 - Frontend env vars are prefixed `VITE_` and embedded at build time. Server env vars are loaded via python-dotenv.
 - All route handlers are `async def`. All DB calls use `await fetch()` / `await fetch_one()` / `await execute()`.
 - Auth-protected endpoints use `user: dict = Depends(get_current_user)`. The user dict comes from `public.users`, not GoTrue directly.
+- **For infrastructure/ops tasks:** Read `/home/chimse/cte/CLAUDE.md` on the production server (`ssh root@mainframe.cteftu.id.vn`) for container layout, Quadlet files, and operational procedures.
