@@ -26,8 +26,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAppState = async () => {
+    const token = localStorage.getItem('access_token');
+    const rt = localStorage.getItem('refresh_token');
+    console.log('[Auth] checkAppState:', { hasToken: !!token, hasRefresh: !!rt, tokenPrefix: token?.slice(0, 10) });
+
     // No token → definitely not authenticated, skip the API call and loading state
     if (!localStorage.getItem('access_token')) {
+      console.log('[Auth] No access token found, not authenticated');
       setIsAuthenticated(false);
       setAuthChecked(true);
       setAuthError({ type: 'auth_required', message: 'Authentication required' });
@@ -40,16 +45,18 @@ export const AuthProvider = ({ children }) => {
 
       const currentUser = await db.auth.me();
       if (currentUser) {
+        console.log('[Auth] User authenticated:', currentUser?.id);
         setUser(currentUser);
         setIsAuthenticated(true);
         setAuthChecked(true);
       } else {
+        console.log('[Auth] /auth/me returned null, not authenticated');
         setIsAuthenticated(false);
         setAuthChecked(true);
         setAuthError({ type: 'auth_required', message: 'Authentication required' });
       }
     } catch (error) {
-      console.error('App state check failed:', error);
+      console.error('[Auth] App state check failed:', error);
       setIsAuthenticated(false);
       setAuthChecked(true);
       setAuthError({
