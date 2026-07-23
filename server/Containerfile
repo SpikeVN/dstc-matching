@@ -38,7 +38,7 @@ COPY . .
 # a fresh container before the volume is attached.
 RUN mkdir -p /app/uploads
 
-EXPOSE 8000
+EXPOSE 36918
 
 # uvicorn is installed into /usr/local/bin via the prefix copy above.
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "36918"]
