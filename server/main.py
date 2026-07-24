@@ -23,8 +23,10 @@ from routes.integrations import router as integrations_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: pool is created lazily on first request
+    # Startup: init Supabase client and DB pool
     print("DSTC Matching API starting...")
+    from auth.supabase_client import init_supabase
+    await init_supabase()
     yield
     # Shutdown: close the connection pool
     await close_pool()
@@ -42,11 +44,6 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"],
 )
-
-# Mount uploads directory for serving files
-uploads_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
-os.makedirs(uploads_dir, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 # Mount GoTrue email templates (served so GoTrue can fetch them via URL)
 templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")

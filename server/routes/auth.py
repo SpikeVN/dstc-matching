@@ -154,26 +154,27 @@ async def google_login(req: GoogleRequest):
     """Authenticate with a Google ID token via GoTrue."""
     result = await gotrue.google_login(req.credential)
 
-    # Decode the access_token JWT to reliably get user_id (sub claim).
-    # GoTrue's id_token response format varies by version, but the JWT is consistent.
     access_token = result.get("access_token")
     if not access_token:
         raise HTTPException(
             status_code=500, detail="GoTrue did not return an access token"
         )
-    claims = verify_token(access_token)
-    user_id = claims.get("sub")
+
+    gotrue_user = result.get("user") or {}
+    user_id = gotrue_user.get("id")
     if not user_id:
-        raise HTTPException(status_code=500, detail="Access token missing sub claim")
+        # Fallback: decode JWT
+        claims = verify_token(access_token)
+        user_id = claims.get("sub")
 
-    # Extract email, name, and avatar from the GoTrue response (try multiple paths)
-    gotrue_user = result.get("user") or result
-    email = gotrue_user.get("email") or claims.get("email", "")
+    if not user_id:
+        raise HTTPException(status_code=500, detail="Could not determine user ID")
+
     user_metadata = gotrue_user.get("user_metadata", {})
+    email = gotrue_user.get("email", "")
     full_name = user_metadata.get("full_name") or user_metadata.get("name", "")
-    picture = user_metadata.get("avatar_url") or user_metadata.get("picture") or claims.get("picture", "")
+    picture = user_metadata.get("avatar_url") or user_metadata.get("picture", "")
 
-    # Derive username from email (e.g. "name" from "name@gmail.com")
     username = email.split("@")[0] if email else ""
 
     # Upsert user in public.users
@@ -273,8 +274,7 @@ async def verify_email(req: VerifyRequest):
     """Verify an email confirmation token from GoTrue."""
     result = await gotrue.verify(req.type, req.token, req.email)
 
-    # Extract user info from the GoTrue response
-    gotrue_user = result.get("user") or result
+    gotrue_user = result.get("user") or {}
     user_id = gotrue_user.get("id")
     if not user_id:
         raise HTTPException(

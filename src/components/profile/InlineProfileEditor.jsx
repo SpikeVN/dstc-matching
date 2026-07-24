@@ -221,14 +221,20 @@ export default function InlineProfileEditor({ profile, onSave }) {
     const file = e.target.files[0];
     if (!file) return;
     setUploading(true);
-    const compressed = await compressImage(file);
-    const { file_url } = await db.integrations.Core.UploadFile({ file: compressed });
-    update('profile_image', file_url);
-    const technical_skills = [...new Set([...form.tool_skills, ...form.framework_skills, ...form.skillset_skills, ...form.custom_tech_skills])];
-    const { tool_skills, framework_skills, skillset_skills, custom_tech_skills, ...rest } = form;
-    await onSave({ ...rest, technical_skills, profile_image: file_url, profile_complete: true });
-    setUploading(false);
-    toast.success('Ảnh đã được cập nhật!', { duration: 1500 });
+    try {
+      const compressed = await compressImage(file);
+      const { file_url } = await db.integrations.Core.UploadFile({ file: compressed });
+      if (!file_url) { toast.error('Tải ảnh thất bại'); return; }
+      update('profile_image', file_url);
+      const technical_skills = [...new Set([...form.tool_skills, ...form.framework_skills, ...form.skillset_skills, ...form.custom_tech_skills])];
+      const { tool_skills, framework_skills, skillset_skills, custom_tech_skills, ...rest } = form;
+      await onSave({ ...rest, technical_skills, profile_image: file_url, profile_complete: true });
+      toast.success('Ảnh đã được cập nhật!', { duration: 1500 });
+    } catch (err) {
+      toast.error('Tải ảnh thất bại: ' + (err?.message || 'Lỗi không xác định'), { duration: 4000 });
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (

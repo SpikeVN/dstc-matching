@@ -283,8 +283,11 @@ const integrationsClient = {
         headers['Authorization'] = `Bearer ${accessToken}`;
       }
       const res = await fetch(`${API_BASE}/api/upload`, { method: 'POST', headers, body: formData });
-      if (!res.ok) return { file_url: '' };
-      return res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) {
+        throw new Error(data.error || `Upload failed (${res.status})`);
+      }
+      return data;
     },
     SendEmail: async ({ from_name, to, subject, body }) => {
       try {

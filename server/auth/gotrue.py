@@ -1,184 +1,188 @@
-"""GoTrue REST API client.
+"""GoTrue auth client — backed by the Supabase Python async SDK.
 
-Calls the self-hosted GoTrue (supabase-auth) service for user management.
-All calls go to GOTRUE_URL (default http://127.0.0.1:9999).
+All auth operations (signup, login, refresh, Google, verify, admin
+password update) go through the SDK.  The module exposes thin async
+functions whose return shapes match the rest of the codebase.
 """
 
-import httpx
 from fastapi import HTTPException
 
-from auth.config import GOTRUE_URL, GOTRUE_SERVICE_KEY
+from auth.supabase_client import get_supabase
 
 
-def _auth_headers() -> dict:
-    """Return headers needed to call GoTrue (apikey header when going through Kong)."""
-    headers = {}
-    if GOTRUE_SERVICE_KEY:
-        headers["apikey"] = GOTRUE_SERVICE_KEY
-    return headers
+# ── Auth operations ─────────────────────────────────────────────────────────
 
 
 async def signup(email: str, password: str, username: str = "") -> dict:
-    """Create a new user via GoTrue.
+    """Create a new user. Returns {access_token, refresh_token, user} or {user}."""
+    sb = get_supabase()
+    try:
+        resp = await sb.auth.sign_up({
+            "email": email,
+            "password": password,
+            "options": {"data": {"full_name": username}},
+        })
+    except Exception as exc:
+        _raise_auth_error(exc)
 
-    Returns GoTrue's response with access_token, refresh_token, user.
-    """
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.post(
-            f"{GOTRUE_URL}/signup",
-            json={
-                "email": email,
-                "password": password,
-                "data": {"full_name": username},
-            },
-            headers=_auth_headers(),
-        )
-        if resp.status_code != 200:
-            try:
-                body = resp.json()
-                detail = body.get("msg") or body.get("error_description") or resp.text
-            except Exception:
-                detail = resp.text
-            raise HTTPException(status_code=resp.status_code, detail=detail)
-        return resp.json()
+    session = resp.session
+    user = resp.user
+    if user is None:
+        raise HTTPException(status_code=400, detail="Signup failed")
+
+    if session is None:
+        # Email confirmation required — no tokens yet
+        return {"user": _user_to_dict(user)}
+
+    return {
+        "access_token": session.access_token,
+        "refresh_token": session.refresh_token,
+        "user": _user_to_dict(user),
+    }
 
 
 async def login(email: str, password: str) -> dict:
-    """Authenticate a user with email/password via GoTrue.
+    """Authenticate with email/password."""
+    sb = get_supabase()
+    try:
+        resp = await sb.auth.sign_in_with_password({
+            "email": email,
+            "password": password,
+        })
+    except Exception as exc:
+        _raise_auth_error(exc)
 
-    Returns {access_token, refresh_token, token_type, expires_in, user}.
-    """
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            f"{GOTRUE_URL}/token",
-            params={"grant_type": "password"},
-            json={"email": email, "password": password},
-            headers=_auth_headers(),
-        )
-        if resp.status_code != 200:
-            try:
-                body = resp.json()
-                detail = body.get("error_description") or body.get("msg") or resp.text
-            except Exception:
-                detail = resp.text
-            raise HTTPException(status_code=401, detail=detail)
-        return resp.json()
+    session = resp.session
+    if session is None:
+        raise HTTPException(status_code=401, detail="Login failed — no session returned")
+
+    return {
+        "access_token": session.access_token,
+        "refresh_token": session.refresh_token,
+        "user": _user_to_dict(resp.user),
+    }
 
 
 async def refresh(refresh_token: str) -> dict:
-    """Refresh an expired access token via GoTrue.
+    """Refresh an expired access token."""
+    sb = get_supabase()
+    preview = refresh_token[:20] + "..." if len(refresh_token) > 20 else refresh_token
+    print(f"[gotrue.refresh] refreshing rt={preview}")
+    try:
+        resp = await sb.auth.refresh_session(refresh_token)
+    except Exception as exc:
+        print(f"[gotrue.refresh] FAILED: {exc}")
+        _raise_auth_error(exc)
 
-    Returns {access_token, refresh_token, ...}.
-    """
-    url = f"{GOTRUE_URL}/token"
-    token_preview = refresh_token[:20] + "..." if len(refresh_token) > 20 else refresh_token
-    print(f"[gotrue.refresh] calling {url} with rt={token_preview}")
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            url,
-            params={"grant_type": "refresh_token"},
-            json={"refresh_token": refresh_token},
-            headers=_auth_headers(),
-        )
-        if resp.status_code != 200:
-            try:
-                body = resp.json()
-                detail = body.get("error_description") or body.get("msg") or resp.text
-            except Exception:
-                detail = resp.text
-            print(f"[gotrue.refresh] FAILED: {resp.status_code} {detail}")
-            raise HTTPException(status_code=401, detail=detail)
-        result = resp.json()
-        print(f"[gotrue.refresh] SUCCESS keys={list(result.keys())}")
-        return result
+    session = resp.session
+    if session is None:
+        print("[gotrue.refresh] FAILED: no session in response")
+        raise HTTPException(status_code=401, detail="Token refresh failed")
+
+    print("[gotrue.refresh] SUCCESS")
+    return {
+        "access_token": session.access_token,
+        "refresh_token": session.refresh_token,
+    }
 
 
 async def get_user(access_token: str) -> dict:
-    """Get the current user from GoTrue using their access token.
+    """Get the current user using their access token."""
+    sb = get_supabase()
+    try:
+        resp = await sb.auth.get_user(access_token)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
 
-    Returns the GoTrue user object.
-    """
-    async with httpx.AsyncClient() as client:
-        headers = {**_auth_headers(), "Authorization": f"Bearer {access_token}"}
-        resp = await client.get(
-            f"{GOTRUE_URL}/user",
-            headers=headers,
-        )
-        if resp.status_code != 200:
-            raise HTTPException(status_code=401, detail="Invalid or expired token")
-        return resp.json()
-
-
-async def verify(type: str, token: str, email: str = "") -> dict:
-    """Verify an email confirmation or recovery token via GoTrue.
-
-    Returns GoTrue's response with access_token, refresh_token, user.
-    """
-    payload = {"type": type, "token": token}
-    if email:
-        payload["email"] = email
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            f"{GOTRUE_URL}/verify",
-            json=payload,
-            headers=_auth_headers(),
-        )
-        if resp.status_code != 200:
-            try:
-                body = resp.json()
-                detail = body.get("msg") or body.get("error_description") or resp.text
-            except Exception:
-                detail = resp.text
-            raise HTTPException(status_code=resp.status_code, detail=detail)
-        return resp.json()
-
-
-async def admin_update_password(user_id: str, new_password: str) -> dict:
-    """Update a user's password via GoTrue's admin API (service role).
-
-    This does NOT require the user's access token — it uses the service
-    role key, so it can be called from a recovery flow where we only have
-    the user_id (verified via a scoped recovery JWT).
-    """
-    async with httpx.AsyncClient() as client:
-        headers = {**_auth_headers()}
-        if GOTRUE_SERVICE_KEY:
-            headers["Authorization"] = f"Bearer {GOTRUE_SERVICE_KEY}"
-        resp = await client.put(
-            f"{GOTRUE_URL}/admin/users/{user_id}",
-            json={"password": new_password},
-            headers=headers,
-        )
-        if resp.status_code != 200:
-            try:
-                body = resp.json()
-                detail = body.get("msg") or body.get("error_description") or resp.text
-            except Exception:
-                detail = resp.text
-            raise HTTPException(status_code=resp.status_code, detail=detail)
-        try:
-            return resp.json() or {}
-        except Exception:
-            return {}
+    user = resp.user if resp else None
+    if user is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return _user_to_dict(user)
 
 
 async def google_login(id_token: str) -> dict:
-    """Authenticate a user with a Google ID token via GoTrue.
+    """Authenticate with a Google ID token."""
+    sb = get_supabase()
+    try:
+        resp = await sb.auth.sign_in_with_id_token({
+            "provider": "google",
+            "token": id_token,
+        })
+    except Exception as exc:
+        _raise_auth_error(exc)
 
-    Returns {access_token, refresh_token, ...}.
-    """
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            f"{GOTRUE_URL}/token",
-            params={"grant_type": "id_token"},
-            json={"provider": "google", "id_token": id_token},
-            headers=_auth_headers(),
+    session = resp.session
+    if session is None:
+        raise HTTPException(status_code=401, detail="Google login failed — no session")
+
+    return {
+        "access_token": session.access_token,
+        "refresh_token": session.refresh_token,
+        "user": _user_to_dict(resp.user),
+    }
+
+
+async def verify(type: str, token: str, email: str = "") -> dict:
+    """Verify an email confirmation / recovery token via OTP."""
+    sb = get_supabase()
+    params = {"type": type, "token": token}
+    if email:
+        params["email"] = email
+    try:
+        resp = await sb.auth.verify_otp(params)
+    except Exception as exc:
+        _raise_auth_error(exc)
+
+    session = resp.session
+    if session is None:
+        raise HTTPException(status_code=400, detail="Verification failed — no session")
+
+    return {
+        "access_token": session.access_token,
+        "refresh_token": session.refresh_token,
+        "user": _user_to_dict(resp.user),
+    }
+
+
+async def admin_update_password(user_id: str, new_password: str) -> dict:
+    """Update a user's password via the admin API (service role)."""
+    sb = get_supabase()
+    try:
+        resp = await sb.auth.admin.update_user_by_id(
+            user_id, {"password": new_password}
         )
-        if resp.status_code != 200:
-            try:
-                body = resp.json()
-                detail = body.get("msg") or body.get("error_description") or resp.text
-            except Exception:
-                detail = resp.text
-            raise HTTPException(status_code=resp.status_code, detail=detail)
-        return resp.json()
+    except Exception as exc:
+        _raise_auth_error(exc)
+    return _user_to_dict(resp.user) if resp.user else {}
+
+
+# ── Helpers ─────────────────────────────────────────────────────────────────
+
+
+def _user_to_dict(user) -> dict:
+    """Normalise a Supabase Auth User object into a plain dict."""
+    if user is None:
+        return {}
+    return {
+        "id": str(user.id),
+        "email": user.email or "",
+        "user_metadata": user.user_metadata or {},
+        "app_metadata": user.app_metadata or {},
+        "created_at": str(user.created_at) if user.created_at else "",
+    }
+
+
+def _raise_auth_error(exc: Exception):
+    """Convert a Supabase SDK exception into an HTTPException."""
+    msg = str(exc)
+    status = 400
+    low = msg.lower()
+    if "401" in msg or "invalid" in low or "credentials" in low:
+        status = 401
+    elif "404" in msg:
+        status = 404
+    elif "422" in msg:
+        status = 422
+    elif "409" in msg or "already" in low:
+        status = 409
+    raise HTTPException(status_code=status, detail=msg)

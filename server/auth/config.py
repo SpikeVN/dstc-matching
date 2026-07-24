@@ -12,6 +12,10 @@ CORS_ORIGINS = os.getenv(
     "https://matching.cteftu.id.vn,http://localhost:4236",
 ).split(",")
 
+# Supabase (Storage + Auth SDK)
+SUPABASE_URL = os.getenv("SUPABASE_URL", "http://127.0.0.1:54321")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", GOTRUE_SERVICE_KEY)
+
 # Email (Resend)
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 EMAIL_FROM = os.getenv("EMAIL_FROM", "DSTC Matching <noreply@cteftu.id.vn>")
