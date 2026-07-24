@@ -1,6 +1,6 @@
 import { db } from '@/api/apiClient';
 
-import React, { useState, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 
 import { Textarea } from '@/components/ui/textarea';
 import { ChevronDown, Camera, Save, User, Briefcase, MessageSquare, Wrench, Brain, Sparkles, Medal, Target, Award, Plus, FileText, Upload, X } from 'lucide-react';
@@ -152,12 +152,15 @@ async function compressImage(file) {
 }
 
 // ─── Main component ──────────────────────────────────────────────────────────
-const InlineProfileEditor = forwardRef(function InlineProfileEditor({ profile, onSave, onSavingChange }, ref) {
+const InlineProfileEditor = forwardRef(function InlineProfileEditor({ profile, onSave, onSavingChange, onDirtyChange }, ref) {
   // Split technical_skills into three buckets so sections don't bleed into each other
   const initialSkills = profile?.technical_skills || [];
   const toolSkillSet = new Set(TOOL_SKILLS);
   const frameworkSkillSet = new Set(FRAMEWORK_SKILLS);
   const skillsetSet = new Set(SKILLSET);
+
+  // Snapshot the initial profile for dirty-checking
+  const initialSnapshotRef = useRef(profile);
 
   // Initialize once — NOT re-initialized on prop change to avoid data loss
   const [form, setForm] = useState(() => ({
@@ -190,6 +193,32 @@ const InlineProfileEditor = forwardRef(function InlineProfileEditor({ profile, o
   const [imgError, setImgError] = useState(false);
   const [cropImageSrc, setCropImageSrc] = useState(null);
 
+  // Dirty-check: compare current form against the initial profile snapshot
+  useEffect(() => {
+    const snap = initialSnapshotRef.current;
+    if (!snap) { onDirtyChange?.(true); return; } // new profile, always dirty once touched
+    const technical_skills = [...new Set([...form.tool_skills, ...form.framework_skills, ...form.skillset_skills, ...form.custom_tech_skills])];
+    const dirty =
+      form.display_name !== (snap.display_name || '') ||
+      form.bio !== (snap.bio || '') ||
+      form.birth_year !== (snap.birth_year ?? null) ||
+      form.gender !== (snap.gender || '') ||
+      form.city !== (snap.city || '') ||
+      form.school !== (snap.school || '') ||
+      form.major !== (snap.major || '') ||
+      form.experience !== (snap.experience || '') ||
+      form.role !== (snap.role || '') ||
+      form.achievements !== (snap.achievements || '') ||
+      form.achievements_other !== (snap.achievements_other || '') ||
+      form.profile_image !== (snap.profile_image || '') ||
+      form.cv_url !== (snap.cv_url || '') ||
+      JSON.stringify(technical_skills) !== JSON.stringify(snap.technical_skills || []) ||
+      JSON.stringify(form.soft_skills) !== JSON.stringify(snap.soft_skills || []) ||
+      JSON.stringify(form.goals) !== JSON.stringify(snap.goals || []) ||
+      JSON.stringify(form.roles) !== JSON.stringify(Array.isArray(snap.roles) && snap.roles.length > 0 ? snap.roles : snap.role ? [snap.role] : []);
+    onDirtyChange?.(dirty);
+  }, [form, onDirtyChange]);
+
   const update = useCallback((field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   }, []);
@@ -213,6 +242,9 @@ const InlineProfileEditor = forwardRef(function InlineProfileEditor({ profile, o
       const technical_skills = [...new Set([...form.tool_skills, ...form.framework_skills, ...form.skillset_skills, ...form.custom_tech_skills])];
       const { tool_skills, framework_skills, skillset_skills, custom_tech_skills, ...rest } = form;
       await onSave({ ...rest, technical_skills, role: form.roles?.[0] || '', profile_complete: true });
+      // Reset dirty state — current form is now the saved baseline
+      initialSnapshotRef.current = { ...form, technical_skills };
+      onDirtyChange?.(false);
       toast.success('Hồ sơ đã được lưu!', { duration: 2000 });
     } catch (err) {
       toast.error('Lưu thất bại: ' + (err?.message || 'Lỗi không xác định'), { duration: 4000 });
@@ -244,8 +276,8 @@ const InlineProfileEditor = forwardRef(function InlineProfileEditor({ profile, o
     setUploading(true);
     try {
       const compressed = await compressImage(croppedFile);
-      const { file_url } = await db.integrations.Core.UploadFile({ file: compressed });
-      if (!file_url) { toast.error('Tải ảnh thất bại'); return; }
+      const { file_url, error } = await db.integrations.Core.UploadFile({ file: compressed });
+      if (!file_url) { toast.error(error || 'Tải ảnh thất bại'); return; }
       setImgError(false);
       update('profile_image', file_url);
       const technical_skills = [...new Set([...form.tool_skills, ...form.framework_skills, ...form.skillset_skills, ...form.custom_tech_skills])];
@@ -328,7 +360,7 @@ const InlineProfileEditor = forwardRef(function InlineProfileEditor({ profile, o
         <InlineField value={form.bio} onChange={(v) => update('bio', v)}
           placeholder="Viết vài dòng về bản thân, đam mê, mục tiêu..." multiline />
         <div className="pt-2">
-          <p className="font-display text-[10px] text-primary/60 mb-2">CV / Portfolio (PDF, PNG, JPG, WEBP, DOCX, ODT)</p>
+          <p className="font-display text-[10px] text-primary/60 mb-2">CV / Portfolio (PDF, PNG, JPG, WEBP, DOCX, ODT — tối đa 5 MB)</p>
           {form.cv_url ? (
             <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/15">
               <FileText className="w-4 h-4 text-primary flex-shrink-0" />
@@ -349,11 +381,24 @@ const InlineProfileEditor = forwardRef(function InlineProfileEditor({ profile, o
                 onChange={async (e) => {
                   const file = e.target.files[0];
                   if (!file) return;
+                  const MAX_CV = 5 * 1024 * 1024;
+                  if (file.size > MAX_CV) {
+                    toast.error(`Tệp quá lớn (${(file.size / 1024 / 1024).toFixed(1)} MB). Giới hạn tối đa 5 MB.`);
+                    e.target.value = '';
+                    return;
+                  }
                   try {
-                    const { file_url } = await db.integrations.Core.UploadFile({ file });
-                    if (file_url) update('cv_url', file_url);
-                    else toast.error('Tải CV thất bại');
-                  } catch { toast.error('Tải CV thất bại'); }
+                    const { file_url, error } = await db.integrations.Core.UploadFile({ file });
+                    if (file_url) {
+                      update('cv_url', file_url);
+                      toast.success('Tải CV thành công!');
+                    } else {
+                      toast.error(error || 'Tải CV thất bại. Vui lòng thử lại.');
+                    }
+                  } catch (err) {
+                    toast.error('Tải CV thất bại: ' + (err?.message || 'Lỗi kết nối máy chủ'));
+                  }
+                  e.target.value = '';
                 }} />
             </label>
           )}

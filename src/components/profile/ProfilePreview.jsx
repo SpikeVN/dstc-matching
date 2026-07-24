@@ -1,5 +1,6 @@
-import React from 'react';
-import { MapPin, GraduationCap, Target, Award, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { MapPin, GraduationCap, Target, Award, User, FileText } from 'lucide-react';
+import CvViewer from '@/components/profile/CvViewer';
 
 const ROLE_COLORS = {
   'Data Analyst': 'border-blue-400/40 text-blue-300',
@@ -12,6 +13,7 @@ const ROLE_COLORS = {
 };
 
 export default function ProfilePreview({ profile }) {
+  const [cvOpen, setCvOpen] = useState(false);
   if (!profile) {
     return (
       <div className="glass-card rounded-xl border border-primary/10 p-8 text-center">
@@ -26,6 +28,7 @@ export default function ProfilePreview({ profile }) {
   const age = profile.birth_year ? new Date().getFullYear() - profile.birth_year : null;
 
   return (
+    <>
     <div className="space-y-3">
       {/* ── Card — matches SwipeCard layout ──────────────────────── */}
       <div className="w-full max-w-sm mx-auto overflow-hidden rounded-xl glass-card border border-primary/20 shadow-2xl">
@@ -109,11 +112,23 @@ export default function ProfilePreview({ profile }) {
               <p className="font-mono text-[10px] text-yellow-300/80 line-clamp-2 leading-relaxed">{profile.achievements}</p>
             </div>
           )}
+
+          {profile.cv_url && (
+            <button
+              onClick={() => setCvOpen(true)}
+              className="inline-flex items-center gap-1.5 text-[11px] font-mono text-primary/70 hover:text-primary transition-colors"
+            >
+              <FileText className="w-3 h-3" />
+              <span className="underline underline-offset-2">Xem CV</span>
+            </button>
+          )}
         </div>
 
         {/* Bottom primary line */}
         <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
       </div>
     </div>
+    {cvOpen && <CvViewer url={profile.cv_url} onClose={() => setCvOpen(false)} />}
+    </>
   );
 }

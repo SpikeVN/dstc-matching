@@ -41,6 +41,9 @@ pnpm-debug.log*
 *.sln
 *.sw?
 
+# ── Generated assets ────────────────────────────────────
+public/pdf-viewer/
+
 # ── Misc ────────────────────────────────────────────────
 .vite
 base44/.app.jsonc
