@@ -13,7 +13,9 @@ CORS_ORIGINS = os.getenv(
 ).split(",")
 
 # Supabase (Storage + Auth SDK)
-SUPABASE_URL = os.getenv("SUPABASE_URL", "http://127.0.0.1:54321")
+# Default: derive from GOTRUE_URL by stripping the /auth/v1 suffix
+_SUPABASE_URL_DEFAULT = GOTRUE_URL.rsplit("/auth/v1", 1)[0] if "/auth/v1" in GOTRUE_URL else GOTRUE_URL
+SUPABASE_URL = os.getenv("SUPABASE_URL", _SUPABASE_URL_DEFAULT)
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", GOTRUE_SERVICE_KEY)
 
 # Email (Resend)
