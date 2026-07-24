@@ -3,11 +3,12 @@ import mimetypes
 import os
 import uuid
 
+import httpx
 from fastapi import APIRouter, UploadFile, File, Depends
 from pydantic import BaseModel
 
 from auth.dependencies import get_current_user
-from auth.supabase_client import get_supabase
+from auth.config import SUPABASE_URL, SUPABASE_SERVICE_KEY
 from mailer import send_email as _send_email
 
 logger = logging.getLogger(__name__)
@@ -52,26 +53,27 @@ async def upload_file(file: UploadFile = File(...), user: dict = Depends(get_cur
     filename = f"{uuid.uuid4()}{ext}"
     content_type = mimetypes.guess_type(file.filename or f"file{ext}")[0] or "application/octet-stream"
 
-    sb = get_supabase()
+    storage_url = f"{SUPABASE_URL}/storage/v1/object/{bucket}/{filename}"
+    headers = {
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+    }
     try:
-        await sb.storage.from_(bucket).upload(
-            path=filename,
-            file=content,
-            file_options={"content-type": content_type, "upsert": "false"},
-        )
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                storage_url,
+                headers=headers,
+                files={"file": (filename, content, content_type)},
+            )
+            resp.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        logger.error("Storage upload failed: %s — %s", exc.response.status_code, exc.response.text)
+        return {"file_url": "", "error": f"Storage upload failed: {exc.response.status_code}"}
     except Exception as exc:
-        # Debug: print storage client headers to diagnose RLS issues
-        import traceback; traceback.print_exc()
-        try:
-            h = dict(sb.storage._client.headers)
-            print(f"[UPLOAD DEBUG] apikey present: {'apikey' in h}")
-            print(f"[UPLOAD DEBUG] auth present: {'authorization' in h}")
-            print(f"[UPLOAD DEBUG] base_url: {sb.storage._base_url}")
-        except Exception as dbg:
-            print(f"[UPLOAD DEBUG] could not dump headers: {dbg}")
+        logger.error("Storage upload failed: %s", exc)
         return {"file_url": "", "error": f"Storage upload failed: {exc}"}
 
-    public_url = await sb.storage.from_(bucket).get_public_url(filename)
+    public_url = f"{SUPABASE_URL}/storage/v1/object/public/{bucket}/{filename}"
     return {"file_url": public_url}
 
 

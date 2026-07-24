@@ -132,6 +132,11 @@
 .animate-pulse-accent { animation: pulse-accent 2s ease-in-out infinite; }
 .animate-flicker { animation: flicker 4s infinite; }
 
+/* Hide number input spinner arrows */
+.no-spinner::-webkit-inner-spin-button,
+.no-spinner::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.no-spinner[type=number] { -moz-appearance: textfield; }
+
 /* Grid/dot pattern overlay */
 .grid-overlay {
   background-image: 

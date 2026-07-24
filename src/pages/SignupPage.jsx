@@ -196,7 +196,7 @@ export default function SignupPage() {
                   >
                     Tên đăng nhập
                   </label>
-                  <div className="relative flex items-center gap-1.5">
+                  <div className="relative flex items-center">
                     <Input
                       id="username"
                       type="text"
@@ -204,20 +204,13 @@ export default function SignupPage() {
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="nguyenvan_a"
                       required
-                      className="h-10 rounded-lg pr-24"
+                      className="h-10 rounded-lg pr-10"
                       style={{
                         background: 'rgba(42,75,46,0.1)',
                         borderColor: `${BORDER}80`,
                         color: FG,
                       }}
                     />
-                    {username.length >= 1 && (
-                      <img
-                        src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(username)}&scale=80`}
-                        alt=""
-                        className="absolute right-14 top-1/2 -translate-y-1/2 w-6 h-6 rounded"
-                      />
-                    )}
                     <button
                       type="button"
                       onClick={() => setUsername(randomUsername())}

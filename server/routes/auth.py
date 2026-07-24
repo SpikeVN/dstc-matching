@@ -76,14 +76,16 @@ async def signup(req: SignupRequest):
 
     # Create a minimal contestant profile so Profile page pre-populates
     profile_id = generate_id()
+    default_avatar = f"https://api.dicebear.com/9.x/identicon/svg?seed={req.username}&scale=80"
     await execute(
-        """INSERT INTO public.contestant_profiles (id, created_by, display_name, username)
-           VALUES ($1, $2, $3, $4)
+        """INSERT INTO public.contestant_profiles (id, created_by, display_name, username, profile_image)
+           VALUES ($1, $2, $3, $4, $5)
            ON CONFLICT (created_by) DO NOTHING""",
         profile_id,
         user_id,
         req.username,  # display_name defaults to the chosen username
         req.username,
+        default_avatar,
     )
 
     # If GoTrue didn't return an access_token, email confirmation is required

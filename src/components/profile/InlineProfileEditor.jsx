@@ -1,11 +1,12 @@
 import { db } from '@/api/apiClient';
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 
 import { Textarea } from '@/components/ui/textarea';
 import { ChevronDown, Camera, Save, User, Briefcase, MessageSquare, Wrench, Brain, Sparkles, Medal, Target, Award, Plus, FileText, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import ImageCropModal from '@/components/profile/ImageCropModal';
 import {
   VIETNAM_CITIES, TOOL_SKILLS, FRAMEWORK_SKILLS, SKILLSET, SOFT_SKILLS,
   EXPERIENCE_OPTIONS, GOAL_OPTIONS, ROLE_OPTIONS
@@ -13,7 +14,7 @@ import {
   '@/lib/constants';
 
 // ─── Inline editable text field — underline style ──────────────────────────
-function InlineField({ label, value, onChange, placeholder, multiline = false, type = 'text' }) {
+function InlineField({ label, value, onChange, placeholder, multiline = false, type = 'text', className = '' }) {
   return (
     <div className="space-y-1">
       {label && <p className="font-display text-[10px] text-primary/60">{label}</p>}
@@ -24,7 +25,7 @@ function InlineField({ label, value, onChange, placeholder, multiline = false, t
       ) : (
         <input type={type} value={value || ''} onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder || 'Nhấn để chỉnh sửa...'}
-          className="text-sm bg-transparent border-0 border-b-2 border-primary/20 focus:border-primary rounded-none px-0 py-2 h-9 w-full focus-visible:ring-0 focus-visible:ring-offset-0 transition-colors focus:text-primary cursor-text outline-none" />
+          className={`text-sm bg-transparent border-0 border-b-2 border-primary/20 focus:border-primary rounded-none px-0 py-2 h-9 w-full focus-visible:ring-0 focus-visible:ring-offset-0 transition-colors focus:text-primary cursor-text outline-none ${className}`} />
       )}
     </div>
   );
@@ -151,7 +152,7 @@ async function compressImage(file) {
 }
 
 // ─── Main component ──────────────────────────────────────────────────────────
-export default function InlineProfileEditor({ profile, onSave }) {
+const InlineProfileEditor = forwardRef(function InlineProfileEditor({ profile, onSave, onSavingChange }, ref) {
   // Split technical_skills into three buckets so sections don't bleed into each other
   const initialSkills = profile?.technical_skills || [];
   const toolSkillSet = new Set(TOOL_SKILLS);
@@ -186,6 +187,8 @@ export default function InlineProfileEditor({ profile, onSave }) {
   }));
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState(null);
 
   const update = useCallback((field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -205,6 +208,7 @@ export default function InlineProfileEditor({ profile, onSave }) {
       return;
     }
     setSaving(true);
+    onSavingChange?.(true);
     try {
       const technical_skills = [...new Set([...form.tool_skills, ...form.framework_skills, ...form.skillset_skills, ...form.custom_tech_skills])];
       const { tool_skills, framework_skills, skillset_skills, custom_tech_skills, ...rest } = form;
@@ -214,17 +218,35 @@ export default function InlineProfileEditor({ profile, onSave }) {
       toast.error('Lưu thất bại: ' + (err?.message || 'Lỗi không xác định'), { duration: 4000 });
     } finally {
       setSaving(false);
+      onSavingChange?.(false);
     }
   };
 
-  const handleImageUpload = async (e) => {
+  // Expose save handler and saving state to parent (for sticky header button)
+  useImperativeHandle(ref, () => ({
+    save: handleSave,
+    get saving() { return saving; },
+  }), [handleSave, saving]);
+
+  const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    // Revoke any previous object URL to avoid leaks
+    if (cropImageSrc) URL.revokeObjectURL(cropImageSrc);
+    setCropImageSrc(URL.createObjectURL(file));
+    // Reset the input so the same file can be re-selected
+    e.target.value = '';
+  };
+
+  const handleCropConfirm = async (croppedFile) => {
+    setCropImageSrc(null);
+    if (!croppedFile) return;
     setUploading(true);
     try {
-      const compressed = await compressImage(file);
+      const compressed = await compressImage(croppedFile);
       const { file_url } = await db.integrations.Core.UploadFile({ file: compressed });
       if (!file_url) { toast.error('Tải ảnh thất bại'); return; }
+      setImgError(false);
       update('profile_image', file_url);
       const technical_skills = [...new Set([...form.tool_skills, ...form.framework_skills, ...form.skillset_skills, ...form.custom_tech_skills])];
       const { tool_skills, framework_skills, skillset_skills, custom_tech_skills, ...rest } = form;
@@ -237,6 +259,11 @@ export default function InlineProfileEditor({ profile, onSave }) {
     }
   };
 
+  const handleCropCancel = () => {
+    if (cropImageSrc) URL.revokeObjectURL(cropImageSrc);
+    setCropImageSrc(null);
+  };
+
   return (
     <div className="space-y-4">
       {/* ── Avatar + Info cơ bản ─────────────────────────────────── */}
@@ -245,14 +272,14 @@ export default function InlineProfileEditor({ profile, onSave }) {
           {/* Avatar */}
           <div className="relative group flex-shrink-0">
             <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-primary/30 flex items-center justify-center bg-muted/50">
-              {form.profile_image ?
-                <img src={form.profile_image} alt="avatar" className="w-full h-full object-cover" /> :
+              {form.profile_image && !imgError ?
+                <img src={form.profile_image} alt="avatar" className="w-full h-full object-cover" onError={() => setImgError(true)} /> :
                 <Camera className="w-7 h-7 text-primary/30" />
               }
             </div>
             <label className="absolute bottom-0 right-0 w-7 h-7 bg-primary rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:scale-110 transition-transform">
               <Camera className="w-3 h-3 text-background" />
-              <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+              <input type="file" accept="image/*" className="hidden" onChange={handleImageSelect} disabled={uploading} />
             </label>
             {uploading &&
               <div className="absolute inset-0 bg-background/70 rounded-2xl flex items-center justify-center">
@@ -269,7 +296,7 @@ export default function InlineProfileEditor({ profile, onSave }) {
                 const n = parseInt(v);
                 update('birth_year', isNaN(n) ? null : n);
               }}
-              placeholder="2004" type="number" />
+              placeholder="2004" type="number" className="no-spinner" />
           </div>
         </div>
 
@@ -377,26 +404,15 @@ export default function InlineProfileEditor({ profile, onSave }) {
           placeholder="Các giải thưởng, dự án, chứng chỉ nổi bật khác..." multiline />
       </SectionCard>
 
-      {/* ── Save button ─────────────────────────────────────────── */}
-      <Button
-        onClick={handleSave}
-        disabled={saving}
-        className="w-full gap-2 font-display text-sm font-medium bg-primary text-background hover:bg-primary/90 disabled:opacity-60">
-        {saving ?
-          <><div className="w-4 h-4 border-2 border-background/30 border-t-background rounded-full animate-spin" /> Đang lưu...</> :
-          <><Save className="w-4 h-4" /> Lưu hồ sơ</>
-        }
-      </Button>
-
-      {!form.display_name?.trim() &&
-        <p className="text-center font-body text-xs text-destructive/80 pb-1">
-          Cần điền ít nhất <strong>Họ tên</strong> để lưu hồ sơ
-        </p>
-      }
-
-      <p className="text-center font-body text-[10px] text-muted-foreground/40 pb-2">
-        Nhấn "Lưu hồ sơ" để lưu tất cả thay đổi
-      </p>
+      {cropImageSrc && (
+        <ImageCropModal
+          imageSrc={cropImageSrc}
+          onCropComplete={handleCropConfirm}
+          onCancel={handleCropCancel}
+        />
+      )}
     </div>
   );
-}
+});
+
+export default InlineProfileEditor;
