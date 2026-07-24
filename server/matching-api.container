@@ -30,7 +30,8 @@ Network=supabase-net.network
 # Secrets live in the env file on the server, not in this committed unit.
 EnvironmentFile=/home/chimse/cte/matching-api/.env
 # Expose to host loopback so nginx can reverse-proxy matching-api.cteftu.id.vn.
-PublishPort=127.0.0.1:8000:8000
+# The container port must match API_PORT in the env file (default 36918).
+PublishPort=127.0.0.1:36918:36918
 # Persist uploaded files across image rebuilds.
 Volume=matching-api-uploads:/app/uploads
 

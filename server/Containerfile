@@ -1,10 +1,10 @@
-# DSTC Matching — FastAPI backend image (OCI/Containerfile, podman-native).
-# Built and pushed to GHCR by .github/workflows/deploy.yml.
+# DSTC Matching — FastAPI backend image.
+# Built and pushed to GHCR by .github/workflows/deploy-backend.yml.
 #
 # Build locally:
-#   podman build -t dstc-matching -f server/Containerfile server/
-# Run:
-#   podman run --rm -p 8000:8000 --env-file server/.env dstc-matching
+#   docker build -t dstc-matching -f server/Containerfile server/
+# Run (API_PORT defaults to 36918, override via env):
+#   docker run --rm -e API_PORT=36918 -p 36918:36918 --env-file server/.env dstc-matching
 
 # ── Builder: compile C extensions (asyncpg, cryptography) ───────────────
 FROM python:3.14-alpine AS builder
@@ -38,7 +38,11 @@ COPY . .
 # a fresh container before the volume is attached.
 RUN mkdir -p /app/uploads
 
-EXPOSE 36918
+# curl for Docker healthchecks (Alpine doesn't ship it by default).
+RUN apk add --no-cache curl
+
+ENV API_PORT=36918
+EXPOSE ${API_PORT}
 
 # uvicorn is installed into /usr/local/bin via the prefix copy above.
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "36918"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${API_PORT}"]
