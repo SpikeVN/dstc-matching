@@ -18,6 +18,11 @@ _SUPABASE_URL_DEFAULT = GOTRUE_URL.rsplit("/auth/v1", 1)[0] if "/auth/v1" in GOT
 SUPABASE_URL = os.getenv("SUPABASE_URL", _SUPABASE_URL_DEFAULT)
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", GOTRUE_SERVICE_KEY)
 
+# Public-facing Supabase URL — used for storage URLs served to the browser.
+# In Docker, SUPABASE_URL is the internal gateway (http://supabase-kong:8000)
+# but users need the public origin (https://supabase.cteftu.id.vn).
+SUPABASE_PUBLIC_URL = os.getenv("SUPABASE_PUBLIC_URL", SUPABASE_URL)
+
 # Email (Resend)
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 EMAIL_FROM = os.getenv("EMAIL_FROM", "DSTC Matching <noreply@cteftu.id.vn>")

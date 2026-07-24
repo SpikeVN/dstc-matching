@@ -8,7 +8,7 @@ from fastapi import APIRouter, UploadFile, File, Depends
 from pydantic import BaseModel
 
 from auth.dependencies import get_current_user
-from auth.config import SUPABASE_URL, SUPABASE_SERVICE_KEY
+from auth.config import SUPABASE_URL, SUPABASE_PUBLIC_URL, SUPABASE_SERVICE_KEY
 from mailer import send_email as _send_email
 
 logger = logging.getLogger(__name__)
@@ -73,7 +73,7 @@ async def upload_file(file: UploadFile = File(...), user: dict = Depends(get_cur
         logger.error("Storage upload failed: %s", exc)
         return {"file_url": "", "error": f"Storage upload failed: {exc}"}
 
-    public_url = f"{SUPABASE_URL}/storage/v1/object/public/{bucket}/{filename}"
+    public_url = f"{SUPABASE_PUBLIC_URL}/storage/v1/object/public/{bucket}/{filename}"
     return {"file_url": public_url}
 
 
