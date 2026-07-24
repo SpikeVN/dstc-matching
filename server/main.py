@@ -64,5 +64,6 @@ app.include_router(integrations_router)
 
 
 @app.get("/health")
+@app.head("/health")
 async def health():
     return {"status": "ok"}
