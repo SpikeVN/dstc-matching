@@ -67,3 +67,8 @@ content_path = "./supabase/templates/confirmation.html"
 enabled = true
 client_id = "env(GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID)"
 secret = "env(GOTRUE_EXTERNAL_GOOGLE_SECRET)"
+
+[auth.external.github]
+enabled = true
+client_id = "env(GOTRUE_EXTERNAL_GITHUB_CLIENT_ID)"
+secret = "env(GOTRUE_EXTERNAL_GITHUB_SECRET)"

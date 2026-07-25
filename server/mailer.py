@@ -63,14 +63,13 @@ def render_template(name: str, **context) -> str:
 
 
 async def _get_user_and_profile(user_id: str) -> dict | None:
-    """Look up a user and their contestant profile."""
-    user = await fetch_one("SELECT * FROM public.users WHERE id = $1", user_id)
-    if not user:
-        return None
+    """Look up a user's contestant profile. Email comes from the profile's email column."""
     profile = await fetch_one(
         "SELECT * FROM public.contestant_profiles WHERE created_by = $1", user_id
     )
-    return {**user, "profile": profile or {}}
+    if not profile:
+        return None
+    return {"id": user_id, "email": profile.get("email", ""), "profile": profile}
 
 
 async def _send_match_notification(user1_id: str, user2_id: str, match_id: str):

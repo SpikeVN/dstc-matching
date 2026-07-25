@@ -3,13 +3,13 @@ import { db } from '@/api/apiClient';
 import React, { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 
 import { Textarea } from '@/components/ui/textarea';
-import { ChevronDown, Camera, Save, User, Briefcase, MessageSquare, Wrench, Brain, Sparkles, Medal, Target, Award, Plus, FileText, Upload, X } from 'lucide-react';
+import { ChevronDown, Camera, Save, User, Briefcase, MessageSquare, Wrench, Brain, Sparkles, Medal, Target, Award, Plus, FileText, Upload, X, Link } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import ImageCropModal from '@/components/profile/ImageCropModal';
 import {
   VIETNAM_CITIES, TOOL_SKILLS, FRAMEWORK_SKILLS, SKILLSET, SOFT_SKILLS,
-  EXPERIENCE_OPTIONS, GOAL_OPTIONS, ROLE_OPTIONS
+  EXPERIENCE_OPTIONS, GOAL_OPTIONS, ROLE_OPTIONS, SOCIAL_PLATFORMS
 } from
   '@/lib/constants';
 
@@ -186,7 +186,8 @@ const InlineProfileEditor = forwardRef(function InlineProfileEditor({ profile, o
     achievements: profile?.achievements || '',
     achievements_other: profile?.achievements_other || '',
     profile_image: profile?.profile_image || '',
-    cv_url: profile?.cv_url || ''
+    cv_url: profile?.cv_url || '',
+    social_links: profile?.social_links || {}
   }));
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -215,7 +216,8 @@ const InlineProfileEditor = forwardRef(function InlineProfileEditor({ profile, o
       JSON.stringify(technical_skills) !== JSON.stringify(snap.technical_skills || []) ||
       JSON.stringify(form.soft_skills) !== JSON.stringify(snap.soft_skills || []) ||
       JSON.stringify(form.goals) !== JSON.stringify(snap.goals || []) ||
-      JSON.stringify(form.roles) !== JSON.stringify(Array.isArray(snap.roles) && snap.roles.length > 0 ? snap.roles : snap.role ? [snap.role] : []);
+      JSON.stringify(form.roles) !== JSON.stringify(Array.isArray(snap.roles) && snap.roles.length > 0 ? snap.roles : snap.role ? [snap.role] : []) ||
+      JSON.stringify(form.social_links) !== JSON.stringify(snap.social_links || {});
     onDirtyChange?.(dirty);
   }, [form, onDirtyChange]);
 
@@ -447,6 +449,24 @@ const InlineProfileEditor = forwardRef(function InlineProfileEditor({ profile, o
         <InlineField label="Thành tích khác" value={form.achievements_other}
           onChange={(v) => update('achievements_other', v)}
           placeholder="Các giải thưởng, dự án, chứng chỉ nổi bật khác..." multiline />
+      </SectionCard>
+
+      {/* ── Liên kết ───────────────────────────────────── */}
+      <SectionCard icon={Link} title="Liên kết">
+        {SOCIAL_PLATFORMS.map((platform) => (
+          <InlineField
+            key={platform.key}
+            label={platform.label}
+            value={form.social_links[platform.key] || ''}
+            onChange={(v) => {
+              const next = { ...form.social_links };
+              if (v) next[platform.key] = v;
+              else delete next[platform.key];
+              update('social_links', next);
+            }}
+            placeholder={platform.placeholder}
+          />
+        ))}
       </SectionCard>
 
       {cropImageSrc && (

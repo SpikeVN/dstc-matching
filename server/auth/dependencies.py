@@ -1,7 +1,6 @@
 from fastapi import Request, HTTPException
 
 from auth.jwt import verify_token
-from database import fetch_one
 
 
 async def get_current_user_id(request: Request) -> str:
@@ -24,13 +23,24 @@ async def get_current_user_id(request: Request) -> str:
 
 
 async def get_current_user(request: Request) -> dict:
-    """Get the full user dict from the database based on the JWT.
+    """Get the current user from the JWT token.
 
-    Returns the user row from public.users.
-    Raises 401 if not authenticated or user not found.
+    Decodes the JWT claims directly — no DB query needed.
+    Returns a dict with id, email, username (from user_metadata), and role.
+    Raises 401 if not authenticated.
     """
     user_id = await get_current_user_id(request)
-    user = await fetch_one("SELECT * FROM public.users WHERE id = $1", user_id)
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found in database")
-    return user
+
+    auth_header = request.headers.get("Authorization", "")
+    token = auth_header[7:] if auth_header.startswith("Bearer ") else ""
+    payload = verify_token(token) if token else {}
+
+    user_metadata = payload.get("user_metadata", {})
+    app_metadata = payload.get("app_metadata", {})
+
+    return {
+        "id": user_id,
+        "email": payload.get("email", ""),
+        "username": user_metadata.get("full_name") or user_metadata.get("name", ""),
+        "role": app_metadata.get("role", "user"),
+    }

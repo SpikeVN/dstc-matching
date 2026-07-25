@@ -63,6 +63,52 @@ function clearTokens() {
   }
 })();
 
+// ── Handle OAuth redirect code (PKCE flow) ────────────────────────
+// GoTrue's OAuth redirect sends a verification code as a query param:
+//   http://localhost:4236/?code=<uuid>
+// We exchange it for tokens via the backend before React mounts.
+(() => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const code = urlParams.get('code');
+  if (!code) return;
+
+  // Clear the code from URL immediately to prevent loops
+  window.history.replaceState(null, '', window.location.pathname);
+
+  // Show a loading state while exchanging
+  document.body.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui;color:#cedfd0;background:#0a120b">
+      <div style="text-align:center">
+        <img src="/dstc-key-sphere.webp" alt="DSTC" style="width:64px;height:64px;margin-bottom:16px;animation:pulse 2s infinite" />
+        <p>Đang đăng nhập...</p>
+      </div>
+    </div>`;
+
+  // Exchange the code for tokens via the backend (works for any OAuth provider)
+  fetch(`${API_BASE}/auth/github/callback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  })
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    })
+    .then(data => {
+      if (data.access_token && data.refresh_token) {
+        setTokens(data.access_token, data.refresh_token);
+        // Redirect to clean URL — AuthContext will pick up the tokens
+        window.location.href = '/';
+      } else {
+        throw new Error('No tokens in response');
+      }
+    })
+    .catch(err => {
+      console.error('[API] OAuth code exchange failed:', err);
+      window.location.href = '/login?error=Đăng+nhập+GitHub+thất+bại';
+    });
+})();
+
 function getAccessToken() {
   return accessToken;
 }
@@ -222,8 +268,8 @@ const authClient = {
     const user = await authClient.me();
     return user !== null;
   },
-  login: async (emailOrUsername, password) => {
-    const data = await request('POST', '/auth/login', { email_or_username: emailOrUsername, password });
+  login: async (email, password) => {
+    const data = await request('POST', '/auth/login', { email, password });
     setTokens(data.access_token, data.refresh_token);
     return data.user;
   },
@@ -242,6 +288,19 @@ const authClient = {
   },
   googleLogin: async (credential) => {
     const data = await request('POST', '/auth/google', { credential });
+    setTokens(data.access_token, data.refresh_token);
+    return data.user;
+  },
+  googleAuthorize: async () => {
+    const data = await request('GET', '/auth/google/authorize');
+    return data.url;
+  },
+  githubAuthorize: async () => {
+    const data = await request('GET', '/auth/github/authorize');
+    return data.url;
+  },
+  githubCallback: async (code) => {
+    const data = await request('POST', '/auth/github/callback', { code });
     setTokens(data.access_token, data.refresh_token);
     return data.user;
   },

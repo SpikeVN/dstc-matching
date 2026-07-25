@@ -54,16 +54,20 @@ function DraggableCard({ profile, onSwipe }) {
       {/* Like stamp */}
       <motion.div
         style={{ opacity: likeOpacity }}
-        className="absolute top-5 left-4 z-20 font-display text-primary text-2xl font-black border-[3px] border-primary rounded-lg px-3 py-1 rotate-[-18deg] pointer-events-none select-none"
+        className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none select-none"
       >
-        LIKE ✓
+        <span className="font-display text-primary text-5xl font-black border-[4px] border-primary rounded-lg px-5 py-2 rotate-[-18deg] bg-background/60 backdrop-blur-sm">
+          LIKE ✓
+        </span>
       </motion.div>
       {/* Pass stamp */}
       <motion.div
         style={{ opacity: passOpacity }}
-        className="absolute top-5 right-4 z-20 font-display text-destructive text-2xl font-black border-[3px] border-destructive rounded-lg px-3 py-1 rotate-[18deg] pointer-events-none select-none"
+        className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none select-none"
       >
-        PASS ✗
+        <span className="font-display text-destructive text-5xl font-black border-[4px] border-destructive rounded-lg px-5 py-2 rotate-[18deg] bg-background/60 backdrop-blur-sm">
+          PASS ✗
+        </span>
       </motion.div>
       <SwipeCard profile={profile} className="h-full" />
     </motion.div>
@@ -283,7 +287,6 @@ export default function Discover() {
       {currentCandidate && (
         <div className="flex items-center gap-6 mt-5">
           <motion.button
-            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.88 }}
             className="w-14 h-14 rounded-full glass-card border-2 border-destructive/40 hover:border-destructive/70 hover:bg-destructive/10 flex items-center justify-center transition-all duration-150 shadow-lg"
             onClick={() => handleSwipe('pass')}
@@ -292,12 +295,11 @@ export default function Discover() {
           </motion.button>
 
           <motion.button
-            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.88 }}
-            className="w-16 h-16 rounded-full bg-primary/15 border-2 border-primary flex items-center justify-center transition-all duration-150"
+            className="w-14 h-14 rounded-full glass-card border-2 border-primary/40 hover:border-primary/70 hover:bg-primary/10 flex items-center justify-center transition-all duration-150 shadow-lg"
             onClick={() => handleSwipe('like')}
           >
-            <Heart className="w-7 h-7 text-primary fill-primary/20" />
+            <Heart className="w-6 h-6 text-primary fill-primary" />
           </motion.button>
         </div>
       )}

@@ -122,6 +122,59 @@ async def google_login(id_token: str) -> dict:
     }
 
 
+async def _oauth_authorize(provider: str, redirect_to: str) -> str:
+    """Return the OAuth authorize URL for any provider via GoTrue."""
+    sb = get_supabase()
+    try:
+        resp = await sb.auth.sign_in_with_oauth({
+            "provider": provider,
+            "options": {"redirect_to": redirect_to},
+        })
+    except Exception as exc:
+        _raise_auth_error(exc)
+
+    # resp.url is the provider authorization URL
+    url = getattr(resp, "url", None)
+    if not url:
+        # Fallback: the SDK may return it as a dict
+        url = resp.get("url") if isinstance(resp, dict) else None
+    if not url:
+        raise HTTPException(status_code=500, detail=f"Could not generate {provider} OAuth URL")
+    return url
+
+
+async def google_authorize(redirect_to: str) -> str:
+    """Return the Google OAuth authorize URL via GoTrue."""
+    return await _oauth_authorize("google", redirect_to)
+
+
+async def github_authorize(redirect_to: str) -> str:
+    """Return the GitHub OAuth authorize URL via GoTrue."""
+    return await _oauth_authorize("github", redirect_to)
+
+
+async def github_callback(code: str, redirect_to: str) -> dict:
+    """Exchange a GitHub authorization code for a session via GoTrue."""
+    sb = get_supabase()
+    try:
+        resp = await sb.auth.exchange_code_for_session({
+            "auth_code": code,
+            "redirect_to": redirect_to,
+        })
+    except Exception as exc:
+        _raise_auth_error(exc)
+
+    session = resp.session
+    if session is None:
+        raise HTTPException(status_code=401, detail="GitHub login failed — no session")
+
+    return {
+        "access_token": session.access_token,
+        "refresh_token": session.refresh_token,
+        "user": _user_to_dict(resp.user),
+    }
+
+
 async def verify(type: str, token: str, email: str = "") -> dict:
     """Verify an email confirmation / recovery token via OTP."""
     sb = get_supabase()

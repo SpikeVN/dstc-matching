@@ -103,6 +103,17 @@ export const SKILL_ICONS = {
   "Quantitative Finance": "💹", "Backtesting": "🔁", "Time Series": "📅",
 };
 
+// Social link platforms for profile
+export const SOCIAL_PLATFORMS = [
+  { key: 'github', label: 'GitHub', placeholder: 'https://github.com/username' },
+  { key: 'facebook', label: 'Facebook', placeholder: 'https://facebook.com/username' },
+  { key: 'linkedin', label: 'LinkedIn', placeholder: 'https://linkedin.com/in/username' },
+  { key: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/username' },
+  { key: 'zalo', label: 'Zalo', placeholder: 'Số điện thoại hoặc link Zalo' },
+  { key: 'email', label: 'Email', placeholder: 'email@example.com' },
+  { key: 'website', label: 'Website', placeholder: 'https://yoursite.com' },
+];
+
 // Complementary roles for smart matching
 export const COMPLEMENTARY_ROLES = {
   "Data Analyst": ["ML Engineer", "Backend Developer", "Quant Researcher"],

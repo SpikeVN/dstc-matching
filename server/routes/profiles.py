@@ -29,6 +29,7 @@ class ProfileCreate(BaseModel):
     has_team: bool = False
     team_id: str = ""
     profile_complete: bool = False
+    social_links: dict = {}
 
 
 class ProfileUpdate(BaseModel):
@@ -52,6 +53,7 @@ class ProfileUpdate(BaseModel):
     has_team: Optional[bool] = None
     team_id: Optional[str] = None
     profile_complete: Optional[bool] = None
+    social_links: Optional[dict] = None
 
 
 @router.get("")
@@ -90,8 +92,9 @@ async def create_profile(profile: ProfileCreate, user: dict = Depends(get_curren
         INSERT INTO contestant_profiles
         (id, created_by, created_date, updated_date, display_name, username, bio, birth_year,
          gender, city, school, major, profile_image, cv_url, technical_skills, soft_skills,
-         experience, goals, role, achievements, achievements_other, has_team, team_id, profile_complete)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
+         experience, goals, role, achievements, achievements_other, has_team, team_id, profile_complete,
+         social_links)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
     """,
         pid, user["id"], now_ts, now_ts, profile.display_name, profile.username,
         profile.bio, profile.birth_year, profile.gender, profile.city, profile.school,
@@ -99,7 +102,8 @@ async def create_profile(profile: ProfileCreate, user: dict = Depends(get_curren
         json.dumps(profile.technical_skills), json.dumps(profile.soft_skills),
         profile.experience, json.dumps(profile.goals), profile.role,
         profile.achievements, profile.achievements_other,
-        profile.has_team, profile.team_id, profile.profile_complete
+        profile.has_team, profile.team_id, profile.profile_complete,
+        json.dumps(profile.social_links)
     )
     return await fetch_one("SELECT * FROM contestant_profiles WHERE id = $1", pid)
 
@@ -117,7 +121,7 @@ async def update_profile(profile_id: str, update: ProfileUpdate, user: dict = De
     idx = 1
     for key, value in update.model_dump(exclude_unset=True).items():
         if value is not None:
-            if key in ('technical_skills', 'soft_skills', 'goals'):
+            if key in ('technical_skills', 'soft_skills', 'goals', 'social_links'):
                 fields.append(f"{key} = ${idx}")
                 vals.append(json.dumps(value))
             else:

@@ -5,8 +5,9 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, MapPin, GraduationCap, Award, Star, User, MessageSquare, Wrench, Sparkles, Target, Briefcase, Medal } from 'lucide-react';
+import { ArrowLeft, MapPin, GraduationCap, Award, Star, User, MessageSquare, Wrench, Sparkles, Target, Briefcase, Medal, Link } from 'lucide-react';
 import PageFooter from '@/components/layout/PageFooter';
+import SocialIcons from '@/components/profile/SocialIcons';
 
 const ROLE_COLORS = {
   'Data Analyst': 'border-blue-400/40 text-blue-300',
@@ -161,6 +162,13 @@ export default function ProfileDetail() {
                 <span key={g} className="font-mono text-[11px] px-2 py-0.5 rounded border border-primary/20 text-primary/70">{g}</span>
               ))}
             </div>
+          </DetailBlock>
+        )}
+
+        {/* Social links */}
+        {profile.social_links && Object.keys(profile.social_links).length > 0 && (
+          <DetailBlock icon={Link} title="Liên hệ xã hội">
+            <SocialIcons links={profile.social_links} className="gap-2" />
           </DetailBlock>
         )}
 

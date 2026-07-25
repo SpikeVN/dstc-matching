@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Download, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 
 const IMG_EXT = /\.(png|jpe?g|webp|gif)(\?|$)/i;
@@ -61,8 +62,19 @@ export default function CvViewer({ url, onClose }) {
   const isPdf = PDF_EXT.test(url.split('?')[0]);
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={onClose}>
-      <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.1 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.1 }}
         className="relative bg-card border border-primary/20 rounded-xl overflow-hidden w-full max-w-5xl mx-4 shadow-2xl flex flex-col"
         style={{ height: '95vh' }}
         onClick={(e) => e.stopPropagation()}
@@ -100,8 +112,8 @@ export default function CvViewer({ url, onClose }) {
             </div>
           )}
         </div>
-      </div>
-    </div>,
+      </motion.div>
+    </motion.div>,
     document.body
   );
 }

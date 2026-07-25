@@ -73,7 +73,7 @@ def _record_to_dict(record: asyncpg.Record) -> dict:
         else:
             d[k] = v
     # Parse JSONB fields that asyncpg returns as strings
-    for field in ("technical_skills", "soft_skills", "goals", "member_ids"):
+    for field in ("technical_skills", "soft_skills", "goals", "social_links", "member_ids"):
         if field in d and isinstance(d[field], str):
             try:
                 d[field] = json.loads(d[field])

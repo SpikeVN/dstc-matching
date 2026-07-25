@@ -92,8 +92,8 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (emailOrUsername, password) => {
-    const userData = await db.auth.login(emailOrUsername, password);
+  const login = async (email, password) => {
+    const userData = await db.auth.login(email, password);
     setUser(userData);
     setIsAuthenticated(true);
     setAuthError(null);
@@ -114,6 +114,14 @@ export const AuthProvider = ({ children }) => {
 
   const googleLogin = async (credential) => {
     const userData = await db.auth.googleLogin(credential);
+    setUser(userData);
+    setIsAuthenticated(true);
+    setAuthError(null);
+    return userData;
+  };
+
+  const githubLogin = async (code) => {
+    const userData = await db.auth.githubCallback(code);
     setUser(userData);
     setIsAuthenticated(true);
     setAuthError(null);
@@ -144,6 +152,7 @@ export const AuthProvider = ({ children }) => {
       login,
       signup,
       googleLogin,
+      githubLogin,
       logout,
       navigateToLogin,
       checkUserAuth,

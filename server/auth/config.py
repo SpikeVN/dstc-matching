@@ -26,7 +26,9 @@ SUPABASE_PUBLIC_URL = os.getenv("SUPABASE_PUBLIC_URL", SUPABASE_URL)
 # Version / commit info
 GIT_SHA = os.getenv("GIT_SHA", "dev")
 
+# Frontend URL for OAuth redirects
+SITE_URL = os.getenv("SITE_URL", "http://localhost:4236")
+
 # Email (Resend)
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 EMAIL_FROM = os.getenv("EMAIL_FROM", "DSTC Matching <noreply@cteftu.id.vn>")
-SITE_URL = os.getenv("SITE_URL", "http://localhost:4236")
