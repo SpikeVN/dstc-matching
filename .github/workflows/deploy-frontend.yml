@@ -43,8 +43,8 @@ jobs:
       - name: Build
         run: bun run build
         env:
-          VITE_API_BASE: ${{ secrets.VITE_API_BASE }}
-          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_API_BASE: ${{ vars.VITE_API_BASE }}
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3

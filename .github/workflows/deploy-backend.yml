@@ -71,7 +71,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             for i in $(seq 1 5); do
-              HEALTH=$(curl -s -w "\n%{http_code}" http://127.0.0.1/health) && \
+              HEALTH=$(curl -s -w "\n%{http_code}" https://matching-api.cteftu.id.vn/health) && \
               CODE=$(echo "$HEALTH" | tail -1) && \
               BODY=$(echo "$HEALTH" | sed '$d') && \
               COMMIT=$(echo "$BODY" | jq -r '.commit // empty') && \
