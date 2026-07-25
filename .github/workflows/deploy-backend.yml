@@ -58,7 +58,10 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /apps
-            bash deploy.sh
+            bash deploy.sh 2>&1 | tee /tmp/deploy.log
+            EXIT=${PIPESTATUS[0]}
+            echo "--- deploy.sh output above ---"
+            exit $EXIT
 
       - name: Verify deployment
         uses: appleboy/ssh-action@v1
@@ -67,10 +70,18 @@ jobs:
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            HEALTH=$(curl -sf http://127.0.0.1/health)
-            COMMIT=$(echo "$HEALTH" | jq -r '.commit')
+            for i in $(seq 1 5); do
+              HEALTH=$(curl -s -w "\n%{http_code}" http://127.0.0.1/health) && \
+              CODE=$(echo "$HEALTH" | tail -1) && \
+              BODY=$(echo "$HEALTH" | sed '$d') && \
+              COMMIT=$(echo "$BODY" | jq -r '.commit // empty') && \
+              [ "$CODE" = "200" ] && [ -n "$COMMIT" ] && break
+              echo "Retry ${i}/5 — HTTP ${CODE}, body: ${BODY}"
+              sleep 3
+            done
+            echo "Health response: ${BODY}"
             echo "Expected: ${{ env.SHORT_SHA }}"
-            echo "Got:      ${COMMIT}"
+            echo "Got:      ${COMMIT:-<empty>}"
             if [ "$COMMIT" != "${{ env.SHORT_SHA }}" ]; then
               echo "ERROR: commit mismatch!"
               exit 1
