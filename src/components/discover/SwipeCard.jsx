@@ -63,18 +63,20 @@ export default function SwipeCard({ profile, style, className = '', showMoreButt
       </div>
 
       {/* Info */}
-      <div className="p-4 space-y-3 flex-1">
+      <div className="p-4 flex flex-col gap-3 flex-1">
         {profile.bio && (
           <p className="text-xs text-muted-foreground font-mono line-clamp-2 leading-relaxed">{profile.bio}</p>
         )}
 
-        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-mono">
-          {profile.city && (
+        {profile.city && (
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-mono">
             <span className="flex items-center gap-1 text-muted-foreground">
               <MapPin className="w-3 h-3 text-primary/60" /> {profile.city}
             </span>
-          )}
-        </div>
+          </div>
+        )}
+
+        {showSocials && <SocialIcons links={profile.social_links} />}
 
         {skills.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
@@ -118,8 +120,6 @@ export default function SwipeCard({ profile, style, className = '', showMoreButt
             <span className="underline underline-offset-2">Xem CV</span>
           </button>
         )}
-
-        {showSocials && <SocialIcons links={profile.social_links} />}
 
       </div>
 

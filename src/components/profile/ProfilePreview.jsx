@@ -10,5 +10,5 @@ export default function ProfilePreview({ profile }) {
     );
   }
 
-  return <SwipeCard profile={profile} showSocials={false} />;
+  return <SwipeCard profile={profile} />;
 }
