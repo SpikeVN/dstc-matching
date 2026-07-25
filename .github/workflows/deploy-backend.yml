@@ -60,6 +60,23 @@ jobs:
             cd /apps
             bash deploy.sh
 
+      - name: Verify deployment
+        uses: appleboy/ssh-action@v1
+        with:
+          host: mainframe.cteftu.id.vn
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            HEALTH=$(curl -sf http://127.0.0.1/health)
+            COMMIT=$(echo "$HEALTH" | jq -r '.commit')
+            echo "Expected: ${{ env.SHORT_SHA }}"
+            echo "Got:      ${COMMIT}"
+            if [ "$COMMIT" != "${{ env.SHORT_SHA }}" ]; then
+              echo "ERROR: commit mismatch!"
+              exit 1
+            fi
+            echo "Deployment verified ✓"
+
       - name: Summary
         run: |
           {
