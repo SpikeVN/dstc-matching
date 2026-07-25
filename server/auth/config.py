@@ -23,6 +23,9 @@ SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", GOTRUE_SERVICE_KEY)
 # but users need the public origin (https://supabase.cteftu.id.vn).
 SUPABASE_PUBLIC_URL = os.getenv("SUPABASE_PUBLIC_URL", SUPABASE_URL)
 
+# Version / commit info
+GIT_SHA = os.getenv("GIT_SHA", "dev")
+
 # Email (Resend)
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 EMAIL_FROM = os.getenv("EMAIL_FROM", "DSTC Matching <noreply@cteftu.id.vn>")

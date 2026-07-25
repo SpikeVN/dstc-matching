@@ -33,6 +33,7 @@ jobs:
           echo "IMAGE=${image}" >> "$GITHUB_ENV"
           echo "SHORT_SHA=${short}" >> "$GITHUB_ENV"
           docker build \
+            --build-arg "GIT_SHA=${short}" \
             --tag "${image}:latest" \
             --tag "${image}:${SHA}" \
             --tag "${image}:sha-${short}" \
@@ -48,6 +49,16 @@ jobs:
           docker push "${IMAGE}:latest"
           docker push "${IMAGE}:${{ github.sha }}"
           docker push "${IMAGE}:sha-${SHORT_SHA}"
+
+      - name: Deploy to production
+        uses: appleboy/ssh-action@v1
+        with:
+          host: mainframe.cteftu.id.vn
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /apps
+            bash deploy.sh
 
       - name: Summary
         run: |

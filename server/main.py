@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 # Add server directory to path so imports work
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from auth.config import CORS_ORIGINS
+from auth.config import CORS_ORIGINS, GIT_SHA
 from database import close_pool
 from routes.auth import router as auth_router
 from routes.profiles import router as profiles_router
@@ -24,7 +24,7 @@ from routes.integrations import router as integrations_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: init Supabase client and DB pool
-    print("DSTC Matching API starting...")
+    print(f"DSTC Matching API starting… commit {GIT_SHA}")
     from auth.supabase_client import init_supabase
     await init_supabase()
     yield
@@ -63,4 +63,4 @@ app.include_router(integrations_router)
 @app.get("/health")
 @app.head("/health")
 async def health():
-    return {"status": "ok"}
+    return {"status": "ok", "commit": GIT_SHA}

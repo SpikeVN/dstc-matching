@@ -37,6 +37,8 @@ COPY . .
 # curl for Docker healthchecks (Alpine doesn't ship it by default).
 RUN apk add --no-cache curl
 
+ARG GIT_SHA=dev
+ENV GIT_SHA=${GIT_SHA}
 ENV API_PORT=36918
 EXPOSE ${API_PORT}
 
