@@ -7,6 +7,7 @@ functions whose return shapes match the rest of the codebase.
 
 from fastapi import HTTPException
 
+from auth.config import SUPABASE_PUBLIC_URL, SUPABASE_URL
 from auth.supabase_client import get_supabase
 
 
@@ -133,13 +134,17 @@ async def _oauth_authorize(provider: str, redirect_to: str) -> str:
     except Exception as exc:
         _raise_auth_error(exc)
 
-    # resp.url is the provider authorization URL
+    # resp.url is the provider authorization URL — it may point to the
+    # internal gateway (e.g. http://supabase-kong:8000) which the browser
+    # cannot reach. Rewrite to the public-facing Supabase URL.
     url = getattr(resp, "url", None)
     if not url:
         # Fallback: the SDK may return it as a dict
         url = resp.get("url") if isinstance(resp, dict) else None
     if not url:
         raise HTTPException(status_code=500, detail=f"Could not generate {provider} OAuth URL")
+    if SUPABASE_URL != SUPABASE_PUBLIC_URL:
+        url = url.replace(SUPABASE_URL, SUPABASE_PUBLIC_URL, 1)
     return url
 
 
