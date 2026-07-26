@@ -54,3 +54,5 @@ PROMPT.md
 .claude/
 CLAUDE-INFRA.md
 CLAUDE.md
+TASKS.md
+seed_owner.sql
