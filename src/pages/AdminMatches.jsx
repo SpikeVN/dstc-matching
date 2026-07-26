@@ -3,11 +3,19 @@ import { db } from '@/api/apiClient';
 import React, { useState, useDeferredValue } from 'react';
 
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { Users, Search, Heart, MessageCircle, User, Shield, Eye, EyeOff } from 'lucide-react';
+import { Users, Search, Heart, MessageCircle, User, Shield, Eye, EyeOff, Flag, X, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { format, addHours } from 'date-fns';
 import MatchDashboard from '@/components/admin/MatchDashboard';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -41,6 +49,8 @@ export default function AdminMatches() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [roleFilterValue, setRoleFilterValue] = useState('');
   const [matchStatusFilter, setMatchStatusFilter] = useState('');
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [reportDetailOpen, setReportDetailOpen] = useState(false);
   const deferredSearch = useDeferredValue(search);
 
   const { data: currentUser } = useQuery({
@@ -75,6 +85,20 @@ export default function AdminMatches() {
   const { data: oneSidedSwipes } = useQuery({
     queryKey: ['adminOneSidedSwipes'],
     queryFn: () => db.entities.SwipeAction.list('-created_date'),
+    initialData: [],
+  });
+
+  // ── Reports data ──────────────────────────────────────────────────
+  const { data: reports, isLoading: loadingReports } = useQuery({
+    queryKey: ['adminReports'],
+    queryFn: () => db.admin.listReports(),
+    initialData: [],
+  });
+
+  const { data: reportMessages } = useQuery({
+    queryKey: ['adminReportMessages', selectedReport?.id],
+    queryFn: () => db.admin.getReportMessages(selectedReport.id),
+    enabled: !!selectedReport?.id,
     initialData: [],
   });
 
@@ -198,9 +222,9 @@ export default function AdminMatches() {
         {/* Tabs (line variant) */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="h-auto bg-transparent p-0 border-b border-primary/10 rounded-none w-full justify-start gap-0">
-            {['dashboard', 'users', 'matches'].map(tab => {
-              const icons = { dashboard: Shield, users: Users, matches: Heart };
-              const labels = { dashboard: 'Dashboard', users: 'Quản lý người dùng', matches: 'Matches' };
+            {['dashboard', 'users', 'matches', 'reports'].map(tab => {
+              const icons = { dashboard: Shield, users: Users, matches: Heart, reports: Flag };
+              const labels = { dashboard: 'Dashboard', users: 'Quản lý người dùng', matches: 'Matches', reports: 'Reports' };
               const Icon = icons[tab];
               return (
                 <TabsTrigger
@@ -458,7 +482,229 @@ export default function AdminMatches() {
             )}
           </div>
           </TabsContent>
+
+          <TabsContent value="reports" className="mt-5">
+          <div className="space-y-4">
+            <p className="font-body text-xs text-muted-foreground">Tổng số báo cáo: {reports.length}</p>
+
+            {loadingReports ? (
+              <div className="text-center py-16">
+                <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
+              </div>
+            ) : reports.length === 0 ? (
+              <div className="text-center py-16">
+                <Flag className="w-10 h-10 text-primary/10 mx-auto mb-3" />
+                <p className="font-body text-sm text-muted-foreground">Chưa có báo cáo nào</p>
+              </div>
+            ) : (
+              <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+                <table className="w-full text-xs font-body">
+                  <thead>
+                    <tr className="border-b border-primary/10 bg-muted/20">
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider w-8">#</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Người báo cáo</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Bị báo cáo</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider hidden md:table-cell">Lý do</th>
+                      <th className="text-center px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Tin nhắn</th>
+                      <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider hidden sm:table-cell">Ngày</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-primary/8">
+                    {reports.map((report, i) => (
+                      <tr
+                        key={report.id}
+                        className="hover:bg-primary/5 transition-colors cursor-pointer"
+                        onClick={() => {
+                          setSelectedReport(report);
+                          setReportDetailOpen(true);
+                        }}
+                      >
+                        <td className="px-4 py-3 text-xs text-muted-foreground/50">{i + 1}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-lg overflow-hidden border border-primary/20 bg-muted/50 flex-shrink-0">
+                              {report.reporter_image
+                                ? <img src={report.reporter_image} alt="" className="w-full h-full object-cover" />
+                                : <div className="w-full h-full flex items-center justify-center"><User className="w-4 h-4 text-primary/30" /></div>
+                              }
+                            </div>
+                            <span className="font-medium text-sm text-foreground truncate max-w-[150px]">{report.reporter_name || report.reporter_id.slice(0, 8)}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-lg overflow-hidden border border-primary/20 bg-muted/50 flex-shrink-0">
+                              {report.reported_image
+                                ? <img src={report.reported_image} alt="" className="w-full h-full object-cover" />
+                                : <div className="w-full h-full flex items-center justify-center"><User className="w-4 h-4 text-primary/30" /></div>
+                              }
+                            </div>
+                            <span className="font-medium text-sm text-foreground truncate max-w-[150px] text-red-400">{report.reported_name || report.reported_id.slice(0, 8)}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground max-w-[250px] truncate hidden md:table-cell">
+                          {report.reason || <span className="italic text-muted-foreground/50">Không có lý do</span>}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            {report.message_count || 0}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right text-xs text-muted-foreground/50 hidden sm:table-cell">
+                          {report.created_date ? format(addHours(new Date(report.created_date), 7), 'dd/MM/yy HH:mm') : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          </TabsContent>
         </Tabs>
+
+        {/* Report detail dialog */}
+        <Dialog open={reportDetailOpen} onOpenChange={setReportDetailOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Flag className="w-4 h-4 text-red-400" />
+                Chi tiết báo cáo
+              </DialogTitle>
+              <DialogDescription>
+                Thông tin về báo cáo và nội dung chat liên quan
+              </DialogDescription>
+            </DialogHeader>
+            {selectedReport && (() => {
+              const reportedInUsers = adminUsers.find(u => u.id === selectedReport.reported_id);
+              const reportedVisible = reportedInUsers ? reportedInUsers.admin_visible : true;
+              return (
+              <div className="flex-1 overflow-hidden flex flex-col gap-4">
+                {/* Reporter and Reported info */}
+                <div className="flex items-stretch gap-4 text-sm">
+                  <div className="flex-1 glass-card rounded-lg p-3 border border-primary/10 flex flex-col">
+                    <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Người báo cáo</p>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg overflow-hidden border border-primary/20 bg-muted/50 flex-shrink-0">
+                        {selectedReport.reporter_image
+                          ? <img src={selectedReport.reporter_image} alt="" className="w-full h-full object-cover" />
+                          : <div className="w-full h-full flex items-center justify-center"><User className="w-3.5 h-3.5 text-primary/30" /></div>
+                        }
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground">{selectedReport.reporter_name || 'Unknown'}</p>
+                        <p className="text-[11px] text-muted-foreground">{selectedReport.reporter_email}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex-1 glass-card rounded-lg p-3 border border-red-400/15 flex flex-col">
+                    <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Bị báo cáo</p>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg overflow-hidden border border-primary/20 bg-muted/50 flex-shrink-0">
+                        {selectedReport.reported_image
+                          ? <img src={selectedReport.reported_image} alt="" className="w-full h-full object-cover" />
+                          : <div className="w-full h-full flex items-center justify-center"><User className="w-3.5 h-3.5 text-primary/30" /></div>
+                        }
+                      </div>
+                      <div>
+                        <p className="font-medium text-red-400">{selectedReport.reported_name || 'Unknown'}</p>
+                        <p className="text-[11px] text-muted-foreground">{selectedReport.reported_email}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reason */}
+                <div className="glass-card rounded-lg p-3 border border-primary/10">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Lý do</p>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">
+                    {selectedReport.reason || <span className="italic text-muted-foreground/50">Không có lý do</span>}
+                  </p>
+                </div>
+
+                {/* Quick actions */}
+                <div className="glass-card rounded-lg p-3 border border-primary/10">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Quick actions</p>
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      onClick={() => {
+                        visibilityMutation.mutate({
+                          userId: selectedReport.reported_id,
+                          visible: !reportedVisible,
+                        });
+                      }}
+                      className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
+                        reportedVisible
+                          ? 'border-primary/20 text-foreground hover:bg-primary/10 hover:border-primary/40'
+                          : 'border-primary/40 text-primary bg-primary/10'
+                      }`}
+                    >
+                      {reportedVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      {reportedVisible ? 'Ẩn khỏi matching' : 'Hiện lại trong matching'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Chat log */}
+                {selectedReport.match_id && (
+                  <div className="flex-1 min-h-0">
+                    <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      Nội dung chat ({reportMessages.length} tin nhắn)
+                    </p>
+                    <ScrollArea className="h-[300px] rounded-lg border border-primary/10 p-4">
+                      <div className="space-y-3">
+                        {reportMessages.length === 0 ? (
+                          <p className="text-xs text-muted-foreground/50 text-center py-8">Chưa có tin nhắn nào</p>
+                        ) : (
+                          reportMessages.map(msg => (
+                            <div key={msg.id} className="flex gap-3">
+                              <div className="w-7 h-7 rounded-md overflow-hidden border border-primary/10 bg-muted/50 flex-shrink-0 mt-0.5">
+                                {msg.sender_image
+                                  ? <img src={msg.sender_image} alt="" className="w-full h-full object-cover" />
+                                  : <div className="w-full h-full flex items-center justify-center"><User className="w-3 h-3 text-primary/30" /></div>
+                                }
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-xs font-medium text-foreground">
+                                    {msg.sender_name || msg.sender_id.slice(0, 8)}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground/50">
+                                    {format(addHours(new Date(msg.created_date), 7), 'dd/MM HH:mm')}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-foreground mt-0.5 whitespace-pre-wrap break-words">
+                                  {msg.content}
+                                </p>
+                                {msg.attachment_url && (
+                                  <div className="mt-1 flex items-center gap-1.5 text-xs text-primary/70">
+                                    <span>📎</span>
+                                    <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="hover:underline truncate">
+                                      {msg.attachment_name || 'Tệp đính kèm'}
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                )}
+
+                {!selectedReport.match_id && (
+                  <div className="glass-card rounded-lg p-4 border border-primary/10 text-center">
+                    <p className="text-xs text-muted-foreground">Báo cáo này không liên kết với match nào</p>
+                  </div>
+                )}
+              </div>
+            );
+            })()}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

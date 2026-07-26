@@ -7,6 +7,7 @@ Templates are Jinja2 HTML files in server/templates/.
 import asyncio
 import logging
 import os
+from datetime import datetime, timezone
 
 import httpx
 from jinja2 import Environment, FileSystemLoader
@@ -100,12 +101,26 @@ async def _send_match_notification(user1_id: str, user2_id: str, match_id: str):
 
 
 async def _send_message_notification(sender_id: str, receiver_id: str, match_id: str, content: str):
-    """Send a new-message notification email to the receiver."""
+    """Send a new-message notification email to the receiver, unless they are online."""
     try:
         sender = await _get_user_and_profile(sender_id)
         receiver = await _get_user_and_profile(receiver_id)
         if not sender or not receiver:
             return
+
+        # Skip email if the receiver was active within the last 3 minutes (likely online)
+        last_active = receiver.get("profile", {}).get("last_active_at")
+        if last_active:
+            now_utc = datetime.now(timezone.utc)
+            if isinstance(last_active, str):
+                last_active = datetime.fromisoformat(last_active.replace("Z", "+00:00"))
+            elapsed = (now_utc - last_active).total_seconds()
+            if elapsed < 180:
+                logger.info(
+                    "[EMAIL] Skipping message notification for %s — active %ds ago",
+                    receiver_id, elapsed,
+                )
+                return
 
         sender_name = sender.get("profile", {}).get("display_name") or sender.get("full_name") or "Ai đó"
         receiver_name = receiver.get("profile", {}).get("display_name") or receiver.get("full_name") or "bạn"

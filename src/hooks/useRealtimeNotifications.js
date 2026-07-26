@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getSupabase, setRealtimeAuth } from '@/lib/supabase-client';
 import { usePresenceChannel } from './useOnlinePresence';
@@ -11,6 +12,8 @@ import { usePresenceChannel } from './useOnlinePresence';
 export function useRealtimeNotifications({ currentUser, profileMap, navigate }) {
   const queryClient = useQueryClient();
   const notifiedIds = useRef(new Set());
+  const location = useLocation();
+  const isMessagesPage = location.pathname === '/messages';
 
   useEffect(() => {
     if (!currentUser?.id) return;
@@ -48,8 +51,8 @@ export function useRealtimeNotifications({ currentUser, profileMap, navigate }) 
               return [...old, msg];
             });
 
-            // Toast for messages sent TO the current user
-            if (!notifiedIds.current.has(msg.id)) {
+            // Toast for messages sent TO the current user (skip if already on messages page)
+            if (!notifiedIds.current.has(msg.id) && !isMessagesPage) {
               notifiedIds.current.add(msg.id);
               const senderProfile = profileMap?.[msg.sender_id];
               const senderName = senderProfile?.display_name || 'Ai đó';
@@ -64,6 +67,21 @@ export function useRealtimeNotifications({ currentUser, profileMap, navigate }) 
               });
             }
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages' },
+        (payload) => {
+          const msg = payload.new;
+          // Update the message in the match cache (syncs read/delivered status to the sender)
+          queryClient.setQueryData(['messages', msg.match_id], (old = []) => {
+            if (!old) return old;
+            return old.map(m => m.id === msg.id
+              ? { ...m, is_read: msg.is_read, read_at: msg.read_at, delivered_at: msg.delivered_at, updated_date: msg.updated_date }
+              : m
+            );
+          });
         }
       )
       .subscribe((status) => {

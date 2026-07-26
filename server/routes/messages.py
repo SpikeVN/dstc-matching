@@ -63,12 +63,34 @@ async def create_message(msg: MessageCreate, user: dict = Depends(get_current_us
     mid = generate_id()
     now_ts = now()
 
+    # Fetch match unconditionally (used for receiver resolution, block check, and pending limit)
+    match = await fetch_one("SELECT * FROM matches WHERE id = $1", msg.match_id)
+
     # Resolve receiver: use provided receiver_id, or look up from the match
     receiver_id = msg.receiver_id
-    if not receiver_id:
-        match = await fetch_one("SELECT * FROM matches WHERE id = $1", msg.match_id)
-        if match:
-            receiver_id = match["user2_id"] if match["user1_id"] == msg.sender_id else match["user1_id"]
+    if not receiver_id and match:
+        receiver_id = match["user2_id"] if match["user1_id"] == msg.sender_id else match["user1_id"]
+
+    # Reject if either user has blocked the other
+    if receiver_id:
+        blocked = await fetch_one(
+            """SELECT 1 FROM public.blocked_users
+               WHERE (blocker_id = $1 AND blocked_id = $2)
+                  OR (blocker_id = $2 AND blocked_id = $1)
+               LIMIT 1""",
+            receiver_id, msg.sender_id
+        )
+        if blocked:
+            raise HTTPException(status_code=403, detail="Cannot send message — user is blocked")
+
+    # Enforce 3-message limit for pending matches
+    if match and match["status"] == "pending":
+        msg_count = await fetch_one(
+            "SELECT COUNT(*) as cnt FROM messages WHERE match_id = $1 AND sender_id = $2",
+            msg.match_id, msg.sender_id
+        )
+        if msg_count and msg_count["cnt"] >= 3:
+            raise HTTPException(status_code=403, detail="Message limit reached for pending match")
 
     await execute("""
         INSERT INTO messages (id, created_date, updated_date, match_id, sender_id, receiver_id, content, is_read,

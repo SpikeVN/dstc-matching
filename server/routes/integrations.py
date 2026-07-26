@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from auth.dependencies import get_current_user
 from auth.config import SUPABASE_URL, SUPABASE_PUBLIC_URL, SUPABASE_SERVICE_KEY
+from database import execute, now
 from mailer import send_email as _send_email
 
 logger = logging.getLogger(__name__)
@@ -118,6 +119,16 @@ async def send_email_route(req: EmailRequest, user: dict = Depends(get_current_u
     html = f"<div style='font-family:sans-serif;padding:16px;'>{req.body}</div>"
     ok = await _send_email(to=req.to, subject=req.subject, html=html)
     return {"success": ok}
+
+
+@router.post("/heartbeat")
+async def heartbeat(user: dict = Depends(get_current_user)):
+    """Update the current user's last_active_at timestamp for online tracking."""
+    await execute(
+        "UPDATE public.contestant_profiles SET last_active_at = $1 WHERE created_by = $2",
+        now(), user["id"],
+    )
+    return {"success": True}
 
 
 def _get_ext(filename: str | None) -> str:

@@ -302,3 +302,63 @@ async def get_admin_stats(user: dict = Depends(get_current_user)):
         "total_admins": total_admins["count"] if total_admins else 0,
         "total_visible": total_visible["count"] if total_visible else 0,
     }
+
+
+# ── Reports endpoints ─────────────────────────────────────────────────────────
+
+
+@router.get("/reports")
+async def list_reports(user: dict = Depends(get_current_user)):
+    """List all user reports with profile info. Requires mod+ role."""
+    _require_admin_role(user, "mod")
+
+    return await fetch("""
+        SELECT
+            r.id,
+            r.reporter_id,
+            r.reported_id,
+            r.match_id,
+            r.reason,
+            r.created_date,
+            reporter.display_name AS reporter_name,
+            reporter.profile_image AS reporter_image,
+            reporter.email AS reporter_email,
+            reported.display_name AS reported_name,
+            reported.profile_image AS reported_image,
+            reported.email AS reported_email,
+            (SELECT COUNT(*) FROM messages WHERE match_id = r.match_id) AS message_count
+        FROM public.reports r
+        LEFT JOIN public.contestant_profiles reporter ON r.reporter_id = reporter.created_by
+        LEFT JOIN public.contestant_profiles reported ON r.reported_id = reported.created_by
+        ORDER BY r.created_date DESC
+    """)
+
+
+@router.get("/reports/{report_id}/messages")
+async def get_report_messages(report_id: str, user: dict = Depends(get_current_user)):
+    """Get messages from the match associated with a report. Requires mod+ role."""
+    _require_admin_role(user, "mod")
+
+    report = await fetch_one("SELECT match_id FROM public.reports WHERE id = $1", report_id)
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    if not report["match_id"]:
+        return []
+
+    return await fetch("""
+        SELECT
+            m.id,
+            m.match_id,
+            m.sender_id,
+            m.content,
+            m.created_date,
+            m.attachment_url,
+            m.attachment_type,
+            m.attachment_name,
+            sender.display_name AS sender_name,
+            sender.profile_image AS sender_image
+        FROM messages m
+        LEFT JOIN public.contestant_profiles sender ON m.sender_id = sender.created_by
+        WHERE m.match_id = $1
+        ORDER BY m.created_date ASC
+    """, report["match_id"])

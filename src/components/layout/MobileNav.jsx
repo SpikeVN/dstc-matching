@@ -1,13 +1,13 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { User, Heart, MessageCircle, Sparkles, LayoutDashboard } from 'lucide-react';
+import { User, MessageCircle, Sparkles, LayoutDashboard, Settings } from 'lucide-react';
 
 const navItems = [
   { path: '/dashboard', label: 'Home', icon: LayoutDashboard },
   { path: '/discover', label: 'Khám phá', icon: Sparkles },
-  { path: '/matches', label: 'Match', icon: Heart },
-  { path: '/messages', label: 'Chat', icon: MessageCircle },
+  { path: '/messages', label: 'Kết nối', icon: MessageCircle, altPaths: ['/matches'] },
   { path: '/profile', label: 'Hồ sơ', icon: User },
+  { path: '/settings', label: 'Cài đặt', icon: Settings },
 ];
 
 export default function MobileNav() {
@@ -18,7 +18,7 @@ export default function MobileNav() {
       <div className="flex items-center justify-around py-2 px-1">
         {navItems.map(item => {
           const Icon = item.icon;
-          const isActive = location.pathname === item.path;
+          const isActive = location.pathname === item.path || item.altPaths?.includes(location.pathname);
           return (
             <Link
               key={item.path}

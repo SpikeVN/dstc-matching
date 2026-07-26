@@ -21,6 +21,8 @@ from routes.invites import router as invites_router
 from routes.integrations import router as integrations_router
 from routes.recommendations import router as recommendations_router
 from routes.admin import router as admin_router
+from routes.blocked_users import router as blocked_users_router
+from routes.reports import router as reports_router
 
 
 @asynccontextmanager
@@ -62,6 +64,8 @@ app.include_router(invites_router)
 app.include_router(integrations_router)
 app.include_router(recommendations_router)
 app.include_router(admin_router)
+app.include_router(blocked_users_router)
+app.include_router(reports_router)
 
 
 @app.get("/health")

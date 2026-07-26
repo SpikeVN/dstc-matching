@@ -1,6 +1,6 @@
 import { db } from '@/api/apiClient';
 
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useMemo, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
@@ -50,6 +50,21 @@ export default function AppLayout() {
   useRealtimeNotifications({ currentUser, profileMap, navigate });
   const onlineUsers = useOnlineUsers();
 
+  // Heartbeat to mark the user as active (backend uses this to skip email notifications)
+  useEffect(() => {
+    const sendHeartbeat = () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+      fetch(`${import.meta.env.VITE_API_BASE ?? ''}/api/heartbeat`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => { /* ignore */ });
+    };
+    sendHeartbeat();
+    const interval = setInterval(sendHeartbeat, 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <OnlineContext.Provider value={onlineUsers}>
       <div className={`flex ${location.pathname === '/discover' ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
@@ -66,7 +81,7 @@ export default function AppLayout() {
         </main>
 
         {/* Mobile bottom nav */}
-        <MobileNav />
+        {!(location.pathname === '/messages' && location.search.includes('match=')) && <MobileNav />}
       </div>
     </OnlineContext.Provider>
   );

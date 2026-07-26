@@ -390,8 +390,24 @@ export const db = {
       request('PATCH', `/api/admin/users/${userId}/visibility`, { admin_visible: visible }),
     getRoles: async () => request('GET', '/api/admin/roles'),
     getStats: async () => request('GET', '/api/admin/stats'),
+    listReports: async () => request('GET', '/api/admin/reports'),
+    getReportMessages: async (reportId) => request('GET', `/api/admin/reports/${reportId}/messages`),
   },
   integrations: integrationsClient,
+  block: {
+    list: async () => request('GET', '/api/blocked-users'),
+    block: async (blockedId) => request('POST', '/api/blocked-users', { blocked_id: blockedId }),
+    unblock: async (blockedId) => request('DELETE', `/api/blocked-users/${blockedId}`),
+    checkBlockedBy: async (userId) => request('GET', `/api/blocked-users/blocked-by/${userId}`),
+  },
+  search: {
+    searchUsers: async (query) => {
+      if (!query || query.length < 3) return [];
+      return request('GET', `/api/users/search?q=${encodeURIComponent(query)}`);
+    },
+  },
+  report: async (reportedId, matchId, reason) =>
+    request('POST', '/api/reports', { reported_id: reportedId, match_id: matchId, reason }),
 };
 
 export default db;

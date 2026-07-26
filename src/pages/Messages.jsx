@@ -1,19 +1,22 @@
 import { db } from '@/api/apiClient';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Message, MessageAvatar, MessageContent, MessageHeader, MessageFooter } from '@/components/ui/message';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
-import { MessageScrollerProvider, MessageScroller, MessageScrollerViewport, MessageScrollerContent, MessageScrollerItem, MessageScrollerButton, useMessageScroller, useMessageScrollerScrollable } from '@/components/ui/message-scroller';
-import { Send, ArrowLeft, ArrowDown, User, MessageCircle, Zap, Paperclip, FileText, Code, BookOpen, Archive, File, X, Download } from 'lucide-react';
+import { MessageScrollerProvider, MessageScroller, MessageScrollerViewport, MessageScrollerContent, MessageScrollerItem, MessageScrollerButton, useMessageScroller } from '@/components/ui/message-scroller';
+import { Send, ChevronLeft, ArrowDown, User, MessageCircle, Zap, Paperclip, FileText, Code, BookOpen, Archive, File, X, Download, MoreVertical, Users, Check, Loader2, Ban, UserMinus, Flag, Search } from 'lucide-react';
 import { useOnlineContext } from '@/components/layout/AppLayout';
 import { toast } from 'sonner';
 import { format, addHours } from 'date-fns';
-import TeamConfirmBar from '@/components/messages/TeamConfirmBar';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5 MB
 
@@ -65,6 +68,20 @@ function LinkifiedText({ text }) {
   );
 }
 
+function formatLastActive(lastActiveAt) {
+  if (!lastActiveAt) return 'Không hoạt động';
+  const now = new Date();
+  const lastActive = new Date(lastActiveAt);
+  const diffMs = now - lastActive;
+  const diffMinutes = Math.floor(diffMs / 60000);
+  if (diffMinutes < 1) return 'Vừa xong';
+  if (diffMinutes < 60) return `Hoạt động ${diffMinutes} phút trước`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `Hoạt động ${diffHours} giờ trước`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `Hoạt động ${diffDays} ngày trước`;
+}
+
 const ROLE_COLORS = {
   'Data': 'text-blue-300',
   'ML': 'text-primary',
@@ -77,12 +94,12 @@ function ConversationItem({ match, profile, isSelected, unreadCount, isOnline, o
     <button
       onClick={onClick}
       className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all text-left relative group ${isSelected
-        ? 'bg-primary/10 border border-primary/40'
-        : 'border border-transparent hover:border-primary/20 hover:bg-primary/5'
+        ? 'bg-primary/10 text-primary'
+        : 'hover:bg-primary/5 hover:text-primary/80'
         }`}
     >
       <div className="relative flex-shrink-0">
-        <div className={`w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center bg-muted/60 border ${isSelected ? 'border-primary/50' : 'border-primary/15'}`}>
+        <div className={`w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center bg-muted/60`}>
           {profile?.profile_image
             ? <img src={profile.profile_image} alt="" className="w-full h-full object-cover" />
             : <User className="w-5 h-5 text-primary/40" />
@@ -91,10 +108,15 @@ function ConversationItem({ match, profile, isSelected, unreadCount, isOnline, o
         {isOnline && (
           <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-background" />
         )}
-      </div>
+              </div>
       <div className="flex-1 min-w-0">
         <p className={`font-display font-bold text-sm truncate ${isSelected ? 'text-primary' : 'text-foreground'}`}>
           {profile?.display_name || 'Unknown'}
+          {match.status === 'pending' && (
+            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-body font-medium bg-amber-500/15 text-amber-300">
+              Đang chờ
+            </span>
+          )}
         </p>
         <p className={`text-[10px] font-body truncate mt-0.5 ${ROLE_COLORS[profile?.role] || 'text-muted-foreground'}`}>
           {profile?.role}{profile?.school ? ` — ${profile.school}` : ''}
@@ -109,15 +131,36 @@ function ConversationItem({ match, profile, isSelected, unreadCount, isOnline, o
   );
 }
 
-function ChatBubble({ msg, isMe, senderProfile }) {
+function ChatBubble({ msg, isMe, senderProfile, showHeader, showFooter, showAvatar }) {
   const hasAttachment = !!msg.attachment_url;
   const isImage = msg.attachment_category === 'image';
   const Icon = CATEGORY_ICONS[msg.attachment_category] || File;
 
+  const isFirstInGroup = showHeader;
+  const isLastInGroup = showFooter;
+  // Square off the connecting corners between merged bubbles.
+  // For sender (right side): the right side connects → square right corners.
+  // For recipient (left side): the left side connects → square left corners.
+  const bubbleRadius = isMe
+    ? isFirstInGroup && isLastInGroup
+      ? 'rounded-2xl'
+      : isFirstInGroup
+        ? 'rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl rounded-br-[6px]'
+        : isLastInGroup
+          ? 'rounded-tl-2xl rounded-tr-[6px] rounded-bl-2xl rounded-br-2xl'
+          : 'rounded-tl-2xl rounded-tr-[6px] rounded-bl-2xl rounded-br-[6px]'
+    : isFirstInGroup && isLastInGroup
+      ? 'rounded-2xl'
+      : isFirstInGroup
+        ? 'rounded-tl-2xl rounded-bl-[6px] rounded-tr-2xl rounded-br-2xl'
+        : isLastInGroup
+          ? 'rounded-tl-[6px] rounded-bl-2xl rounded-tr-2xl rounded-br-2xl'
+          : 'rounded-tl-[6px] rounded-bl-[6px] rounded-tr-2xl rounded-br-2xl';
+
   return (
     <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
       <Message align={isMe ? 'end' : 'start'}>
-        {!isMe && (
+        {!isMe && showAvatar ? (
           <MessageAvatar>
             <Avatar className="w-7 h-7">
               {senderProfile?.profile_image
@@ -126,9 +169,11 @@ function ChatBubble({ msg, isMe, senderProfile }) {
               }
             </Avatar>
           </MessageAvatar>
-        )}
+        ) : !isMe ? (
+          <div className="min-w-8 shrink-0" />
+        ) : null}
         <MessageContent>
-          {!isMe && (
+          {!isMe && showHeader && (
             <MessageHeader className="text-[10px] px-1">
               {senderProfile?.display_name}
             </MessageHeader>
@@ -137,7 +182,7 @@ function ChatBubble({ msg, isMe, senderProfile }) {
           {/* Text content */}
           {msg.content && (
             <Bubble variant="ghost" align={isMe ? 'end' : 'start'}>
-              <BubbleContent className={`px-4 py-2.5 rounded-2xl text-sm font-body leading-relaxed ${isMe ? '!bg-[#1e391e] !border-[#1e391e]' : '!bg-[#0e1b12] !border-[#0e1b12]'}`}>
+              <BubbleContent className={`px-4 py-2.5 ${bubbleRadius} text-sm font-body leading-relaxed ${isMe ? '!bg-[#1e391e] !border-[#1e391e]' : '!bg-[#0e1b12] !border-[#0e1b12]'}`}>
                 <LinkifiedText text={msg.content} />
               </BubbleContent>
             </Bubble>
@@ -169,14 +214,16 @@ function ChatBubble({ msg, isMe, senderProfile }) {
           )}
         </MessageContent>
       </Message>
-      <MessageFooter className={`text-[9px] text-muted-foreground/50 px-1 ${isMe ? 'justify-end' : 'pl-11'}`}>
-        {format(addHours(new Date(msg.created_date), 7), 'HH:mm dd/MM')}
-        {isMe && (
-          <span className={`ml-1.5 ${msg.read_at ? 'text-primary' : msg.delivered_at ? 'text-muted-foreground/50' : 'text-muted-foreground/30'}`}>
-            {msg.read_at ? 'Đã xem' : msg.delivered_at ? 'Đã nhận' : 'Đã gửi'}
-          </span>
-        )}
-      </MessageFooter>
+      {showFooter && (
+        <MessageFooter className={`text-[9px] text-muted-foreground/50 px-1 ${isMe ? 'justify-end' : 'pl-11'}`}>
+          {format(addHours(new Date(msg.created_date), 7), 'HH:mm dd/MM')}
+          {isMe && (
+            <span className={`ml-1.5 ${msg.read_at ? 'text-primary' : msg.delivered_at ? 'text-muted-foreground/50' : 'text-muted-foreground/30'}`}>
+              {msg.read_at ? 'Đã xem' : msg.delivered_at ? 'Đã nhận' : 'Đã gửi'}
+            </span>
+          )}
+        </MessageFooter>
+      )}
     </div>
   );
 }
@@ -195,11 +242,17 @@ function ScrollToBottomButton() {
   );
 }
 
-function AutoScrollHandler({ messages }) {
+function AutoScrollHandler({ messages, viewportRef }) {
   const { scrollToEnd } = useMessageScroller();
-  const { end: isAtBottom } = useMessageScrollerScrollable();
   const prevLenRef = useRef(messages.length);
   const initialLoadRef = useRef(true);
+
+  const isNearBottom = useCallback(() => {
+    const el = viewportRef?.current;
+    if (!el) return true;
+    const SCROLL_THRESHOLD = 200; // px from bottom
+    return el.scrollHeight - el.scrollTop - el.clientHeight < SCROLL_THRESHOLD;
+  }, [viewportRef]);
 
   useEffect(() => {
     // First time messages arrive (empty → populated): always scroll to bottom
@@ -213,12 +266,12 @@ function AutoScrollHandler({ messages }) {
       });
       return;
     }
-    // Subsequent new messages: only scroll if user is at bottom
-    if (messages.length > prevLenRef.current && isAtBottom) {
+    // Subsequent new messages: only scroll if user is near bottom (within 200px)
+    if (messages.length > prevLenRef.current && isNearBottom()) {
       scrollToEnd({ behavior: 'auto' });
     }
     prevLenRef.current = messages.length;
-  }, [messages.length, isAtBottom]);
+  }, [messages.length, isNearBottom]);
 
   return null;
 }
@@ -228,16 +281,159 @@ function ChatArea({ match, currentUser, profileMap, isOnline, onBack }) {
   const [message, setMessage] = useState('');
   const [pendingAttachment, setPendingAttachment] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
+  const [unmatchConfirmOpen, setUnmatchConfirmOpen] = useState(false);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef(null);
+  const viewportRef = useRef(null);
 
   const otherEmail = match.user1_id === currentUser?.id ? match.user2_id : match.user1_id;
   const otherProfile = profileMap[otherEmail];
+  const isPending = match.status === 'pending';
+  const isInitiator = match.user1_id === currentUser?.id;
 
   const { data: messages } = useQuery({
     queryKey: ['messages', match.id],
     queryFn: () => db.entities.Message.filter({ match_id: match.id }, 'created_date'),
     initialData: [],
   });
+
+  const sentCount = useMemo(() => {
+    if (!messages) return 0;
+    return messages.filter(m => m.sender_id === currentUser?.id).length;
+  }, [messages, currentUser?.id]);
+
+  // Current match data (for team confirmation state)
+  const { data: currentMatch } = useQuery({
+    queryKey: ['match', match.id],
+    queryFn: () => db.entities.Match.get(match.id),
+    initialData: match,
+  });
+
+  const isUser1 = currentUser?.id === currentMatch?.user1_id;
+  const myConfirmed = isUser1 ? currentMatch?.user1_confirmed : currentMatch?.user2_confirmed;
+  const otherConfirmed = isUser1 ? currentMatch?.user2_confirmed : currentMatch?.user1_confirmed;
+  const teamFormed = currentMatch?.status === 'team_joined';
+
+  // Check if either user has blocked the other
+  const { data: blockedUsers } = useQuery({
+    queryKey: ['blockedUsers', currentUser?.id],
+    queryFn: () => db.block.list(),
+    initialData: [],
+    enabled: !!currentUser?.id,
+  });
+  const isBlockedByMe = blockedUsers.some(b => b.blocked_id === otherEmail);
+
+  const { data: blockedCheck } = useQuery({
+    queryKey: ['blockedBy', otherEmail, currentUser?.id],
+    queryFn: () => db.block.checkBlockedBy(otherEmail),
+    enabled: !!otherEmail && !!currentUser?.id,
+  });
+  const isBlockedByThem = blockedCheck?.blocked === true;
+
+  const handleConfirmTeam = async () => {
+    setConfirming(true);
+    try {
+      if (otherConfirmed) {
+        const team = await db.entities.Team.create({
+          name: `${otherProfile?.display_name || 'Team'} & ${currentUser?.username || 'Team'}`,
+          leader_id: currentUser.id,
+          member_ids: [currentUser.id, otherEmail],
+          max_members: 4,
+          status: 'forming',
+        });
+        await db.entities.Match.update(match.id, {
+          ...(isUser1 ? { user1_confirmed: true } : { user2_confirmed: true }),
+          status: 'team_joined',
+        });
+        const [myProfiles, otherProfiles] = await Promise.all([
+          db.entities.ContestantProfile.filter({ created_by: currentUser.id }),
+          db.entities.ContestantProfile.filter({ created_by: otherEmail }),
+        ]);
+        const updates = [];
+        if (myProfiles[0]?.id) updates.push({ id: myProfiles[0].id, has_team: true, team_id: team.id });
+        if (otherProfiles[0]?.id) updates.push({ id: otherProfiles[0].id, has_team: true, team_id: team.id });
+        if (updates.length > 0) await db.entities.ContestantProfile.bulkUpdate(updates);
+        toast.success('Đã lập đội thành công! 🎉');
+      } else {
+        await db.entities.Match.update(match.id, isUser1 ? { user1_confirmed: true } : { user2_confirmed: true });
+        toast.success('Đã xác nhận! Chờ đối phương xác nhận để lập đội.');
+      }
+      queryClient.invalidateQueries({ queryKey: ['match', match.id] });
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
+    } catch (err) {
+      toast.error('Lỗi: ' + (err?.message || 'Không xác định'));
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  const handleBlock = async () => {
+    try {
+      await db.block.block(otherEmail);
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
+      queryClient.invalidateQueries({ queryKey: ['blockedUsers'] });
+      setBlockConfirmOpen(false);
+      onBack();
+      toast.success('Đã chặn người dùng');
+    } catch (err) {
+      toast.error('Lỗi: ' + (err?.message || 'Không xác định'));
+    }
+  };
+
+  const handleUnblock = async () => {
+    try {
+      await db.block.unblock(otherEmail);
+      queryClient.invalidateQueries({ queryKey: ['blockedUsers'] });
+      toast.success('Đã bỏ chặn người dùng');
+    } catch (err) {
+      toast.error('Lỗi: ' + (err?.message || 'Không xác định'));
+    }
+  };
+
+  const handleUnmatch = async () => {
+    try {
+      await db.entities.Match.delete(match.id);
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
+      setUnmatchConfirmOpen(false);
+      onBack();
+      toast.success('Đã hủy kết nối');
+    } catch (err) {
+      toast.error('Lỗi: ' + (err?.message || 'Không xác định'));
+    }
+  };
+
+  const handleReport = async () => {
+    if (!reportReason.trim()) {
+      toast.error('Vui lòng nhập lý do báo cáo');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await db.report(otherEmail, match.id, reportReason.trim());
+      setReportDialogOpen(false);
+      setReportReason('');
+      toast.success('Đã gửi báo cáo! Cảm ơn bạn đã đóng góp.');
+    } catch (err) {
+      toast.error('Lỗi: ' + (err?.message || 'Không xác định'));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleAcceptPending = async () => {
+    try {
+      await db.entities.Match.update(match.id, { status: 'matched' });
+      queryClient.invalidateQueries({ queryKey: ['match', match.id] });
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
+      toast.success('Đã kết nối thành công!');
+    } catch (err) {
+      toast.error('Lỗi: ' + (err?.message || 'Không xác định'));
+    }
+  };
 
   // Mark received messages as delivered and read when viewing
   useEffect(() => {
@@ -385,8 +581,8 @@ function ChatArea({ match, currentUser, profileMap, isOnline, onBack }) {
       {/* Chat header */}
       <div className="px-4 py-3 border-b border-primary/10 bg-background/40 flex items-center gap-3">
         {onBack && (
-          <button onClick={onBack} className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors lg:hidden">
-            <ArrowLeft className="w-4 h-4" />
+          <button type="button" onClick={onBack} className="flex-shrink-0 -ml-1 p-2 flex items-center justify-center rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors">
+            <ChevronLeft className="w-5 h-5 pointer-events-none" />
           </button>
         )}
         <div className="w-9 h-9 rounded-lg overflow-hidden border border-primary/25 bg-muted/50 flex-shrink-0">
@@ -397,49 +593,135 @@ function ChatArea({ match, currentUser, profileMap, isOnline, onBack }) {
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-display font-bold text-sm text-foreground truncate">{otherProfile?.display_name}</p>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
-            <span className={`font-body text-[10px] ${ROLE_COLORS[otherProfile?.role] || 'text-muted-foreground'}`}>
-              {otherProfile?.role}
-            </span>
-            {otherProfile?.school && (
-              <span className="font-body text-[10px] text-muted-foreground">— {otherProfile.school}</span>
-            )}
-          </div>
+          <p className="font-body text-[10px] text-muted-foreground mt-0.5">
+            {isOnline ? 'Đang hoạt động' : formatLastActive(otherProfile?.last_active_at)}
+          </p>
         </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors">
+              <MoreVertical className="w-4 h-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            {teamFormed ? (
+              <DropdownMenuItem disabled className="text-primary">
+                <Check className="w-4 h-4" />
+                Đã lập đội ✓
+              </DropdownMenuItem>
+            ) : myConfirmed && !otherConfirmed ? (
+              <DropdownMenuItem disabled className="text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Đã xác nhận — chờ...
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={handleConfirmTeam} disabled={confirming}>
+                <Users className="w-4 h-4" />
+                <span>Xác nhận lập đội{otherConfirmed ? ' ✓' : ''}</span>
+                {otherConfirmed && (
+                  <span className="text-[10px] text-primary/70 ml-1">— đối phương đã xác nhận!</span>
+                )}
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setUnmatchConfirmOpen(true)} className="text-muted-foreground">
+              <UserMinus className="w-4 h-4" />
+              {isPending ? 'Đang chờ kết nối' : 'Hủy match'}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={isBlockedByMe ? handleUnblock : () => setBlockConfirmOpen(true)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10">
+              <Ban className="w-4 h-4" />
+              {isBlockedByMe ? 'Bỏ chặn' : 'Chặn'}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setReportDialogOpen(true)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10">
+              <Flag className="w-4 h-4" />
+              Báo cáo
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      {/* Team confirmation bar */}
-      <TeamConfirmBar match={match} currentUser={currentUser} otherProfile={otherProfile} />
+      {/* Pending match banner */}
+      {isPending && (
+        <div className="px-4 py-3 bg-amber-500/10 border-b border-amber-500/20">
+          {isInitiator ? (
+            <div className="text-center">
+              <p className="font-body text-xs text-amber-300">
+                Đã gửi {sentCount}/3 tin nhắn
+              </p>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-body text-xs text-amber-300">Người này muốn kết nối với bạn</p>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs border-green-500/30 text-green-400 hover:bg-green-500/10"
+                  onClick={handleAcceptPending}
+                >
+                  Kết nối
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10"
+                  onClick={() => setBlockConfirmOpen(true)}
+                >
+                  Chặn
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Messages with MessageScroller */}
       <MessageScrollerProvider defaultScrollPosition="end">
         <MessageScroller className="flex-1">
-          <AutoScrollHandler messages={messages} />
-          <MessageScrollerViewport>
+          <AutoScrollHandler messages={messages} viewportRef={viewportRef} />
+          <MessageScrollerViewport ref={viewportRef}>
             <MessageScrollerContent className="px-4 py-4 gap-8">
               {messages.length === 0 && (
                 <div className="text-center py-12 space-y-2">
                   <Zap className="w-8 h-8 text-primary/15 mx-auto" />
-                  <p className="font-body text-xs text-muted-foreground">Match thành công! Bắt đầu cuộc trò chuyện 👋</p>
+                  <p className="font-body text-xs text-muted-foreground">
+                    {isPending
+                      ? isInitiator
+                        ? 'Đã gửi lời mời kết nối! Hãy gửi tin nhắn để giới thiệu bản thân.'
+                        : 'Người này muốn kết nối với bạn'
+                      : 'Match thành công! Bắt đầu cuộc trò chuyện 👋'}
+                  </p>
                 </div>
               )}
               {Object.entries(grouped).map(([date, msgs]) => (
-                <div key={date} className="space-y-3">
-                  <div className="flex items-center gap-3">
+                <div key={date}>
+                  <div className="flex items-center gap-3 mb-3">
                     <div className="flex-1 h-px bg-primary/8" />
                     <span className="font-body text-[10px] text-muted-foreground/50">{date}</span>
                     <div className="flex-1 h-px bg-primary/8" />
                   </div>
-                  {msgs.map(msg => (
-                    <MessageScrollerItem key={msg.id} messageId={msg.id}>
-                      <ChatBubble
-                        msg={msg}
-                        isMe={msg.sender_id === currentUser?.id}
-                        senderProfile={profileMap[msg.sender_id]}
-                      />
-                    </MessageScrollerItem>
-                  ))}
+                  {msgs.map((msg, i) => {
+                    const prevSender = i > 0 ? msgs[i - 1].sender_id : null;
+                    const nextSender = i < msgs.length - 1 ? msgs[i + 1].sender_id : null;
+                    const isFirstInGroup = !prevSender || prevSender !== msg.sender_id;
+                    const isLastInGroup = !nextSender || nextSender !== msg.sender_id;
+                    return (
+                      <MessageScrollerItem key={msg.id} messageId={msg.id}>
+                        <div className={isFirstInGroup ? '' : 'mt-0.5'}>
+                          <ChatBubble
+                            msg={msg}
+                            isMe={msg.sender_id === currentUser?.id}
+                            senderProfile={profileMap[msg.sender_id]}
+                            showHeader={isFirstInGroup}
+                            showAvatar={isFirstInGroup}
+                            showFooter={isLastInGroup}
+                          />
+                        </div>
+                      </MessageScrollerItem>
+                    );
+                  })}
                 </div>
               ))}
             </MessageScrollerContent>
@@ -468,7 +750,34 @@ function ChatArea({ match, currentUser, profileMap, isOnline, onBack }) {
         </div>
       )}
 
-      {/* Input */}
+      {/* Input — replaced with blocked notice or pending notice */}
+      {isPending && !isInitiator ? (
+        <div className="p-3 pb-safe border-t border-amber-500/20 bg-amber-500/5" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+          <div className="flex items-center justify-center gap-2 py-2">
+            <p className="font-body text-sm text-amber-400">Kết nối để nhắn tin</p>
+          </div>
+        </div>
+      ) : isPending && isInitiator && sentCount >= 3 ? (
+        <div className="p-3 pb-safe border-t border-amber-500/20 bg-amber-500/5" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+          <div className="flex items-center justify-center gap-2 py-2">
+            <p className="font-body text-sm text-amber-400">Đã hết lượt nhắn tin, chờ đối phương kết nối</p>
+          </div>
+        </div>
+      ) : isBlockedByMe ? (
+        <div className="p-3 pb-safe border-t border-red-500/20 bg-red-500/5" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+          <div className="flex items-center justify-center gap-2 py-2">
+            <Ban className="w-4 h-4 text-red-400" />
+            <p className="font-body text-sm text-red-400">Bạn đã chặn người dùng này</p>
+          </div>
+        </div>
+      ) : isBlockedByThem ? (
+        <div className="p-3 pb-safe border-t border-red-500/20 bg-red-500/5" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+          <div className="flex items-center justify-center gap-2 py-2">
+            <Ban className="w-4 h-4 text-red-400" />
+            <p className="font-body text-sm text-red-400">Người dùng này đã chặn bạn</p>
+          </div>
+        </div>
+      ) : (
       <div className="relative z-10 p-3 pb-safe border-t border-white/10 bg-background/60 backdrop-blur-md md:pb-3" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
         <div className="flex gap-2 items-center">
           <input ref={fileInputRef} type="file" accept={FILE_ACCEPT} className="hidden" onChange={handleFileSelect} />
@@ -501,13 +810,109 @@ function ChatArea({ match, currentUser, profileMap, isOnline, onBack }) {
           </Button>
         </div>
       </div>
+      )}
+
+      {/* Block confirmation dialog */}
+      <AlertDialog open={blockConfirmOpen} onOpenChange={setBlockConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Chặn người dùng này?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn sẽ không thể nhắn tin với người này nữa. Bạn có thể bỏ chặn sau trong cài đặt.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBlock} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Chặn
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Unmatch confirmation dialog */}
+      <AlertDialog open={unmatchConfirmOpen} onOpenChange={setUnmatchConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hủy kết nối?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cuộc trò chuyện và kết nối sẽ bị xóa. Hành động này không thể hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={handleUnmatch} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Xác nhận
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Report dialog */}
+      <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Báo cáo người dùng</DialogTitle>
+            <DialogDescription>
+              Mô tả lý do bạn báo cáo người dùng này. Báo cáo của bạn sẽ được xem xét bởi quản trị viên.
+            </DialogDescription>
+          </DialogHeader>
+          <textarea
+            value={reportReason}
+            onChange={e => setReportReason(e.target.value)}
+            placeholder="Nhập lý do báo cáo..."
+            className="w-full min-h-[100px] p-3 rounded-lg border border-primary/20 bg-background/60 text-sm font-body text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:border-primary/40"
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setReportDialogOpen(false); setReportReason(''); }}>
+              Hủy
+            </Button>
+            <Button onClick={handleReport} disabled={submitting || !reportReason.trim()}>
+              {submitting ? 'Đang gửi...' : 'Gửi báo cáo'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
 export default function Messages() {
   const [selectedMatch, setSelectedMatch] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [addingStranger, setAddingStranger] = useState(false);
   const onlineUsers = useOnlineContext();
+  const navigate = useNavigate();
+
+  const selectMatch = (match) => {
+    setSelectedMatch(match);
+    if (match) {
+      navigate(`/messages?match=${match.id}`, { replace: true });
+    } else {
+      navigate('/messages', { replace: true });
+    }
+  };
+
+  const handleAddStranger = async (targetUser) => {
+    setAddingStranger(true);
+    try {
+      const newMatch = await db.entities.Match.create({
+        user1_id: currentUser.id,
+        user2_id: targetUser.id,
+        status: 'pending',
+      });
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
+      selectMatch(newMatch);
+      setSearchQuery('');
+      setSearchResults([]);
+      toast.success('Đã gửi lời mời kết nối');
+    } catch (err) {
+      toast.error('Lỗi: ' + (err?.message || 'Không xác định'));
+    } finally {
+      setAddingStranger(false);
+    }
+  };
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
@@ -564,15 +969,71 @@ export default function Messages() {
     }
   }, [matches]);
 
+  // Debounce search query
+  useEffect(() => {
+    if (!searchQuery || searchQuery.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const results = await db.search.searchUsers(searchQuery);
+        setSearchResults(results);
+      } catch {
+        setSearchResults([]);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   return (
-    <div className="flex" style={{ height: '100dvh' }}>
+    <div className="flex w-full max-w-full" style={{ height: '100dvh' }}>
       {/* Sidebar */}
       <div className={`w-full lg:w-72 flex-col border-r border-primary/10 bg-[hsl(150_20%_5%)] ${selectedMatch ? 'hidden lg:flex' : 'flex'}`}>
-        <div className="p-5 border-b border-primary/10">
+        <div className="px-4 py-3 md:px-5 md:py-5 border-b border-primary/10">
           <h1 className="font-display font-bold text-sm tracking-wide text-primary">Tin nhắn</h1>
           <p className="font-body text-[10px] text-muted-foreground mt-0.5">
             {matches.length} kết nối — {unreadMessages.length} chưa đọc
           </p>
+        </div>
+        {/* Search bar */}
+        <div className="px-3 py-2 border-b border-primary/5">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
+            <Input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Tìm kiếm bằng email..."
+              className="font-body text-xs pl-9 bg-black/20 !border-primary/10 h-9 rounded-lg"
+            />
+          </div>
+          {searchQuery.length >= 3 && searchResults.length > 0 && (
+            <div className="mt-2 border border-primary/10 rounded-lg bg-background/95 backdrop-blur-sm overflow-hidden">
+              {searchResults.map(user => (
+                <div key={user.id} className="flex items-center gap-3 p-2.5 hover:bg-primary/5 transition-colors">
+                  <div className="w-7 h-7 rounded-md overflow-hidden bg-muted/60 flex-shrink-0">
+                    {user.profile_image
+                      ? <img src={user.profile_image} alt="" className="w-full h-full object-cover" />
+                      : <div className="w-full h-full flex items-center justify-center"><User className="w-3 h-3 text-primary/30" /></div>
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-body text-xs text-foreground truncate">{user.display_name}</p>
+                    <p className="font-body text-[10px] text-muted-foreground truncate">{user.email}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-[10px] px-2"
+                    onClick={() => handleAddStranger(user)}
+                    disabled={addingStranger}
+                  >
+                    Thêm
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
           {matches.length === 0 && (
@@ -591,7 +1052,7 @@ export default function Messages() {
                 isSelected={selectedMatch?.id === match.id}
                 unreadCount={unreadByMatch[match.id] || 0}
                 isOnline={onlineUsers.has(otherEmail)}
-                onClick={() => setSelectedMatch(match)}
+                onClick={() => selectMatch(match)}
               />
             );
           })}
@@ -599,9 +1060,9 @@ export default function Messages() {
       </div>
 
       {/* Chat area */}
-      <div className={`flex-1 flex flex-col bg-[hsl(150_20%_5%)] ${!selectedMatch ? 'hidden lg:flex' : 'flex'}`}>
+      <div className={`flex-1 flex flex-col bg-[hsl(150_20%_5%)] w-full max-w-full ${!selectedMatch ? 'hidden lg:flex' : 'flex'}`}>
         {selectedMatch ? (
-          <ChatArea key={selectedMatch.id} match={selectedMatch} currentUser={currentUser} profileMap={profileMap} isOnline={onlineUsers.has(selectedMatch?.user1_id === currentUser?.id ? selectedMatch?.user2_id : selectedMatch?.user1_id)} onBack={() => setSelectedMatch(null)} />
+          <ChatArea key={selectedMatch.id} match={selectedMatch} currentUser={currentUser} profileMap={profileMap} isOnline={onlineUsers.has(selectedMatch?.user1_id === currentUser?.id ? selectedMatch?.user2_id : selectedMatch?.user1_id)} onBack={() => selectMatch(null)} />
         ) : (
           <div className="flex-1 flex items-center justify-center text-center p-8">
             <div>

@@ -32,6 +32,35 @@ async def update_info_shown(update: InfoShownUpdate, user: dict = Depends(get_cu
     return {"info_shown": update.info_shown}
 
 
+# ── User search ─────────────────────────────────────────────────
+
+
+@router.get("/users/search")
+async def search_users(request: Request, user: dict = Depends(get_current_user)):
+    """Search for users by email. Excludes self, existing matches, and blocked users.
+    Requires minimum 3 characters in query."""
+    q = request.query_params.get("q", "").strip()
+    if len(q) < 3:
+        return []
+
+    return await fetch("""
+        SELECT cp.created_by as id, cp.email, cp.display_name, cp.role, cp.username, cp.profile_image
+        FROM contestant_profiles cp
+        WHERE cp.email ILIKE $1
+          AND cp.created_by != $2
+          AND cp.created_by NOT IN (
+              SELECT CASE WHEN user1_id = $2 THEN user2_id ELSE user1_id END
+              FROM matches
+              WHERE (user1_id = $2 OR user2_id = $2)
+          )
+          AND cp.created_by NOT IN (
+              SELECT blocked_id FROM blocked_users WHERE blocker_id = $2
+          )
+        ORDER BY cp.email
+        LIMIT 10
+    """, f"%{q}%", user["id"])
+
+
 # ── Contestant profiles ──────────────────────────────────────────────
 
 # ── Info shown field mapping ─────────────────────────────────────────────
