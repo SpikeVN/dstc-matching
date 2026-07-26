@@ -11,7 +11,6 @@ import MatchOverlay from '@/components/discover/MatchOverlay';
 import FilterPanel from '@/components/discover/FilterPanel';
 import { COMPLEMENTARY_ROLES } from '@/lib/constants';
 import { Link } from 'react-router-dom';
-import PageFooter from '@/components/layout/PageFooter';
 
 function computeScore(myProfile, candidate) {
   let score = 0;
@@ -185,7 +184,7 @@ export default function Discover() {
 
   if (!myProfile || !myProfile.profile_complete || !myProfile.visited_profile) {
     return (
-      <div className="min-h-screen flex flex-col p-4 pb-10 grid-overlay">
+      <div className="h-screen flex flex-col p-4 pb-10 grid-overlay overflow-hidden">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center max-w-sm glass-card rounded-2xl p-8 border border-neon/20">
             <Sparkles className="w-10 h-10 text-neon mx-auto mb-4 text-primary" />
@@ -200,13 +199,12 @@ export default function Discover() {
             </Link>
           </div>
         </div>
-        <PageFooter />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center pb-10 px-4 grid-overlay">
+    <div className="h-screen flex flex-col items-center pb-10 px-4 grid-overlay overflow-hidden">
       {/* Header */}
       <div className="w-full max-w-sm pt-4 pb-3">
         <div className="flex items-center justify-between mb-1">
@@ -238,7 +236,7 @@ export default function Discover() {
       </div>
 
       {/* Card area */}
-      <div className="relative w-full max-w-sm" style={{ height: '480px' }}>
+      <div className="relative w-full max-w-sm flex-1 min-h-0">
         <AnimatePresence mode="wait">
           {currentCandidate ? (
             <motion.div
@@ -316,7 +314,6 @@ export default function Discover() {
       />
 
       <MatchOverlay show={showMatch} matchedProfile={matchedProfile} onClose={() => setShowMatch(false)} />
-      <PageFooter />
     </div>
   );
 }

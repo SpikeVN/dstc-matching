@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, GraduationCap, Target, Award, User, FileText, ChevronDown, X, Calendar, PersonStanding } from 'lucide-react';
+import { MapPin, GraduationCap, Target, Award, User, FileText, ChevronDown, X, Calendar, PersonStanding, Link } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import CvViewer from '@/components/profile/CvViewer';
 import SocialIcons from '@/components/profile/SocialIcons';
@@ -78,26 +78,32 @@ export default function SwipeCard({ profile, style, className = '', showMoreButt
           )}
 
           {(profile.city || genderShown || profile.birth_year) && (
-            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
               {profile.city && (
                 <span className="flex items-center gap-1 text-muted-foreground">
-                  <MapPin className="w-3 h-3 text-primary/60" /> {profile.city}
+                  <MapPin className="w-4 h-4 text-primary/60" /> {profile.city}
                 </span>
               )}
               {genderShown && (
                 <span className="flex items-center gap-1 text-muted-foreground">
-                  <PersonStanding className="w-3 h-3 text-primary/60" /> {profile.gender}
+                  <PersonStanding className="w-4 h-4 text-primary/60" /> {profile.gender}
                 </span>
               )}
               {profile.birth_year && (
                 <span className="flex items-center gap-1 text-muted-foreground">
-                  <Calendar className="w-3 h-3 text-primary/60" /> {new Date().getFullYear() - profile.birth_year} tuổi
+                  <Calendar className="w-4 h-4 text-primary/60" /> {new Date().getFullYear() - profile.birth_year} tuổi
                 </span>
               )}
             </div>
           )}
 
-          {showSocials && <SocialIcons links={profile.social_links} />}
+          {showSocials && profile.social_links && Object.values(profile.social_links).some(v => v?.trim()) && (
+            <div className="flex items-center gap-1.5 text-[11px]">
+              <Link className="w-3.5 h-3.5 text-primary/60" />
+              <span className="text-muted-foreground">Liên kết</span>
+              <SocialIcons links={profile.social_links} />
+            </div>
+          )}
 
           {skills.length > 0 && (
             <div className="flex flex-wrap gap-1.5">

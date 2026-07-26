@@ -444,8 +444,8 @@ export default function Settings() {
                     <p>Tổ chức theo hai mùa: Summer Bootcamp và Winter Bootcamp, giúp học sinh và sinh viên linh hoạt chọn thời điểm phù hợp để tham gia.</p>
                   </div>
                   <div className="p-3 rounded-lg bg-white/3 border border-primary/10 space-y-1">
-                    <p className="text-foreground/80 font-medium">Game Bụt của Cô Tấm — Tiền sự kiện DSTC 2026</p>
-                    <p>Game online mang tính giáo dục do team Tri Phương phát triển, đưa kiến thức KHCN đến gần giới trẻ qua trải nghiệm giải trí. <a href="https://butcuacotam.cteftu.id.vn/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Trải nghiệm tại butcuacotam.cteftu.id.vn →</a></p>
+                    <p className="text-foreground/80 font-medium">Game Bụt của Cô Tấm, tiền sự kiện DSTC 2026</p>
+                    <p>Game online mang tính giáo dục do CLB phát triển, đưa kiến thức KHCN đến gần giới trẻ qua trải nghiệm giải trí. <a href="https://butcuacotam.cteftu.id.vn/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Trải nghiệm tại butcuacotam.cteftu.id.vn →</a></p>
                   </div>
                   <div className="p-3 rounded-lg bg-white/3 border border-primary/10 space-y-1">
                     <p className="text-foreground/80 font-medium">Data Science Explorer Community</p>
@@ -457,18 +457,18 @@ export default function Settings() {
             <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
               <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-3">
                 <Trophy className="w-4 h-4 text-primary" />
-                <h3 className="font-display text-sm font-semibold text-primary">Về DSTC</h3>
+                <h3 className="font-display text-sm font-semibold text-primary">Về Data Science Talent Competition</h3>
               </div>
               <div className="p-4 space-y-4 font-body text-xs text-muted-foreground leading-relaxed">
                 <p>DSTC là cuộc thi về Khoa học dữ liệu đầu tiên của FTU do <span className="text-primary">CTE FTU</span> tổ chức, được bảo trợ pháp lý bởi Đoàn TNCS HCM và bảo trợ chuyên môn bởi Khoa Công nghệ & Khoa học Dữ liệu nhà trường.</p>
                 <div className="p-3 rounded-lg bg-white/3 border border-primary/10 space-y-2">
-                  <p className="text-foreground font-medium">1. Tiền sự kiện DSTC 2026</p>
-                  <p><span className="text-primary/70">Nội dung:</span> Game Bụt của Cô Tấm — game online mang tính giáo dục do team Tri Phương phát triển, đưa kiến thức KHCN đến gần với giới trẻ thông qua trò chơi giải trí.</p>
+                  <p className="text-foreground font-medium">1. Tiền sự kiện</p>
+                  <p><span className="text-primary/70">Nội dung:</span> Game Bụt của Cô Tấm — game online mang tính giáo dục do CLB phát triển, đưa kiến thức KHCN đến gần với giới trẻ thông qua trò chơi giải trí.</p>
                   <p><span className="text-primary/70">Link:</span> <a href="https://butcuacotam.cteftu.id.vn/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">butcuacotam.cteftu.id.vn</a></p>
                   <p><span className="text-primary/70">Đối tác:</span> <a href="https://ntq-solution.com.vn" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">NTQ Solutions</a> — đơn vị cung cấp nền tảng công nghệ cho game.</p>
                 </div>
                 <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-2">
-                  <p className="text-foreground font-medium">2. DSTC</p>
+                  <p className="text-foreground font-medium">2. Data Science Talent Competition 226</p>
                   <p><span className="text-primary/70">Nội dung:</span> Cuộc thi về tài chính định lượng (quant finance), thí sinh sử dụng kiến thức toán và tài chính để tìm ra alpha — phương trình dự báo giá cổ phiếu trên sàn chứng khoán Việt Nam (tương tự International Quant Championship).</p>
                   <p><span className="text-primary/70">Đối tác:</span> <span className="text-foreground/80">XNO Quant</span> — đơn vị cung cấp nền tảng thi đấu cho cuộc thi.</p>
                 </div>

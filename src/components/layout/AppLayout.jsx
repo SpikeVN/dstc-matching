@@ -43,14 +43,14 @@ export default function AppLayout() {
   useRealtimeNotifications({ currentUser, profileMap, navigate });
 
   return (
-    <div className="flex min-h-screen">
+    <div className={`flex ${location.pathname === '/discover' ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
       {/* Desktop sidebar */}
       <div className="hidden md:block">
         <Sidebar />
       </div>
 
       {/* Main content */}
-      <main className={`flex-1 min-h-screen overflow-x-hidden flex flex-col ${location.pathname === '/messages' ? 'pb-0' : 'pt-6 md:pt-8 pb-20 md:pb-0'}`}>
+      <main className={`flex-1 min-h-screen overflow-x-hidden flex flex-col ${location.pathname === '/discover' ? 'overflow-hidden !p-0' : location.pathname === '/messages' ? 'pb-0' : 'pt-6 md:pt-8 pb-20 md:pb-0'}`}>
         <div className="flex-1">
           <Outlet />
         </div>

@@ -20,13 +20,15 @@ function getHref(key, url) {
   return url;
 }
 
-export default function SocialIcons({ links, className = '' }) {
+export default function SocialIcons({ links, className = '', inline = false }) {
   if (!links || typeof links !== 'object') return null;
   const entries = Object.entries(links).filter(([, v]) => v?.trim());
   if (entries.length === 0) return null;
 
+  const iconSize = inline ? 'w-4 h-4' : 'w-4 h-4';
+
   return (
-    <div className={`flex flex-wrap gap-2 ${className}`}>
+    <div className={`flex flex-wrap ${inline ? 'gap-1.5 items-center' : 'gap-2'} ${className}`}>
       {entries.map(([key, url]) => {
         const Icon = ICONS[key] || ExternalLink;
         return (
@@ -38,7 +40,7 @@ export default function SocialIcons({ links, className = '' }) {
             title={LABELS[key] || key}
             className="inline-flex items-center text-primary/60 hover:text-primary transition-colors"
           >
-            <Icon className="w-4 h-4" />
+            <Icon className={iconSize} />
           </a>
         );
       })}

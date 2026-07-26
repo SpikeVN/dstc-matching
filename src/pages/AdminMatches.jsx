@@ -40,6 +40,7 @@ export default function AdminMatches() {
   const [roleFilter, setRoleFilter] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [roleFilterValue, setRoleFilterValue] = useState('');
+  const [matchStatusFilter, setMatchStatusFilter] = useState('');
   const deferredSearch = useDeferredValue(search);
 
   const { data: currentUser } = useQuery({
@@ -68,6 +69,12 @@ export default function AdminMatches() {
   const { data: allMessages } = useQuery({
     queryKey: ['adminAllMessages'],
     queryFn: () => db.entities.Message.list('-created_date', 500),
+    initialData: [],
+  });
+
+  const { data: oneSidedSwipes } = useQuery({
+    queryKey: ['adminOneSidedSwipes'],
+    queryFn: () => db.entities.SwipeAction.list('-created_date'),
     initialData: [],
   });
 
@@ -119,14 +126,40 @@ export default function AdminMatches() {
     msgCountByMatch[msg.match_id] = (msgCountByMatch[msg.match_id] || 0) + 1;
   });
 
-  const filteredMatches = matches.filter(match => {
+  // Build one-sided swipe entries (liked but no match)
+  const matchedPairKeys = new Set();
+  matches.forEach(m => {
+    matchedPairKeys.add(`${m.user1_id}:${m.user2_id}`);
+    matchedPairKeys.add(`${m.user2_id}:${m.user1_id}`);
+  });
+
+  const donPhuongEntries = (oneSidedSwipes || [])
+    .filter(sa => sa.action === 'like' && !sa.is_match && !matchedPairKeys.has(`${sa.swiper_id}:${sa.swiped_id}`))
+    .map(sa => ({
+      _type: 'don_phuong',
+      id: sa.id,
+      user1_id: sa.swiper_id,
+      user2_id: sa.swiped_id,
+      status: 'don_phuong',
+      created_date: sa.created_date,
+    }));
+
+  const allEntries = [
+    ...matches.map(m => ({ ...m, _type: 'match' })),
+    ...donPhuongEntries,
+  ];
+
+  const filteredMatches = allEntries.filter(entry => {
+    // Status filter
+    if (matchStatusFilter && matchStatusFilter !== 'all' && entry.status !== matchStatusFilter) return false;
+    // Search filter
     if (!search.trim()) return true;
     const q = search.toLowerCase();
-    const p1 = profileMap[match.user1_id];
-    const p2 = profileMap[match.user2_id];
+    const p1 = profileMap[entry.user1_id];
+    const p2 = profileMap[entry.user2_id];
     return (
-      match.user1_id?.toLowerCase().includes(q) ||
-      match.user2_id?.toLowerCase().includes(q) ||
+      entry.user1_id?.toLowerCase().includes(q) ||
+      entry.user2_id?.toLowerCase().includes(q) ||
       p1?.display_name?.toLowerCase().includes(q) ||
       p2?.display_name?.toLowerCase().includes(q) ||
       p1?.school?.toLowerCase().includes(q) ||
@@ -191,16 +224,16 @@ export default function AdminMatches() {
             {/* Search and filters */}
             <div className="flex gap-3 flex-wrap">
               <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/60 z-10" />
                 <Input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Tìm theo tên, email..."
-                  className="pl-9 bg-muted/40 border-primary/15 focus:border-primary/40 font-body text-sm"
+                  className="pl-9 bg-[rgba(10,18,11,0.75)] backdrop-blur-md border-primary/15 focus:border-primary/40 font-body text-sm"
                 />
               </div>
               <Select value={roleFilterValue} onValueChange={setRoleFilterValue}>
-                <SelectTrigger className="w-[140px] h-9 text-xs bg-muted/40 border-primary/15 text-foreground">
+                <SelectTrigger className="w-[140px] h-9 text-xs bg-[rgba(10,18,11,0.75)] backdrop-blur-md border-primary/15 text-foreground">
                   <SelectValue placeholder="Tất cả vai trò" />
                 </SelectTrigger>
                 <SelectContent>
@@ -314,15 +347,29 @@ export default function AdminMatches() {
 
           <TabsContent value="matches" className="mt-5">
           <div className="space-y-4">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Tìm theo tên, email, trường..."
-                className="pl-9 bg-muted/40 border-primary/15 focus:border-primary/40 font-body text-sm"
-              />
+            {/* Search and filters */}
+            <div className="flex gap-3 flex-wrap">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/60 z-10" />
+                <Input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Tìm theo tên, email, trường..."
+                  className="pl-9 bg-[rgba(10,18,11,0.75)] backdrop-blur-md border-primary/15 focus:border-primary/40 font-body text-sm"
+                />
+              </div>
+              <Select value={matchStatusFilter} onValueChange={setMatchStatusFilter}>
+                <SelectTrigger className="w-[140px] h-9 text-xs bg-[rgba(10,18,11,0.75)] backdrop-blur-md border-primary/15 text-foreground">
+                  <SelectValue placeholder="Tất cả trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="matched">Matched</SelectItem>
+                  <SelectItem value="team_invited">Đã mời</SelectItem>
+                  <SelectItem value="team_joined">Trong đội</SelectItem>
+                  <SelectItem value="don_phuong">Đơn phương</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Matches table */}
@@ -332,8 +379,7 @@ export default function AdminMatches() {
               </div>
             ) : filteredMatches.length === 0 ? (
               <div className="text-center py-16">
-                <Heart className="w-10 h-10 text-primary/10 mx-auto mb-3" />
-                <p className="font-body text-sm text-muted-foreground">Không tìm thấy match nào</p>
+                <p className="font-body text-sm text-muted-foreground">Không tìm thấy kết quả nào</p>
               </div>
             ) : (
               <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
@@ -342,25 +388,33 @@ export default function AdminMatches() {
                     <tr className="border-b border-primary/10 bg-muted/20">
                       <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider w-8">#</th>
                       <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">User 1</th>
-                      <th className="text-center px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider w-12"></th>
                       <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">User 2</th>
-                      <th className="text-center px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider hidden sm:table-cell">Tin nhắn</th>
+                      <th className="text-center px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider hidden sm:table-cell">Số tin nhắn</th>
                       <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Trạng thái</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-primary/8">
-                    {filteredMatches.map((match, i) => {
-                      const p1 = profileMap[match.user1_id];
-                      const p2 = profileMap[match.user2_id];
-                      const msgCount = msgCountByMatch[match.id] || 0;
-                      const statusLabel = {
+                    {filteredMatches.map((entry, i) => {
+                      const p1 = profileMap[entry.user1_id];
+                      const p2 = profileMap[entry.user2_id];
+                      const msgCount = msgCountByMatch[entry.id] || 0;
+                      /** @type {Record<string, string>} */
+                      const statusStyles = {
+                        matched: 'text-pink-400 bg-pink-400/10',
+                        team_invited: 'text-yellow-400 bg-yellow-400/10',
+                        team_joined: 'text-primary bg-primary/10',
+                        don_phuong: 'text-orange-400 bg-orange-400/10',
+                      };
+                      /** @type {Record<string, string>} */
+                      const statusLabels = {
                         matched: 'Matched',
                         team_invited: 'Đã mời',
                         team_joined: 'Trong đội',
-                      }[match.status] || match.status;
+                        don_phuong: 'Đơn phương',
+                      };
 
                       return (
-                        <tr key={match.id} className="hover:bg-primary/5 transition-colors">
+                        <tr key={entry.id} className="hover:bg-primary/5 transition-colors">
                           <td className="px-4 py-3 text-xs text-muted-foreground/50">{i + 1}</td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
@@ -370,11 +424,8 @@ export default function AdminMatches() {
                                   : <div className="w-full h-full flex items-center justify-center"><User className="w-4 h-4 text-primary/30" /></div>
                                 }
                               </div>
-                              <span className="font-medium text-sm text-foreground truncate max-w-[150px]">{p1?.display_name || match.user1_id.slice(0, 8)}</span>
+                              <span className="font-medium text-sm text-foreground truncate max-w-[150px]">{p1?.display_name || entry.user1_id.slice(0, 8)}</span>
                             </div>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <Heart className="w-4 h-4 text-pink-400 mx-auto" />
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
@@ -384,7 +435,7 @@ export default function AdminMatches() {
                                   : <div className="w-full h-full flex items-center justify-center"><User className="w-4 h-4 text-primary/30" /></div>
                                 }
                               </div>
-                              <span className="font-medium text-sm text-foreground truncate max-w-[150px]">{p2?.display_name || match.user2_id.slice(0, 8)}</span>
+                              <span className="font-medium text-sm text-foreground truncate max-w-[150px]">{p2?.display_name || entry.user2_id.slice(0, 8)}</span>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-center text-xs text-muted-foreground hidden sm:table-cell">
@@ -394,11 +445,9 @@ export default function AdminMatches() {
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <span className={`text-[11px] px-2.5 py-1 rounded-md font-medium ${
-                              match.status === 'team_joined' ? 'text-primary bg-primary/10' :
-                              match.status === 'team_invited' ? 'text-yellow-400 bg-yellow-400/10' :
-                              'text-pink-400 bg-pink-400/10'
-                            }`}>{statusLabel}</span>
+                            <span className={`text-[11px] px-2.5 py-1 rounded-md font-medium ${statusStyles[entry.status] || ''}`}>
+                              {statusLabels[entry.status] || entry.status}
+                            </span>
                           </td>
                         </tr>
                       );
