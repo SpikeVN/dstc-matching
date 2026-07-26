@@ -13,9 +13,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
 
 const TABS = [
-  { id: 'account', label: 'Tài khoản', icon: User },
+  { id: 'password', label: 'Bảo mật', icon: KeyRound },
   { id: 'privacy', label: 'Quyền riêng tư', icon: Eye },
-  { id: 'password', label: 'Mật khẩu', icon: KeyRound },
   { id: 'activity', label: 'Nhật ký', icon: Activity },
   { id: 'terms', label: 'Điều khoản', icon: FileText },
   { id: 'support', label: 'Hỗ trợ', icon: HelpCircle },
@@ -137,6 +136,7 @@ export default function Settings() {
     }
     try {
       await db.auth.updateInfoShown(backendPayload);
+      queryClient.invalidateQueries({ queryKey: ['allProfiles'] });
     } catch (err) {
       console.error('Failed to save privacy settings:', err);
     }
@@ -184,59 +184,6 @@ export default function Settings() {
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'account':
-        return (
-          <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
-            <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
-              <User className="w-4 h-4 text-primary" />
-              <h3 className="font-display text-sm font-semibold text-primary">Thông tin tài khoản</h3>
-            </div>
-            <div className="p-4 space-y-4">
-              {/* Email (read-only) */}
-              <div className="space-y-1.5">
-                <Label className="font-body text-xs text-muted-foreground">Email</Label>
-                <Input
-                  value={currentUser?.email || ''}
-                  disabled
-                  className="text-sm bg-muted/30 border-primary/10 font-body text-muted-foreground cursor-not-allowed"
-                />
-              </div>
-
-              {/* Username (editable) */}
-              <div className="space-y-1.5">
-                <Label className="font-body text-xs text-muted-foreground">Tên đăng nhập</Label>
-                <Input
-                  value={usernameForm}
-                  onChange={(e) => {
-                    setUsernameForm(e.target.value);
-                    setUsernameMsg('');
-                  }}
-                  placeholder="ten_dang_nhap"
-                  maxLength={20}
-                  className="text-sm bg-muted/50 border-primary/15 focus:border-primary/50 font-body"
-                />
-                <p className="text-[11px] font-body text-muted-foreground/50">
-                  3–20 ký tự, chỉ chữ cái, số và dấu gạch dưới
-                </p>
-              </div>
-
-              {usernameMsg && (
-                <p className={`text-xs font-body ${usernameMsg.startsWith('✓') ? 'text-primary' : 'text-destructive'}`}>
-                  {usernameMsg}
-                </p>
-              )}
-
-              <Button
-                onClick={handleUsernameChange}
-                disabled={usernameLoading || usernameForm.trim() === (currentUser?.username || '')}
-                className="w-full h-9 font-display text-xs font-medium bg-primary text-background hover:bg-primary/90 transition-all duration-200"
-              >
-                {usernameLoading ? 'Đang lưu...' : 'Cập nhật tên đăng nhập'}
-              </Button>
-            </div>
-          </div>
-        );
-
       case 'privacy':
         return (
           <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
@@ -361,7 +308,7 @@ export default function Settings() {
                 <p className="font-body font-medium text-foreground text-sm">1. Chấp nhận điều khoản</p>
                 <p>Bằng cách sử dụng nền tảng DSTC Matching, bạn đồng ý tuân thủ các điều khoản và điều kiện được nêu trong tài liệu này. Nếu bạn không đồng ý, vui lòng không sử dụng dịch vụ.</p>
                 <p className="font-body font-medium text-foreground text-sm">2. Mục đích sử dụng</p>
-                <p>Nền tảng này được xây dựng với mục đích duy nhất là kết nối thí sinh tham gia cuộc thi <span className="text-primary">Data Science Talent Competition 2026: Vietnam Quant Challenge</span> do CLB Khoa học công nghệ trong Kinh tế và Kinh doanh - CTE FTU tổ chức. Nghiêm cấm sử dụng cho mục đích khác.</p>
+                <p>Nền tảng này được xây dựng với mục đích duy nhất là kết nối thí sinh tham gia cuộc thi <span className="text-primary">Data Science Talent Competition 2026</span> do CLB Khoa học công nghệ trong Kinh tế và Kinh doanh - CTE FTU tổ chức. Nghiêm cấm sử dụng cho mục đích khác.</p>
                 <p className="font-body font-medium text-foreground text-sm">3. Tài khoản người dùng</p>
                 <p>Bạn chịu trách nhiệm bảo mật thông tin đăng nhập và toàn bộ hoạt động được thực hiện dưới tài khoản của bạn. Thông tin hồ sơ phải trung thực và chính xác.</p>
                 <p className="font-body font-medium text-foreground text-sm">4. Nội dung người dùng</p>
@@ -553,7 +500,7 @@ export default function Settings() {
                 <div className="h-px bg-primary/10 my-2" />
               </div>
             </div>
-                <p className="text-[10px] text-muted-foreground/50">Bản quyền © 2026 CLB Khoa học Công nghệ trong Kinh tế và Kinh doanh. Bảo lưu mọi quyền.</p>
+            <p className="text-[10px] text-muted-foreground/50">Bản quyền © 2026 CLB Khoa học Công nghệ trong Kinh tế và Kinh doanh. Bảo lưu mọi quyền.</p>
           </div>
         );
 

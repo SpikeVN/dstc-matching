@@ -6,10 +6,10 @@ from auth.dependencies import get_current_user
 router = APIRouter(prefix="/api/admin")
 
 # ── Role hierarchy constants ─────────────────────────────────────────────────
-ROLE_HIERARCHY = {"owner": 0, "mod": 1, "manager": 2, "user": 3}
+ROLE_HIERARCHY = {"owner": 0, "manager": 1, "mod": 2, "user": 3}
 
 
-def _require_admin_role(user: dict, min_role: str = "manager"):
+def _require_admin_role(user: dict, min_role: str = "mod"):
     """Check if user has at least the specified admin role."""
     user_role = user.get("admin_role", "user")
     if ROLE_HIERARCHY.get(user_role, 3) > ROLE_HIERARCHY.get(min_role, 3):
@@ -24,15 +24,11 @@ def _can_manage_user(current_user: dict, target_prefs: dict) -> bool:
     current_role = current_user.get("admin_role", "user")
     target_role = target_prefs.get("admin_role", "user")
 
-    # Owner can manage anyone
-    if current_role == "owner":
-        return True
+    current_level = ROLE_HIERARCHY.get(current_role, 3)
+    target_level = ROLE_HIERARCHY.get(target_role, 3)
 
-    # Mod can manage managers and users (not other mods or owners)
-    if current_role == "mod":
-        return ROLE_HIERARCHY.get(target_role, 3) >= ROLE_HIERARCHY.get("manager", 2)
-
-    return False
+    # Can only manage users with strictly lower privilege (higher numeric level)
+    return current_level < target_level
 
 
 # ── Request models ────────────────────────────────────────────────────────────
@@ -54,8 +50,8 @@ async def list_users(
     request: Request,
     user: dict = Depends(get_current_user),
 ):
-    """List all users with their admin roles. Requires manager+ role."""
-    _require_admin_role(user, "manager")
+    """List all users with their admin roles. Requires mod+ role."""
+    _require_admin_role(user, "mod")
 
     query = """
         SELECT
@@ -104,7 +100,7 @@ async def list_users(
 @router.get("/users/{user_id}")
 async def get_user(user_id: str, user: dict = Depends(get_current_user)):
     """Get a specific user's admin details. Requires manager+ role."""
-    _require_admin_role(user, "manager")
+    _require_admin_role(user, "mod")
 
     target = await fetch_one(
         """
@@ -145,6 +141,12 @@ async def update_user_role(
     # Can't assign owner role
     if req.admin_role == "owner":
         raise HTTPException(status_code=400, detail="Cannot assign owner role")
+
+    # Can't assign a role equal to or higher than your own
+    assigner_level = ROLE_HIERARCHY.get(user.get("admin_role", "user"), 3)
+    target_level = ROLE_HIERARCHY.get(req.admin_role, 3)
+    if target_level <= assigner_level:
+        raise HTTPException(status_code=403, detail="Cannot assign a role equal to or higher than your own")
 
     # Get target's current preferences
     target_prefs = await fetch_one(
@@ -205,7 +207,7 @@ async def update_user_visibility(
     user: dict = Depends(get_current_user),
 ):
     """Toggle user visibility in matching algorithms. Requires manager+ role."""
-    _require_admin_role(user, "manager")
+    _require_admin_role(user, "mod")
 
     # Users can toggle their own visibility
     if user_id == user["id"]:
@@ -267,14 +269,14 @@ async def update_user_visibility(
 @router.get("/roles")
 async def get_role_info(user: dict = Depends(get_current_user)):
     """Get role hierarchy info. Requires manager+ role."""
-    _require_admin_role(user, "manager")
+    _require_admin_role(user, "mod")
 
     return {
         "hierarchy": ROLE_HIERARCHY,
         "roles": [
-            {"name": "owner", "description": "Full access, can assign mods", "level": 0},
-            {"name": "mod", "description": "Can manage managers and users", "level": 1},
-            {"name": "manager", "description": "Access to admin panel", "level": 2},
+            {"name": "owner", "description": "Full access, can assign any role", "level": 0},
+            {"name": "manager", "description": "Quản lý — can manage giám sát and users", "level": 1},
+            {"name": "mod", "description": "Giám sát — can manage users only", "level": 2},
             {"name": "user", "description": "Regular user", "level": 3},
         ],
     }
@@ -283,7 +285,7 @@ async def get_role_info(user: dict = Depends(get_current_user)):
 @router.get("/stats")
 async def get_admin_stats(user: dict = Depends(get_current_user)):
     """Get admin dashboard statistics. Requires manager+ role."""
-    _require_admin_role(user, "manager")
+    _require_admin_role(user, "mod")
 
     total_users = await fetch_one("SELECT COUNT(*) as count FROM contestant_profiles")
     total_admins = await fetch_one(

@@ -1,8 +1,8 @@
 import { db } from '@/api/apiClient';
 
-import React, { useState } from 'react';
+import React, { useState, useDeferredValue } from 'react';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Users, Search, Heart, MessageCircle, User, Shield, Eye, EyeOff } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { format, addHours } from 'date-fns';
@@ -15,10 +15,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+/** @type {Record<string, number>} Lower = more privilege */
+const ROLE_HIERARCHY = { owner: 0, manager: 1, mod: 2, user: 3 };
+
 const ADMIN_ROLES = [
   { value: 'owner', label: 'Owner', color: 'text-yellow-400', bg: 'bg-yellow-400/10' },
-  { value: 'mod', label: 'Mod', color: 'text-purple-400', bg: 'bg-purple-400/10' },
-  { value: 'manager', label: 'Manager', color: 'text-blue-400', bg: 'bg-blue-400/10' },
+  { value: 'manager', label: 'Quản lý', color: 'text-blue-400', bg: 'bg-blue-400/10' },
+  { value: 'mod', label: 'Giám sát', color: 'text-purple-400', bg: 'bg-purple-400/10' },
   { value: 'user', label: 'User', color: 'text-muted-foreground', bg: 'bg-muted/50' },
 ];
 
@@ -37,13 +40,17 @@ export default function AdminMatches() {
   const [roleFilter, setRoleFilter] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [roleFilterValue, setRoleFilterValue] = useState('');
+  const deferredSearch = useDeferredValue(search);
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => db.auth.me(),
   });
 
-  const canManageRoles = ['owner', 'mod'].includes(currentUser?.admin_role);
+  const currentUserLevel = (ROLE_HIERARCHY)[currentUser?.admin_role] ?? 3;
+  const canManageRoles = currentUserLevel < ROLE_HIERARCHY.user;
+  // Roles the current user is allowed to assign (strictly lower privilege, never owner)
+  const assignableRoles = ADMIN_ROLES.filter(r => (ROLE_HIERARCHY)[r.value] > currentUserLevel && r.value !== 'owner');
 
   // ── Match data ──────────────────────────────────────────────────
   const { data: matches, isLoading: loadingMatches } = useQuery({
@@ -66,9 +73,10 @@ export default function AdminMatches() {
 
   // ── User management data ────────────────────────────────────────
   const { data: adminUsers, isLoading: loadingUsers } = useQuery({
-    queryKey: ['adminUsers', roleFilterValue, search],
-    queryFn: () => db.admin.listUsers({ role: roleFilterValue === 'all' ? undefined : roleFilterValue || undefined, search: search || undefined }),
+    queryKey: ['adminUsers', roleFilterValue, deferredSearch],
+    queryFn: () => db.admin.listUsers({ role: roleFilterValue === 'all' ? undefined : roleFilterValue || undefined, search: deferredSearch || undefined }),
     initialData: [],
+    placeholderData: keepPreviousData,
     enabled: currentUser?.admin_role !== 'user',
   });
 
@@ -198,8 +206,8 @@ export default function AdminMatches() {
                 <SelectContent>
                   <SelectItem value="all">Tất cả vai trò</SelectItem>
                   <SelectItem value="owner">Owner</SelectItem>
-                  <SelectItem value="mod">Mod</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="manager">Quản lý</SelectItem>
+                  <SelectItem value="mod">Giám sát</SelectItem>
                   <SelectItem value="user">User</SelectItem>
                 </SelectContent>
               </Select>
@@ -224,7 +232,7 @@ export default function AdminMatches() {
                       <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Email</th>
                       <th className="text-center px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Vai trò</th>
                       <th className="text-center px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Hiển thị</th>
-                      <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider hidden sm:table-cell">Gán ngày</th>
+                      <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider hidden sm:table-cell">Sửa lần cuối</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-primary/8">
@@ -243,16 +251,36 @@ export default function AdminMatches() {
                         </td>
                         <td className="px-4 py-3 text-xs text-muted-foreground truncate max-w-[200px]">{u.email}</td>
                         <td className="px-4 py-3 text-center">
-                          {canManageRoles ? (
+                          {u.id === currentUser?.id ? (
+                            <Select value={u.admin_role} disabled>
+                              <SelectTrigger className="h-7 text-xs font-medium px-2 border border-primary/20 bg-transparent text-foreground gap-1 w-[96px] opacity-60 cursor-not-allowed">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {ADMIN_ROLES.filter(r => r.value === u.admin_role).map(r => (
+                                  <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : u.admin_role === 'owner' ? (
+                            <Select value="owner" disabled>
+                              <SelectTrigger className="h-7 text-xs font-medium px-2 border border-primary/20 bg-transparent text-foreground gap-1 w-[96px] opacity-60 cursor-not-allowed">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="owner">Owner</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : canManageRoles ? (
                             <Select
                               value={u.admin_role}
                               onValueChange={role => roleMutation.mutate({ userId: u.id, role })}
                             >
-                              <SelectTrigger className="h-7 text-xs font-medium px-2 border border-primary/20 bg-transparent text-foreground gap-1 w-auto min-w-[80px]">
+                              <SelectTrigger className="h-7 text-xs font-medium px-2 border border-primary/20 bg-transparent text-foreground gap-1 w-[96px]">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {ADMIN_ROLES.filter(r => r.value !== 'owner').map(r => (
+                                {assignableRoles.map(r => (
                                   <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
                                 ))}
                               </SelectContent>
