@@ -54,7 +54,7 @@ function ActivityItem({ icon: Icon, title, desc, time, color = 'text-primary' })
 export default function Settings() {
   const { logout } = useAuth();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('account');
+  const [activeTab, setActiveTab] = useState('password');
   const [privacy, setPrivacy] = useState({
     showAge: true,
     showGender: true,

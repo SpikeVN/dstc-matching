@@ -25,6 +25,7 @@ const buttonVariants = cva(
         sm: "h-8 rounded-md px-3 text-xs",
         lg: "h-10 rounded-md px-8",
         icon: "h-9 w-9",
+        "icon-sm": "h-8 w-8",
       },
     },
     defaultVariants: {
@@ -36,6 +37,10 @@ const buttonVariants = cva(
 
 const Button = React.forwardRef(({ className, variant, size, asChild = false, ...props }, ref) => {
   const Comp = asChild ? Slot : "button"
+  // React 18 warns on boolean `inert`; normalize to string
+  if (typeof props.inert === 'boolean') {
+    props.inert = props.inert ? '' : undefined;
+  }
   return (
     (<Comp
       className={cn(buttonVariants({ variant, size, className }))}

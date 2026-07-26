@@ -29,7 +29,6 @@ export default function NotificationBell() {
     },
     initialData: [],
     enabled: !!currentUser,
-    refetchInterval: 10000,
   });
 
   const { data: recentMatches } = useQuery({

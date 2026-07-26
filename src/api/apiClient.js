@@ -337,9 +337,10 @@ export async function markProfileVisited(profileId) {
 
 const integrationsClient = {
   Core: {
-    UploadFile: async ({ file }) => {
+    UploadFile: async ({ file, bucket }) => {
       const formData = new FormData();
       formData.append('file', file);
+      if (bucket) formData.append('bucket', bucket);
       const headers = {};
       if (accessToken) {
         headers['Authorization'] = `Bearer ${accessToken}`;

@@ -151,7 +151,6 @@ export default function Dashboard() {
     },
     initialData: [],
     enabled: !!currentUser,
-    refetchInterval: 10000,
   });
 
   const { data: swipes } = useQuery({

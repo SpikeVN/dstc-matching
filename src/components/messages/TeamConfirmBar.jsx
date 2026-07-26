@@ -14,7 +14,6 @@ export default function TeamConfirmBar({ match, currentUser, otherProfile }) {
     queryKey: ['match', match.id],
     queryFn: () => db.entities.Match.get(match.id),
     initialData: match,
-    refetchInterval: 5000,
   });
 
   const isUser1 = currentUser?.id === currentMatch?.user1_id;

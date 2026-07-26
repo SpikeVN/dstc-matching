@@ -31,6 +31,10 @@ export default defineConfig({
         target: 'http://localhost:36918',
         changeOrigin: true,
       },
+      '/realtime': {
+        target: 'ws://localhost:54321',
+        ws: true,
+      },
     },
   },
 })

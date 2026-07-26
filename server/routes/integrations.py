@@ -4,7 +4,7 @@ import os
 import uuid
 
 import httpx
-from fastapi import APIRouter, UploadFile, File, Depends
+from fastapi import APIRouter, UploadFile, File, Form, Depends
 from pydantic import BaseModel
 
 from auth.dependencies import get_current_user
@@ -24,17 +24,49 @@ class EmailRequest(BaseModel):
 
 
 MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5 MB
-ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf", ".docx", ".odt"}
 
-IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".tiff"}
+DOCUMENT_EXTENSIONS = {".pdf", ".docx", ".odt", ".txt", ".md", ".rtf"}
+CODE_EXTENSIONS = {
+    ".py", ".js", ".ts", ".jsx", ".tsx", ".java", ".cpp", ".c", ".h",
+    ".go", ".rs", ".rb", ".php", ".sql", ".sh", ".json", ".yaml", ".yml",
+    ".toml", ".xml", ".html", ".css", ".scss", ".vue", ".svelte",
+}
+NOTEBOOK_EXTENSIONS = {".ipynb"}
+ARCHIVE_EXTENSIONS = {".zip", ".tar", ".gz", ".tgz", ".bz2", ".xz", ".7z", ".rar"}
+
+ALLOWED_EXTENSIONS = (
+    IMAGE_EXTENSIONS | DOCUMENT_EXTENSIONS | CODE_EXTENSIONS
+    | NOTEBOOK_EXTENSIONS | ARCHIVE_EXTENSIONS
+)
 
 # Bucket names (must exist in Supabase Storage)
 BUCKET_PROFILE_PICTURES = "profile_pictures"
 BUCKET_CV = "cv"
+BUCKET_UPLOADS = "uploads"
+
+
+def _classify_file(ext: str) -> str:
+    """Classify a file extension into a category for the frontend."""
+    if ext in IMAGE_EXTENSIONS:
+        return "image"
+    if ext in DOCUMENT_EXTENSIONS:
+        return "document"
+    if ext in CODE_EXTENSIONS:
+        return "code"
+    if ext in NOTEBOOK_EXTENSIONS:
+        return "notebook"
+    if ext in ARCHIVE_EXTENSIONS:
+        return "archive"
+    return "file"
 
 
 @router.post("/upload")
-async def upload_file(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+async def upload_file(
+    file: UploadFile = File(...),
+    bucket: str = Form(default=""),
+    user: dict = Depends(get_current_user),
+):
     ext = _get_ext(file.filename)
     if ext not in ALLOWED_EXTENSIONS:
         return {"file_url": "", "error": f"File type {ext} not allowed"}
@@ -43,8 +75,10 @@ async def upload_file(file: UploadFile = File(...), user: dict = Depends(get_cur
     if len(content) > MAX_UPLOAD_SIZE:
         return {"file_url": "", "error": "File too large (max 5 MB)"}
 
-    # Choose bucket based on file type
-    if ext in IMAGE_EXTENSIONS:
+    # Choose bucket: explicit override or default based on file type
+    if bucket == "uploads":
+        bucket = BUCKET_UPLOADS
+    elif ext in IMAGE_EXTENSIONS:
         bucket = BUCKET_PROFILE_PICTURES
     else:
         bucket = BUCKET_CV
@@ -74,7 +108,7 @@ async def upload_file(file: UploadFile = File(...), user: dict = Depends(get_cur
         return {"file_url": "", "error": f"Storage upload failed: {exc}"}
 
     public_url = f"{SUPABASE_PUBLIC_URL}/storage/v1/object/public/{bucket}/{filename}"
-    return {"file_url": public_url}
+    return {"file_url": public_url, "file_category": _classify_file(ext)}
 
 
 @router.post("/send-email")

@@ -14,10 +14,16 @@ class MessageCreate(BaseModel):
     receiver_id: str = ""
     content: str
     is_read: bool = False
+    attachment_url: str = ""
+    attachment_type: str = ""
+    attachment_name: str = ""
+    attachment_category: str = ""
 
 
 class MessageUpdate(BaseModel):
     is_read: Optional[bool] = None
+    delivered_at: Optional[str] = None
+    read_at: Optional[str] = None
 
 
 @router.get("")
@@ -65,9 +71,11 @@ async def create_message(msg: MessageCreate, user: dict = Depends(get_current_us
             receiver_id = match["user2_id"] if match["user1_id"] == msg.sender_id else match["user1_id"]
 
     await execute("""
-        INSERT INTO messages (id, created_date, updated_date, match_id, sender_id, receiver_id, content, is_read)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    """, mid, now_ts, now_ts, msg.match_id, msg.sender_id, receiver_id or "", msg.content, msg.is_read)
+        INSERT INTO messages (id, created_date, updated_date, match_id, sender_id, receiver_id, content, is_read,
+            attachment_url, attachment_type, attachment_name, attachment_category)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+    """, mid, now_ts, now_ts, msg.match_id, msg.sender_id, receiver_id or "", msg.content, msg.is_read,
+         msg.attachment_url, msg.attachment_type, msg.attachment_name, msg.attachment_category)
 
     # Send message notification email to receiver
     if receiver_id:
@@ -156,3 +164,42 @@ async def delete_message(message_id: str, user: dict = Depends(get_current_user)
         raise HTTPException(status_code=403, detail="Not authorized to delete this message")
     await execute("DELETE FROM messages WHERE id = $1", message_id)
     return {"success": True}
+
+
+class MarkReadRequest(BaseModel):
+    match_id: str
+
+
+@router.post("/mark-read")
+async def mark_read(data: MarkReadRequest, user: dict = Depends(get_current_user)):
+    """Mark all unread messages in a match as read for the current user."""
+    # Verify user is a participant in this match
+    match = await fetch_one("SELECT * FROM matches WHERE id = $1", data.match_id)
+    if not match or user["id"] not in (match["user1_id"], match["user2_id"]):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    now_ts = now()
+    result = await execute("""
+        UPDATE messages
+        SET is_read = true, read_at = $1, delivered_at = COALESCE(delivered_at, $1), updated_date = $1
+        WHERE match_id = $2 AND receiver_id = $3 AND is_read = false
+    """, now_ts, data.match_id, user["id"])
+
+    return {"success": True, "updated_count": int(result.split()[-1]) if result else 0}
+
+
+@router.post("/mark-delivered")
+async def mark_delivered(data: MarkReadRequest, user: dict = Depends(get_current_user)):
+    """Mark all undelivered messages in a match as delivered for the current user."""
+    match = await fetch_one("SELECT * FROM matches WHERE id = $1", data.match_id)
+    if not match or user["id"] not in (match["user1_id"], match["user2_id"]):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    now_ts = now()
+    result = await execute("""
+        UPDATE messages
+        SET delivered_at = $1, updated_date = $1
+        WHERE match_id = $2 AND receiver_id = $3 AND delivered_at IS NULL
+    """, now_ts, data.match_id, user["id"])
+
+    return {"success": True, "updated_count": int(result.split()[-1]) if result else 0}
