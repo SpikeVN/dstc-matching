@@ -152,10 +152,10 @@ export default function TeamPage() {
               {invites.map(inv => (
                 <div key={inv.id} className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/10">
                   <div>
-                    <p className="font-mono text-sm font-medium text-foreground">
+                    <p className="text-sm font-medium text-foreground">
                       {profileMap[inv.inviter_id]?.display_name || inv.inviter_id}
                     </p>
-                    <p className="text-xs text-muted-foreground font-mono">mời bạn vào đội</p>
+                    <p className="text-xs text-muted-foreground ">mời bạn vào đội</p>
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" className="h-8 w-8 p-0 bg-primary text-background hover:bg-primary/90"
@@ -179,13 +179,13 @@ export default function TeamPage() {
             <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
               <Crown className="w-4 h-4 text-primary" />
               <h3 className="font-display text-sm font-semibold text-primary flex-1">{leaderTeam.name}</h3>
-              <span className="font-mono text-[10px] text-muted-foreground px-2 py-0.5 rounded border border-primary/10">
+              <span className="text-[10px] text-muted-foreground px-2 py-0.5 rounded border border-primary/10">
                 {(leaderTeam.member_ids || []).length}/{leaderTeam.max_members || 4}
               </span>
             </div>
 
             <div className="p-3 space-y-2">
-              <p className="font-mono text-[10px] text-primary/50 px-1">{statusLabel[leaderTeam.status]}</p>
+              <p className="text-[10px] text-primary/50 px-1">{statusLabel[leaderTeam.status]}</p>
               {(leaderTeam.member_ids || []).map(email => {
                 const p = profileMap[email];
                 const isLeader = email === leaderTeam.leader_id;
@@ -201,7 +201,7 @@ export default function TeamPage() {
                       )}
                     </div>
                     <div className="flex-1">
-                      <p className="font-mono text-sm font-medium text-foreground">{p?.display_name || email}</p>
+                      <p className="text-sm font-medium text-foreground">{p?.display_name || email}</p>
                       {p?.role && <p className={`font-display text-[10px] ${ROLE_COLORS[p.role] || 'text-primary'}`}>{p.role}</p>}
                     </div>
                     {isLeader && <Crown className="w-4 h-4 text-primary" />}
@@ -213,7 +213,7 @@ export default function TeamPage() {
             {/* Slots remaining */}
             {(leaderTeam.member_ids || []).length < (leaderTeam.max_members || 4) && (
               <div className="px-4 pb-4">
-                <p className="font-mono text-[10px] text-muted-foreground text-center py-3 border border-dashed border-primary/15 rounded-lg">
+                <p className="text-[10px] text-muted-foreground text-center py-3 border border-dashed border-primary/15 rounded-lg">
                   + {(leaderTeam.max_members || 4) - (leaderTeam.member_ids || []).length} slot còn trống · Mời thêm từ trang Matches
                 </p>
               </div>
@@ -231,7 +231,7 @@ export default function TeamPage() {
                   value={teamName}
                   onChange={e => setTeamName(e.target.value)}
                   placeholder="Nhập tên đội..."
-                  className="font-mono text-sm bg-muted/50 border-primary/20 focus:border-primary/50 text-foreground placeholder:text-muted-foreground"
+                  className="text-sm bg-muted/50 border-primary/20 focus:border-primary/50 text-foreground placeholder:text-muted-foreground"
                   onKeyDown={e => e.key === 'Enter' && teamName.trim() && createTeamMutation.mutate()}
                 />
                 <Button
@@ -242,7 +242,7 @@ export default function TeamPage() {
                   <Plus className="w-4 h-4" /> Tạo
                 </Button>
               </div>
-              <p className="font-mono text-[10px] text-muted-foreground mt-2">
+              <p className="text-[10px] text-muted-foreground mt-2">
                 Tối đa 4 thành viên / đội
               </p>
             </div>

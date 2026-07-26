@@ -7,7 +7,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { MessageCircle, User, Heart, GraduationCap, MapPin, Zap } from 'lucide-react';
-import PageFooter from '@/components/layout/PageFooter';
 
 const ROLE_COLORS = {
   'Data': 'bg-blue-500/10 border-blue-400/30 text-blue-300',
@@ -62,7 +61,7 @@ export default function Matches() {
               <Heart className="w-7 h-7" stroke="var(--accent-green)" />
             </div>
             <h2 className="font-display font-bold text-lg text-primary mb-2">Chưa có match</h2>
-            <p className="text-muted-foreground font-mono text-xs mb-5 leading-relaxed">
+            <p className="text-muted-foreground text-xs mb-5 leading-relaxed">
               Hãy khám phá và swipe để tìm đồng đội phù hợp nhé!
             </p>
             <Button
@@ -73,7 +72,6 @@ export default function Matches() {
             </Button>
           </div>
         </div>
-        <PageFooter />
       </div>
     );
   }
@@ -83,7 +81,7 @@ export default function Matches() {
       <div className="max-w-3xl mx-auto w-full flex-1 flex flex-col">
         <div className="mb-6">
           <h1 className="font-display font-bold text-lg text-primary">Matches của bạn</h1>
-          <p className="font-mono text-xs text-muted-foreground mt-1">{matches.length} kết nối thành công</p>
+          <p className="text-xs text-muted-foreground mt-1">{matches.length} kết nối thành công</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -118,12 +116,12 @@ export default function Matches() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-display font-bold text-sm text-foreground truncate">{profile?.display_name || 'Unknown'}</h3>
                         {profile?.role && (
-                          <span className={`font-mono text-[10px] px-2 py-0.5 rounded border ${ROLE_COLORS[profile.role] || 'border-primary/20 text-primary'}`}>
+                          <span className={`text-[10px] px-2 py-0.5 rounded border ${ROLE_COLORS[profile.role] || 'border-primary/20 text-primary'}`}>
                             {profile.role}
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mt-1 text-[11px] font-mono text-muted-foreground flex-wrap">
+                      <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground flex-wrap">
                         {profile?.school && (
                           <span className="flex items-center gap-1">
                             <GraduationCap className="w-3 h-3" /> {profile.school}
@@ -136,19 +134,19 @@ export default function Matches() {
                         )}
                       </div>
                       {exp && (
-                        <span className={`font-mono text-[10px] ${exp.color} mt-1 block`}>{exp.label}</span>
+                        <span className={`text-[10px] ${exp.color} mt-1 block`}>{exp.label}</span>
                       )}
                     </div>
                   </div>
 
                   {profile?.bio && (
-                    <p className="font-mono text-xs text-muted-foreground mt-3 line-clamp-2 leading-relaxed">{profile.bio}</p>
+                    <p className="text-xs text-muted-foreground mt-3 line-clamp-2 leading-relaxed">{profile.bio}</p>
                   )}
 
                   {(profile?.technical_skills || []).length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-3">
                       {profile.technical_skills.slice(0, 4).map(s => (
-                        <span key={s} className="font-mono text-[10px] px-2 py-0.5 rounded border border-primary/15 text-primary/70 bg-primary/5">{s}</span>
+                        <span key={s} className="text-[10px] px-2 py-0.5 rounded border border-primary/15 text-primary/70 bg-primary/5">{s}</span>
                       ))}
                     </div>
                   )}
@@ -175,7 +173,6 @@ export default function Matches() {
             );
           })}
         </div>
-        <PageFooter />
       </div>
     </div>
   );

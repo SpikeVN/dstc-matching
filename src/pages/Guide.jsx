@@ -3,7 +3,6 @@ import { db } from '@/api/apiClient';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, Star, LogIn, UserPlus, Search, HeartHandshake, AlertTriangle, Lightbulb, Building2, Handshake, Code2, Palette, Database } from 'lucide-react';
-import PageFooter from '@/components/layout/PageFooter';
 
 const STEPS = [
   {
@@ -185,7 +184,7 @@ export default function Guide() {
               <li>Xóa cache trình duyệt nếu cần.</li>
             </div>
             <p className="font-body text-xs text-muted-foreground leading-relaxed mt-2">
-              Nếu lỗi vẫn tiếp diễn, vui lòng liên hệ Ban Tổ chức.
+              Nếu lỗi vẫn tiếp diễn, vui lòng liên hệ Ban Tổ chức tại <a href="https://forms.gle/CEu614HLhth7xeVp7" className="text-accent underline">https://forms.gle/CEu614HLhth7xeVp7</a>
             </p>
           </div>
 
@@ -301,8 +300,6 @@ export default function Guide() {
           </p>
         </div>
 
-        {/* Footer */}
-        <PageFooter />
       </div>
     </div>
   );

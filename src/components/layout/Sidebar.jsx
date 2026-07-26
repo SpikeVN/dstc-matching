@@ -2,7 +2,7 @@ import { db } from '@/api/apiClient';
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { User, Heart, MessageCircle, Settings, LogOut, Sparkles, LayoutDashboard, BookOpen, Shield } from 'lucide-react';
+import { User, Heart, MessageCircle, Settings, LogOut, Sparkles, LayoutDashboard, BookOpen, Shield, HelpCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import NotificationBell from './NotificationBell';
@@ -10,7 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
 
 const navItems = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/discover', label: 'Khám phá', icon: Sparkles },
   { path: '/profile', label: 'Hồ sơ', icon: User },
   { path: '/matches', label: 'Đã match', icon: Heart },
@@ -35,7 +35,7 @@ export default function Sidebar() {
 
         <div className="leading-tight">
           <div className="font-display font-bold text-sm text-white">
-            DSTC 2026&ensp;<span className="text-gray-700">//</span>&ensp;VQC
+            DSTC 2026
 
           </div>
           <div className="font-display text-[12px] text-muted-foreground">Matching Platform</div>
@@ -51,7 +51,7 @@ export default function Sidebar() {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 font-mono text-sm group ${isActive
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm group ${isActive
                 ? 'bg-primary/10 text-primary'
                 : 'text-muted-foreground hover:bg-primary/5 hover:text-primary/80'
                 }`}>
@@ -65,32 +65,40 @@ export default function Sidebar() {
 
       {/* Footer logos */}
       <div className="p-3 border-t border-primary/10 space-y-3">
-        {currentUser?.role === 'admin' && (
-          <Link
-            to="/admin"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 font-mono text-sm group ${location.pathname === '/admin' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-primary/5 hover:text-primary/80'
-              }`}
-          >
-            <Shield className="w-4 h-4" /> Admin Match Viewer
-          </Link>
-        )}
         <div className="flex flex-col gap-1 px-2">
+          {['owner', 'mod', 'manager'].includes(currentUser?.admin_role) && (
+            <Link
+              to="/admin"
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm group ${location.pathname === '/admin' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-primary/5 hover:text-primary/80'
+                }`}
+            >
+              <Shield className="w-4 h-4" /> Admin Panel
+            </Link>
+          )}
           <NotificationBell />
           <Link
             to="/guide"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 font-mono text-sm group ${location.pathname === '/guide' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-primary/5 hover:text-primary/80'}`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm group ${location.pathname === '/guide' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-primary/5 hover:text-primary/80'}`}
           >
             <BookOpen className="w-4 h-4" /> Hướng dẫn
           </Link>
+          <a
+            href="https://forms.gle/CEu614HLhth7xeVp7"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm group text-muted-foreground hover:bg-primary/5 hover:text-primary/80"
+          >
+            <HelpCircle className="w-4 h-4" /> Hỗ trợ
+          </a>
           <Link
             to="/settings"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 font-mono text-sm group ${location.pathname === '/settings' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-primary/5 hover:text-primary/80'}`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm group ${location.pathname === '/settings' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-primary/5 hover:text-primary/80'}`}
           >
             <Settings className="w-4 h-4" /> Cài đặt
           </Link>
           <Button
             variant="ghost"
-            className="justify-start gap-3 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 font-mono text-sm h-auto py-3 w-full"
+            className="justify-start gap-3 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 text-sm h-auto py-3 w-full"
             onClick={logout}>
 
             <LogOut className="w-4 h-4" />

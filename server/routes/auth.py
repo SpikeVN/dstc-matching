@@ -1,3 +1,4 @@
+import json
 import re
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -8,6 +9,16 @@ from auth.dependencies import get_current_user
 from auth.jwt import verify_token
 from auth import gotrue
 from database import fetch_one, execute, generate_id, now
+
+# Default privacy settings: all fields visible
+DEFAULT_INFO_SHOWN = json.dumps({
+    "show_age": True,
+    "show_gender": True,
+    "show_location": True,
+    "show_school": True,
+    "show_major": True,
+    "show_achievements": True,
+})
 
 router = APIRouter(prefix="/auth")
 
@@ -98,6 +109,14 @@ async def signup(req: SignupRequest):
         req.email,
     )
 
+    # Create default user_preferences with all privacy fields enabled
+    await execute(
+        """INSERT INTO public.user_preferences (id, user_id, info_shown)
+           VALUES ($1, $2, $3::jsonb)
+           ON CONFLICT (user_id) DO NOTHING""",
+        generate_id(), user_id, DEFAULT_INFO_SHOWN,
+    )
+
     access_token = result.get("access_token")
     if not access_token:
         return {"requires_email_confirmation": True, "user": _user_from_gotrue(result)}
@@ -175,6 +194,14 @@ async def google_login(request: Request):
             picture, user["email"],
         )
 
+    # Create default user_preferences with all privacy fields enabled
+    await execute(
+        """INSERT INTO public.user_preferences (id, user_id, info_shown)
+           VALUES ($1, $2, $3::jsonb)
+           ON CONFLICT (user_id) DO NOTHING""",
+        generate_id(), user_id, DEFAULT_INFO_SHOWN,
+    )
+
     return {
         "access_token": access_token,
         "refresh_token": result.get("refresh_token"),
@@ -248,6 +275,14 @@ async def github_callback(req: GitHubCallbackRequest):
                VALUES ($1, $2, $3, $4, $5, $6)""",
             profile_id, user_id, full_name, username, avatar_url, user["email"],
         )
+
+    # Create default user_preferences with all privacy fields enabled
+    await execute(
+        """INSERT INTO public.user_preferences (id, user_id, info_shown)
+           VALUES ($1, $2, $3::jsonb)
+           ON CONFLICT (user_id) DO NOTHING""",
+        generate_id(), user_id, DEFAULT_INFO_SHOWN,
+    )
 
     return {
         "access_token": access_token,

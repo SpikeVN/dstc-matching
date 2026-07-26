@@ -125,7 +125,7 @@ export default function NotificationBell() {
       <button
         ref={buttonRef}
         onClick={handleToggle}
-        className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 font-mono text-sm w-full text-muted-foreground hover:bg-primary/5 hover:text-primary/80"
+        className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm w-full text-muted-foreground hover:bg-primary/5 hover:text-primary/80"
       >
         <Bell className="w-4 h-4" />
         Thông báo

@@ -3,7 +3,7 @@ import { db } from '@/api/apiClient';
 import React, { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 
 import { Textarea } from '@/components/ui/textarea';
-import { ChevronDown, Camera, Save, User, Briefcase, MessageSquare, Wrench, Brain, Sparkles, Medal, Target, Award, Plus, FileText, Upload, X, Link } from 'lucide-react';
+import { ChevronDown, Camera, Save, User, Briefcase, MessageSquare, Wrench, Brain, Sparkles, Medal, Target, Award, Plus, FileText, Upload, X, Link, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import ImageCropModal from '@/components/profile/ImageCropModal';
@@ -12,6 +12,13 @@ import {
   EXPERIENCE_OPTIONS, GOAL_OPTIONS, ROLE_OPTIONS, SOCIAL_PLATFORMS
 } from
   '@/lib/constants';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 // ─── Inline editable text field — underline style ──────────────────────────
 function InlineField({ label, value, onChange, placeholder, multiline = false, type = 'text', className = '' }) {
@@ -35,22 +42,20 @@ function InlineSelect({ label, value, options, onChange, placeholder }) {
   return (
     <div className="space-y-1">
       {label && <p className="font-display text-[10px] text-primary/60">{label}</p>}
-      <div className="relative">
-        <select
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-9 text-sm bg-transparent border-0 border-b-2 border-primary/20 hover:border-primary/30 focus:border-primary rounded-none pl-0 pr-6 py-2 w-full text-foreground focus:ring-0 focus:ring-offset-0 transition-colors focus:text-primary cursor-pointer appearance-none outline-none [&>option]:bg-card [&>option]:text-foreground"
-          style={{ colorScheme: 'dark' }}
-        >
-          <option value="" disabled>{placeholder || 'Chọn...'}</option>
+      <Select value={value || ''} onValueChange={onChange}>
+        <SelectTrigger className="h-9 text-sm bg-transparent border-0 border-b-2 border-primary/20 hover:border-primary/30 focus:border-primary rounded-none px-0 py-2 w-full text-foreground shadow-none focus:ring-0 focus:ring-offset-0 [&>svg]:text-foreground/40">
+          <SelectValue placeholder={placeholder || 'Chọn...'} />
+        </SelectTrigger>
+        <SelectContent>
           {options.map((o) => {
             const v = typeof o === 'string' ? o : o.value;
             const lbl = typeof o === 'string' ? o : o.label;
-            return <option key={v} value={v}>{lbl}</option>;
+            return (
+              <SelectItem key={v} value={v}>{lbl}</SelectItem>
+            );
           })}
-        </select>
-        <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40 pointer-events-none" />
-      </div>
+        </SelectContent>
+      </Select>
     </div>
   );
 }
@@ -443,12 +448,12 @@ const InlineProfileEditor = forwardRef(function InlineProfileEditor({ profile, o
 
       {/* ── Thành tích ──────────────────────────────────────────── */}
       <SectionCard icon={Award} title="Thành tích nổi bật">
-        <InlineField label="Thành tích trong Vòng 1 DSTC - VQC 2026" value={form.achievements}
+        <InlineField label="Thành tích trong Vòng 1 DSTC 2026" value={form.achievements}
           onChange={(v) => update('achievements', v)}
-          placeholder="VD: Top 10 DSTC 2025, Giải Nhì Hackathon ABC..." multiline />
+          placeholder="Thành tích của bạn..." multiline />
         <InlineField label="Thành tích khác" value={form.achievements_other}
           onChange={(v) => update('achievements_other', v)}
-          placeholder="Các giải thưởng, dự án, chứng chỉ nổi bật khác..." multiline />
+          placeholder="Các thành tích nổi bật khác" multiline />
       </SectionCard>
 
       {/* ── Liên kết ───────────────────────────────────── */}

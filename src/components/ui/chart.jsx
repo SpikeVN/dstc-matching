@@ -63,13 +63,13 @@ const ChartStyle = ({
           .map(([theme, prefix]) => `
 ${prefix} [data-chart=${id}] {
 ${colorConfig
-.map(([key, itemConfig]) => {
-const color =
-  itemConfig.theme?.[theme] ||
-  itemConfig.color
-return color ? `  --color-${key}: ${color};` : null
-})
-.join("\n")}
+              .map(([key, itemConfig]) => {
+                const color =
+                  itemConfig.theme?.[theme] ||
+                  itemConfig.color
+                return color ? `  --color-${key}: ${color};` : null
+              })
+              .join("\n")}
 }
 `)
           .join("\n"),
@@ -198,7 +198,7 @@ const ChartTooltipContent = React.forwardRef((
                       </span>
                     </div>
                     {item.value && (
-                      <span className="font-mono font-medium tabular-nums text-foreground">
+                      <span className="font-medium tabular-nums text-foreground">
                         {item.value.toLocaleString()}
                       </span>
                     )}
@@ -274,8 +274,8 @@ function getPayloadConfigFromPayload(
 
   const payloadPayload =
     "payload" in payload &&
-    typeof payload.payload === "object" &&
-    payload.payload !== null
+      typeof payload.payload === "object" &&
+      payload.payload !== null
       ? payload.payload
       : undefined
 

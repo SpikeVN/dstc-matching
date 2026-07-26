@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { User, Heart, MessageCircle, Sparkles, LayoutDashboard } from 'lucide-react';
 
 const navItems = [
-  { path: '/', label: 'Home', icon: LayoutDashboard },
+  { path: '/dashboard', label: 'Home', icon: LayoutDashboard },
   { path: '/discover', label: 'Khám phá', icon: Sparkles },
   { path: '/matches', label: 'Match', icon: Heart },
   { path: '/messages', label: 'Chat', icon: MessageCircle },
@@ -27,7 +27,7 @@ export default function MobileNav() {
                 }`}
             >
               <Icon className={`w-5 h-5 ${isActive ? 'text-primary' : ''}`} />
-              <span className="text-[10px] font-mono font-medium">{item.label}</span>
+              <span className="text-[10px] font-medium">{item.label}</span>
             </Link>
           );
         })}

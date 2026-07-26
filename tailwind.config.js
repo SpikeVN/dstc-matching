@@ -5,7 +5,7 @@ module.exports = {
 	theme: {
 		extend: {
 			fontFamily: {
-				mono: ['Lexend', 'sans-serif'],
+				mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'SF Mono', 'Menlo', 'Consolas', 'Liberation Mono', 'monospace'],
 				display: ['Be Vietnam Pro', 'Nunito', 'sans-serif'],
 				body: ['Be Vietnam Pro', 'Nunito', 'sans-serif'],
 			},

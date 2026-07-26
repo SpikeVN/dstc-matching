@@ -19,6 +19,8 @@ from routes.swipes import router as swipes_router
 from routes.teams import router as teams_router
 from routes.invites import router as invites_router
 from routes.integrations import router as integrations_router
+from routes.recommendations import router as recommendations_router
+from routes.admin import router as admin_router
 
 
 @asynccontextmanager
@@ -58,6 +60,8 @@ app.include_router(swipes_router)
 app.include_router(teams_router)
 app.include_router(invites_router)
 app.include_router(integrations_router)
+app.include_router(recommendations_router)
+app.include_router(admin_router)
 
 
 @app.get("/health")

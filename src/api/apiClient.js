@@ -322,6 +322,9 @@ const authClient = {
   updateUsername: async (username) => {
     return request('PATCH', '/auth/username', { username });
   },
+  updateInfoShown: async (infoShown) => {
+    return request('PATCH', '/api/user-preferences/info-shown', { info_shown: infoShown });
+  },
   redirectToLogin: () => {
     window.location.href = '/login';
   },
@@ -369,6 +372,23 @@ export const db = {
     SwipeAction: createEntityClient('SwipeAction', '/api/swipe-actions'),
     Team: createEntityClient('Team', '/api/teams'),
     TeamInvite: createEntityClient('TeamInvite', '/api/team-invites'),
+  },
+  admin: {
+    listUsers: async (params = {}) => {
+      // Strip undefined/null/empty values so they don't become "role=undefined" strings
+      const clean = Object.fromEntries(
+        Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+      );
+      const qs = new URLSearchParams(clean).toString();
+      return request('GET', `/api/admin/users${qs ? `?${qs}` : ''}`);
+    },
+    getUser: async (userId) => request('GET', `/api/admin/users/${userId}`),
+    updateUserRole: async (userId, role) =>
+      request('PATCH', `/api/admin/users/${userId}/role`, { admin_role: role }),
+    updateVisibility: async (userId, visible) =>
+      request('PATCH', `/api/admin/users/${userId}/visibility`, { admin_visible: visible }),
+    getRoles: async () => request('GET', '/api/admin/roles'),
+    getStats: async () => request('GET', '/api/admin/stats'),
   },
   integrations: integrationsClient,
 };

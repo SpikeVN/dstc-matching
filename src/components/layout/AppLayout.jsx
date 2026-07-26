@@ -11,12 +11,13 @@ import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 
 const PAGE_TITLES = {
   '/': 'Trang chủ',
+  '/dashboard': 'Dashboard',
   '/discover': 'Khám phá',
   '/matches': 'Matches',
   '/messages': 'Tin nhắn',
   '/profile': 'Hồ sơ',
   '/settings': 'Cài đặt',
-  '/admin': 'Admin — Match Viewer',
+  '/admin': 'Admin Panel',
   '/guide': 'Hướng dẫn & Credits',
 };
 

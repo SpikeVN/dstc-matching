@@ -102,7 +102,7 @@ export default function TopSuggestions({ myProfile, mySwipes = [] }) {
               <ScoreBar score={p.score} max={maxScore} />
               <div className="flex gap-1 flex-wrap">
                 {(p.technical_skills || []).slice(0, 2).map(s => (
-                  <span key={s} className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-primary/5 border border-primary/10 text-primary/60">
+                  <span key={s} className="text-[9px] px-1.5 py-0.5 rounded bg-primary/5 border border-primary/10 text-primary/60">
                     {SKILL_ICONS[s] || '⚙️'} {s}
                   </span>
                 ))}

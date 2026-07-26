@@ -97,7 +97,7 @@ export default function ProfileDetail() {
             )}
             <div className="absolute bottom-0 left-0 right-0 p-5">
               <h2 className="font-display font-bold text-xl text-white">{profile.display_name}</h2>
-              <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-white/70 text-xs font-mono mt-1">
+              <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-white/70 text-xs mt-1">
                 {age && <span>{age} tuổi</span>}
                 {profile.school && (
                   <span className="flex items-center gap-1 truncate">
@@ -135,7 +135,7 @@ export default function ProfileDetail() {
           <DetailBlock icon={Wrench} title="Kỹ năng kỹ thuật">
             <div className="flex flex-wrap gap-1.5">
               {(profile.technical_skills || []).map(skill => (
-                <span key={skill} className="font-mono text-[11px] px-2 py-0.5 rounded border border-primary/20 text-primary/80 bg-primary/5">
+                <span key={skill} className="text-[11px] px-2 py-0.5 rounded border border-primary/20 text-primary/80 bg-primary/5">
                   {skill}
                 </span>
               ))}
@@ -148,7 +148,7 @@ export default function ProfileDetail() {
           <DetailBlock icon={Sparkles} title="Mindset & Soft Skills">
             <div className="flex flex-wrap gap-1.5">
               {(profile.soft_skills || []).map(s => (
-                <span key={s} className="font-mono text-[11px] px-2 py-0.5 rounded border border-blue-400/20 text-blue-300/80 bg-blue-400/5">{s}</span>
+                <span key={s} className="text-[11px] px-2 py-0.5 rounded border border-blue-400/20 text-blue-300/80 bg-blue-400/5">{s}</span>
               ))}
             </div>
           </DetailBlock>
@@ -159,7 +159,7 @@ export default function ProfileDetail() {
           <DetailBlock icon={Target} title="Mục tiêu tham gia">
             <div className="flex flex-wrap gap-1.5">
               {(profile.goals || []).map(g => (
-                <span key={g} className="font-mono text-[11px] px-2 py-0.5 rounded border border-primary/20 text-primary/70">{g}</span>
+                <span key={g} className="text-[11px] px-2 py-0.5 rounded border border-primary/20 text-primary/70">{g}</span>
               ))}
             </div>
           </DetailBlock>
@@ -179,13 +179,13 @@ export default function ProfileDetail() {
               {profile.achievements && (
                 <div className="flex items-start gap-2">
                   <Award className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
-                  <p className="font-mono text-xs text-yellow-300/90 leading-relaxed whitespace-pre-wrap">{profile.achievements}</p>
+                  <p className="text-xs text-yellow-300/90 leading-relaxed whitespace-pre-wrap">{profile.achievements}</p>
                 </div>
               )}
               {profile.achievements_other && (
                 <div className="flex items-start gap-2">
                   <Star className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                  <p className="font-mono text-xs text-muted-foreground/80 leading-relaxed whitespace-pre-wrap">{profile.achievements_other}</p>
+                  <p className="text-xs text-muted-foreground/80 leading-relaxed whitespace-pre-wrap">{profile.achievements_other}</p>
                 </div>
               )}
             </div>

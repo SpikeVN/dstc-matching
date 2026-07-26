@@ -5,48 +5,23 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { LogOut, Terminal, Eye, KeyRound, Activity, Clock, Heart, UserCheck, Shield, FileText, HelpCircle, Info, Mail, BarChart2, Wrench, Trophy, MapPin, Link2, Users, Star, Award, User, Check, X, Shuffle } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { LogOut, Terminal, Eye, KeyRound, Activity, Clock, Heart, UserCheck, Shield, FileText, HelpCircle, Info, Mail, BarChart2, Wrench, Trophy, MapPin, Link2, Users, Star, Award, User, Check, X, Github } from 'lucide-react';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import PageFooter from '@/components/layout/PageFooter';
 import { useAuth } from '@/lib/AuthContext';
-
-function randomUsername() {
-  const adjectives = ['nhanh', 'thong', 'manh', 'dep', 'vui', 'tot', 'moi', 'dau', 'cao', 'sang'];
-  const nouns = ['ho', 'long', 'sa', 'lua', 'gio', 'mua', 'nui', 'song', 'trang', 'sao'];
-  const a = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const n = nouns[Math.floor(Math.random() * nouns.length)];
-  const suffix = Math.floor(Math.random() * 900 + 100);
-  return `${a}_${n}${suffix}`;
-}
 
 const TABS = [
   { id: 'account', label: 'Tài khoản', icon: User },
   { id: 'privacy', label: 'Quyền riêng tư', icon: Eye },
   { id: 'password', label: 'Mật khẩu', icon: KeyRound },
   { id: 'activity', label: 'Nhật ký', icon: Activity },
-  { id: 'legal', label: 'Pháp lý', icon: FileText },
+  { id: 'terms', label: 'Điều khoản', icon: FileText },
   { id: 'support', label: 'Hỗ trợ', icon: HelpCircle },
   { id: 'about', label: 'Về CTE & DSTC', icon: Info },
   { id: 'system', label: 'Hệ thống', icon: Terminal },
 ];
-
-function TabButton({ tab, active, onClick }) {
-  const Icon = tab.icon;
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-body transition-all duration-200 ${active
-        ? 'bg-primary/10 text-primary border border-primary/30'
-        : 'text-muted-foreground hover:text-foreground hover:bg-white/5 border border-transparent'
-        }`}
-    >
-      <Icon className="w-4 h-4" />
-      <span className="hidden sm:block">{tab.label}</span>
-    </button>
-  );
-}
 
 function PrivacyToggle({ label, desc, checked, onChange }) {
   return (
@@ -86,7 +61,7 @@ export default function Settings() {
     showGender: true,
     showCity: true,
     showSchool: true,
-    showMajor: false,
+    showMajor: true,
     showAchievements: true,
   });
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
@@ -94,6 +69,19 @@ export default function Settings() {
   const [usernameForm, setUsernameForm] = useState('');
   const [usernameMsg, setUsernameMsg] = useState('');
   const [usernameLoading, setUsernameLoading] = useState(false);
+
+  // Map backend snake_case keys to frontend camelCase
+  const backendToFrontend = {
+    show_age: 'showAge',
+    show_gender: 'showGender',
+    show_location: 'showCity',
+    show_school: 'showSchool',
+    show_major: 'showMajor',
+    show_achievements: 'showAchievements',
+  };
+  const frontendToBackend = Object.fromEntries(
+    Object.entries(backendToFrontend).map(([k, v]) => [v, k])
+  );
 
   const { data: matches } = useQuery({
     queryKey: ['matchesForActivity'],
@@ -127,6 +115,32 @@ export default function Settings() {
       setUsernameForm(currentUser.username);
     }
   }, [currentUser?.username]);
+
+  // Initialize privacy settings from server
+  useEffect(() => {
+    if (currentUser?.info_shown) {
+      const mapped = {};
+      for (const [backendKey, frontendKey] of Object.entries(backendToFrontend)) {
+        mapped[frontendKey] = currentUser.info_shown[backendKey] ?? true;
+      }
+      setPrivacy(mapped);
+    }
+  }, [currentUser?.info_shown]);
+
+  // Save privacy settings to server
+  const handlePrivacyChange = async (frontendKey, value) => {
+    setPrivacy((p) => ({ ...p, [frontendKey]: value }));
+    const newPrivacy = { ...privacy, [frontendKey]: value };
+    const backendPayload = {};
+    for (const [fk, bk] of Object.entries(frontendToBackend)) {
+      backendPayload[bk] = newPrivacy[fk];
+    }
+    try {
+      await db.auth.updateInfoShown(backendPayload);
+    } catch (err) {
+      console.error('Failed to save privacy settings:', err);
+    }
+  };
 
   const handlePasswordChange = () => {
     if (!pwForm.current) { setPwMsg('Vui lòng nhập mật khẩu hiện tại'); return; }
@@ -168,7 +182,7 @@ export default function Settings() {
     return `${Math.floor(diff / 1440)}d trước`;
   };
 
-  const renderTab = () => {
+  const renderTabContent = () => {
     switch (activeTab) {
       case 'account':
         return (
@@ -191,36 +205,16 @@ export default function Settings() {
               {/* Username (editable) */}
               <div className="space-y-1.5">
                 <Label className="font-body text-xs text-muted-foreground">Tên đăng nhập</Label>
-                <div className="relative flex items-center gap-1.5">
-                  <Input
-                    value={usernameForm}
-                    onChange={(e) => {
-                      setUsernameForm(e.target.value);
-                      setUsernameMsg('');
-                    }}
-                    placeholder="ten_dang_nhap"
-                    maxLength={20}
-                    className="text-sm bg-muted/50 border-primary/15 focus:border-primary/50 font-body pr-24"
-                  />
-                  {usernameForm.trim().length >= 1 && (
-                    <img
-                      src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(usernameForm.trim())}&scale=80`}
-                      alt=""
-                      className="absolute right-14 top-1/2 -translate-y-1/2 w-6 h-6 rounded"
-                    />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUsernameForm(randomUsername());
-                      setUsernameMsg('');
-                    }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10 transition-colors"
-                    title="Tạo tên ngẫu nhiên"
-                  >
-                    <Shuffle className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                </div>
+                <Input
+                  value={usernameForm}
+                  onChange={(e) => {
+                    setUsernameForm(e.target.value);
+                    setUsernameMsg('');
+                  }}
+                  placeholder="ten_dang_nhap"
+                  maxLength={20}
+                  className="text-sm bg-muted/50 border-primary/15 focus:border-primary/50 font-body"
+                />
                 <p className="text-[11px] font-body text-muted-foreground/50">
                   3–20 ký tự, chỉ chữ cái, số và dấu gạch dưới
                 </p>
@@ -254,15 +248,15 @@ export default function Settings() {
               <p className="text-xs font-body text-muted-foreground mb-4 leading-relaxed">
                 Chọn thông tin mà người dùng khác có thể xem trên hồ sơ của bạn trong quá trình tìm đồng đội.
               </p>
-              <PrivacyToggle label="Tuổi" desc="Hiển thị tuổi của bạn trên hồ sơ" checked={privacy.showAge} onChange={(v) => setPrivacy((p) => ({ ...p, showAge: v }))} />
-              <PrivacyToggle label="Giới tính" desc="Hiển thị giới tính của bạn" checked={privacy.showGender} onChange={(v) => setPrivacy((p) => ({ ...p, showGender: v }))} />
-              <PrivacyToggle label="Tỉnh/Thành phố" desc="Hiển thị nơi ở hiện tại" checked={privacy.showCity} onChange={(v) => setPrivacy((p) => ({ ...p, showCity: v }))} />
-              <PrivacyToggle label="Trường học" desc="Hiển thị tên trường đại học" checked={privacy.showSchool} onChange={(v) => setPrivacy((p) => ({ ...p, showSchool: v }))} />
-              <PrivacyToggle label="Ngành học" desc="Hiển thị chuyên ngành" checked={privacy.showMajor} onChange={(v) => setPrivacy((p) => ({ ...p, showMajor: v }))} />
-              <PrivacyToggle label="Thành tích" desc="Hiển thị thành tích nổi bật" checked={privacy.showAchievements} onChange={(v) => setPrivacy((p) => ({ ...p, showAchievements: v }))} />
-              <p className="text-[11px] font-body text-muted-foreground/50 mt-4">
-                * Tên, kỹ năng, vai trò luôn hiển thị và không thể ẩn.
+              <p className="text-[11px] font-body text-muted-foreground/50 mb-3 flex items-center gap-1.5">
+                <Info className="w-3 h-3" /> Tên, kỹ năng, vai trò luôn hiển thị và không thể ẩn.
               </p>
+              <PrivacyToggle label="Tuổi" desc="Hiển thị tuổi của bạn trên hồ sơ" checked={privacy.showAge} onChange={(v) => handlePrivacyChange('showAge', v)} />
+              <PrivacyToggle label="Giới tính" desc="Hiển thị giới tính của bạn" checked={privacy.showGender} onChange={(v) => handlePrivacyChange('showGender', v)} />
+              <PrivacyToggle label="Tỉnh/Thành phố" desc="Hiển thị nơi ở hiện tại" checked={privacy.showCity} onChange={(v) => handlePrivacyChange('showCity', v)} />
+              <PrivacyToggle label="Trường học" desc="Hiển thị tên trường đại học" checked={privacy.showSchool} onChange={(v) => handlePrivacyChange('showSchool', v)} />
+              <PrivacyToggle label="Ngành học" desc="Hiển thị chuyên ngành" checked={privacy.showMajor} onChange={(v) => handlePrivacyChange('showMajor', v)} />
+              <PrivacyToggle label="Thành tích" desc="Hiển thị thành tích nổi bật" checked={privacy.showAchievements} onChange={(v) => handlePrivacyChange('showAchievements', v)} />
             </div>
           </div>
         );
@@ -355,7 +349,7 @@ export default function Settings() {
           </div>
         );
 
-      case 'legal':
+      case 'terms':
         return (
           <div className="space-y-4">
             <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
@@ -367,7 +361,7 @@ export default function Settings() {
                 <p className="font-body font-medium text-foreground text-sm">1. Chấp nhận điều khoản</p>
                 <p>Bằng cách sử dụng nền tảng DSTC Matching, bạn đồng ý tuân thủ các điều khoản và điều kiện được nêu trong tài liệu này. Nếu bạn không đồng ý, vui lòng không sử dụng dịch vụ.</p>
                 <p className="font-body font-medium text-foreground text-sm">2. Mục đích sử dụng</p>
-                <p>Nền tảng này được xây dựng với mục đích duy nhất là kết nối thí sinh tham gia cuộc thi <span className="text-primary">DSTC: VQC 2026 - Data Science Talent Competition: Vietnam Quant Challenge 2026</span> do CLB Khoa học công nghệ trong Kinh tế và Kinh doanh - CTE FTU tổ chức. Nghiêm cấm sử dụng cho mục đích khác.</p>
+                <p>Nền tảng này được xây dựng với mục đích duy nhất là kết nối thí sinh tham gia cuộc thi <span className="text-primary">Data Science Talent Competition 2026: Vietnam Quant Challenge</span> do CLB Khoa học công nghệ trong Kinh tế và Kinh doanh - CTE FTU tổ chức. Nghiêm cấm sử dụng cho mục đích khác.</p>
                 <p className="font-body font-medium text-foreground text-sm">3. Tài khoản người dùng</p>
                 <p>Bạn chịu trách nhiệm bảo mật thông tin đăng nhập và toàn bộ hoạt động được thực hiện dưới tài khoản của bạn. Thông tin hồ sơ phải trung thực và chính xác.</p>
                 <p className="font-body font-medium text-foreground text-sm">4. Nội dung người dùng</p>
@@ -392,7 +386,7 @@ export default function Settings() {
                   <li>Thống kê nội bộ phục vụ ban tổ chức DSTC</li>
                 </ul>
                 <p className="font-body font-medium text-foreground text-sm">Chia sẻ dữ liệu</p>
-                <p>Chúng tôi không bán hoặc chia sẻ dữ liệu cá nhân của bạn với bên thứ ba. Dữ liệu chỉ được sử dụng trong phạm vi tổ chức cuộc thi DSTC: VQC 2026.</p>
+                <p>Chúng tôi không bán hoặc chia sẻ dữ liệu cá nhân của bạn với bên thứ ba. Dữ liệu chỉ được sử dụng trong phạm vi tổ chức cuộc thi DSTC 2026.</p>
                 <p className="font-body font-medium text-foreground text-sm">Quyền của bạn</p>
                 <p>Bạn có quyền yêu cầu xóa tài khoản và toàn bộ dữ liệu liên quan bằng cách liên hệ ban tổ chức.</p>
               </div>
@@ -413,12 +407,10 @@ export default function Settings() {
               </div>
               <div className="flex items-center gap-2">
                 <Users className="w-3.5 h-3.5 text-primary/60 flex-shrink-0" />
-                <span>Fanpage BTC: <a href="https://www.facebook.com/cte.ftu" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">CLB Khoa học công nghệ trong Kinh tế và Kinh doanh - CTE FTU</a></span>
+                <span>Fanpage BTC: <a href="https://www.facebook.com/cte.ftu" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">CLB Khoa học Công nghệ trong Kinh tế và Kinh doanh - CTE FTU</a></span>
               </div>
-              <div className="h-px bg-primary/10 my-1" />
-              <div className="flex justify-between"><span className="text-primary/60">Phiên bản</span><span>DSTC Matching v1.0 — 2026</span></div>
-              <p className="text-[10px] text-muted-foreground/40 mt-2 text-center">© 2026 DSTC: VQC — All rights reserved — ĐH Ngoại Thương</p>
             </div>
+            <p className="text-[10px] text-muted-foreground/40 mt-2 text-center">Bản quyền © 2026 CLB Khoa học Công nghệ trong Kinh tế và Kinh doanh, Trường Đại học Ngoại thương. Bảo lưu mọi quyền.</p>
           </div>
         );
 
@@ -431,10 +423,10 @@ export default function Settings() {
                 <h3 className="font-display text-sm font-semibold text-primary">Hỗ trợ người dùng</h3>
               </div>
               <div className="p-4 space-y-3 font-body text-xs text-muted-foreground leading-relaxed">
-                <p>Nếu bạn gặp bất kỳ vấn đề nào khi sử dụng nền tảng, vui lòng liên hệ ban tổ chức qua email bên dưới. Chúng tôi sẽ phản hồi trong vòng 24–48 giờ làm việc.</p>
+                <p>Nếu bạn gặp bất kỳ vấn đề nào khi sử dụng nền tảng, vui lòng liên hệ ban tổ chức qua email hoặc link Forms ở thanh bên. Chúng tôi sẽ phản hồi trong vòng 24 đến 48 giờ làm việc.</p>
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/15">
                   <Mail className="w-4 h-4 text-primary flex-shrink-0" />
-                  <a href="mailto:datasciencetalent.cteftu@gmail.com" className="text-primary font-mono hover:underline">datasciencetalent.cteftu@gmail.com</a>
+                  <a href="mailto:datasciencetalent.cteftu@gmail.com" className="text-primary hover:underline">datasciencetalent.cteftu@gmail.com</a>
                 </div>
                 <p className="font-body font-medium text-foreground text-sm">Các vấn đề phổ biến</p>
                 <ul className="list-disc list-inside space-y-1">
@@ -505,7 +497,7 @@ export default function Settings() {
                     <p>Tổ chức theo hai mùa: Summer Bootcamp và Winter Bootcamp, giúp học sinh và sinh viên linh hoạt chọn thời điểm phù hợp để tham gia.</p>
                   </div>
                   <div className="p-3 rounded-lg bg-white/3 border border-primary/10 space-y-1">
-                    <p className="text-foreground/80 font-medium">Game Bụt của Cô Tấm — Tiền sự kiện DSTC: VQC 2026</p>
+                    <p className="text-foreground/80 font-medium">Game Bụt của Cô Tấm — Tiền sự kiện DSTC 2026</p>
                     <p>Game online mang tính giáo dục do team Tri Phương phát triển, đưa kiến thức KHCN đến gần giới trẻ qua trải nghiệm giải trí. <a href="https://butcuacotam.cteftu.id.vn/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Trải nghiệm tại butcuacotam.cteftu.id.vn →</a></p>
                   </div>
                   <div className="p-3 rounded-lg bg-white/3 border border-primary/10 space-y-1">
@@ -523,23 +515,17 @@ export default function Settings() {
               <div className="p-4 space-y-4 font-body text-xs text-muted-foreground leading-relaxed">
                 <p>DSTC là cuộc thi về Khoa học dữ liệu đầu tiên của FTU do <span className="text-primary">CTE FTU</span> tổ chức, được bảo trợ pháp lý bởi Đoàn TNCS HCM và bảo trợ chuyên môn bởi Khoa Công nghệ & Khoa học Dữ liệu nhà trường.</p>
                 <div className="p-3 rounded-lg bg-white/3 border border-primary/10 space-y-2">
-                  <p className="text-foreground font-medium">1. Tiền sự kiện DSTC: VQC 2026</p>
+                  <p className="text-foreground font-medium">1. Tiền sự kiện DSTC 2026</p>
                   <p><span className="text-primary/70">Nội dung:</span> Game Bụt của Cô Tấm — game online mang tính giáo dục do team Tri Phương phát triển, đưa kiến thức KHCN đến gần với giới trẻ thông qua trò chơi giải trí.</p>
                   <p><span className="text-primary/70">Link:</span> <a href="https://butcuacotam.cteftu.id.vn/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">butcuacotam.cteftu.id.vn</a></p>
                   <p><span className="text-primary/70">Đối tác:</span> <a href="https://ntq-solution.com.vn" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">NTQ Solutions</a> — đơn vị cung cấp nền tảng công nghệ cho game.</p>
                 </div>
                 <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-2">
-                  <p className="text-foreground font-medium">2. DSTC: VQC 2026 — Vietnam Quant Challenge</p>
+                  <p className="text-foreground font-medium">2. DSTC</p>
                   <p><span className="text-primary/70">Nội dung:</span> Cuộc thi về tài chính định lượng (quant finance), thí sinh sử dụng kiến thức toán và tài chính để tìm ra alpha — phương trình dự báo giá cổ phiếu trên sàn chứng khoán Việt Nam (tương tự International Quant Championship).</p>
                   <p><span className="text-primary/70">Đối tác:</span> <span className="text-foreground/80">XNO Quant</span> — đơn vị cung cấp nền tảng thi đấu cho cuộc thi.</p>
                 </div>
               </div>
-            </div>
-            <div className="flex items-center gap-3 px-2">
-              <img src="/ftu.webp" alt="FTU" className="w-8 h-8 rounded-full object-contain opacity-60" />
-              <img src="/fyu.svg" alt="Đoàn" className="w-8 h-8 object-contain opacity-60" />
-              <img src="/cte-logo.svg" alt="CTE FTU" className="w-8 h-8 rounded object-contain opacity-60" />
-              <span className="font-body text-[10px] text-muted-foreground">FTU — Đoàn TNCS HCM — CTE FTU — DSTC: VQC 2026</span>
             </div>
           </div>
         );
@@ -553,28 +539,21 @@ export default function Settings() {
                 <h3 className="font-display text-sm font-semibold text-primary">Về hệ thống</h3>
               </div>
               <div className="p-4 space-y-2 font-body text-xs text-muted-foreground">
-                <div className="flex justify-between"><span className="text-primary/60">Platform</span><span>DSTC Matching v1.0</span></div>
-                <div className="flex justify-between"><span className="text-primary/60">Organizer</span><span>CTE FTU</span></div>
-                <div className="flex justify-between"><span className="text-primary/60">Host</span><span>ĐH Ngoại Thương</span></div>
-                <div className="flex justify-between"><span className="text-primary/60">Competition</span><span>DSTC: VQC 2026</span></div>
+                <div className="flex justify-between"><span className="text-primary/60">Platform</span>
+                  <div className="flex flex-row gap-2 w-fit">
+                    <code className="font-mono">dstc-matching</code>
+                    <a href="https://github.com/SpikeVN/dstc-matching" className="hover:text-accent flex flex-row font-mono">
+                      <Github height={18} />
+                      {__COMMIT_HASH__}
+                    </a>
+                  </div>
+                </div>
+                <div className="flex justify-between"><span className="text-primary/60">Ban tổ chức</span><span>CLB Khoa học Công nghệ trong Kinh tế và Kinh doanh</span></div>
+                <div className="flex justify-between"><span className="text-primary/60">Host</span><span>Đoàn TNCS Hồ Chí Minh, Trường Đại học Ngoại Thương</span></div>
                 <div className="h-px bg-primary/10 my-2" />
-                <p className="text-[10px] text-muted-foreground/50">© 2026 DSTC — All rights reserved</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <img src="/ftu.webp" alt="FTU" className="w-8 h-8 rounded-full object-contain opacity-60" />
-              <img src="/fyu.svg" alt="Đoàn" className="w-8 h-8 object-contain opacity-60" />
-              <img src="/cte-logo.svg" alt="CTE FTU" className="w-8 h-8 rounded object-contain opacity-60" />
-              <span className="font-body text-[10px] text-muted-foreground">FTU — Đoàn TNCS HCM — CTE FTU — DSTC: VQC 2026</span>
-            </div>
-            <Button
-              variant="outline"
-              className="w-full gap-2 font-display text-xs font-medium border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive/50 transition-all duration-200"
-              onClick={logout}
-            >
-              <LogOut className="w-4 h-4" />
-              Đăng xuất
-            </Button>
+                <p className="text-[10px] text-muted-foreground/50">Bản quyền © 2026 CLB Khoa học Công nghệ trong Kinh tế và Kinh doanh. Bảo lưu mọi quyền.</p>
           </div>
         );
 
@@ -591,24 +570,35 @@ export default function Settings() {
           <p className="font-body text-xs text-muted-foreground mt-1">Quản lý tài khoản và quyền riêng tư</p>
         </div>
 
-        <div className="flex gap-2 flex-wrap">
-          {TABS.map((tab) => (
-            <TabButton key={tab.id} tab={tab} active={activeTab === tab.id} onClick={() => setActiveTab(tab.id)} />
-          ))}
-        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="h-auto bg-transparent p-0 border-b border-primary/10 rounded-none w-full justify-start gap-0 flex-wrap mb-4">
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <TabsTrigger
+                  key={tab.id}
+                  value={tab.id}
+                  className="px-4 py-2.5 text-xs font-body rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground hover:text-foreground transition-all shrink-0"
+                >
+                  <Icon className="w-3.5 h-3.5 inline mr-1.5" />
+                  {tab.label}
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-          >
-            {renderTab()}
-          </motion.div>
-        </AnimatePresence>
-        <PageFooter />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              {renderTabContent()}
+            </motion.div>
+          </AnimatePresence>
+        </Tabs>
       </div>
     </div>
   );

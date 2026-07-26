@@ -32,7 +32,7 @@ export default function MatchOverlay({ show, matchedProfile, onClose }) {
           <h2 className="font-display font-bold text-xl text-primary mb-1">
             IT'S A MATCH!
           </h2>
-          <p className="text-muted-foreground font-mono text-xs mt-2 leading-relaxed">
+          <p className="text-muted-foreground text-xs mt-2 leading-relaxed">
             Bạn và <span className="text-primary font-semibold">{matchedProfile.display_name}</span><br />
             đã cùng thích nhau 🎯
           </p>
@@ -47,7 +47,7 @@ export default function MatchOverlay({ show, matchedProfile, onClose }) {
             </Button>
             <Button
               variant="outline"
-              className="w-full font-mono text-xs border-primary/20 text-muted-foreground hover:border-primary/40"
+              className="w-full text-xs border-primary/20 text-muted-foreground hover:border-primary/40"
               onClick={onClose}
             >
               Tiếp tục khám phá

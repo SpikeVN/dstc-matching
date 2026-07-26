@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -28,7 +28,7 @@ import ResetPasswordPage from '@/pages/ResetPasswordPage';
 /** Redirect authenticated users away from login/signup/forgot pages. */
 function GuestOnly({ children }) {
   const { isAuthenticated } = useAuth();
-  if (isAuthenticated) return <Navigate to="/" replace />;
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
   return children;
 }
 
@@ -41,7 +41,7 @@ function LoginRedirect() {
 
 const PublicRoutes = () => (
   <Routes>
-    <Route path="/landing" element={<Landing />} />
+    <Route path="/" element={<Landing />} />
     <Route path="/login" element={<LoginPage />} />
     <Route path="/signup" element={<SignupPage />} />
     <Route path="/verify" element={<VerifyEmail />} />
@@ -96,14 +96,14 @@ const AuthenticatedApp = () => {
 
   return (
     <Routes>
-      <Route path="/landing" element={<Landing />} />
       <Route path="/login" element={<GuestOnly><LoginPage /></GuestOnly>} />
       <Route path="/signup" element={<GuestOnly><SignupPage /></GuestOnly>} />
       <Route path="/verify" element={<VerifyEmail />} />
       <Route path="/forgot-password" element={<GuestOnly><ForgotPasswordPage /></GuestOnly>} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route element={<AppLayout />}>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/discover" element={<Discover />} />
         <Route path="/matches" element={<Matches />} />

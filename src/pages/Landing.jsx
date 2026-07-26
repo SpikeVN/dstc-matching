@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { ArrowRight, UserPen, FolderHeart, Users, Mail, MapPin, Phone } from 'lucide-react';
@@ -9,6 +9,7 @@ import { Link, useNavigate } from 'react-router-dom';
 const FTU_LOGO = '/ftu.webp';
 const DOAN_LOGO = '/fyu.svg';
 const CTE_LOGO = '/cte-logo.svg';
+const DSTC_LOGO = '/dstc-logo.png';
 
 /* ── Decorative assets ────────────────────────────────────── */
 const IMG_TREES = '/dstc-trees.webp';
@@ -48,7 +49,8 @@ function StepCard({ icon: Icon, title, desc, delay = 0 }) {
       <div className="flex gap-2.5 items-center">
         <Icon className="w-5 h-5 lg:w-[30px] lg:h-[30px]" style={{ color: FIGMA_FG }} />
         <p
-          className="font-display font-semibold text-base lg:text-[18px] tracking-tight"
+          className="font-display font
+          -semibold text-base lg:text-[18px] tracking-tight"
           style={{ color: FIGMA_FG }}
         >
           {title}
@@ -87,13 +89,8 @@ export default function Landing() {
     navigate('/login');
   };
 
-  useEffect(() => {
-    document.documentElement.classList.add('no-bg');
-    return () => document.documentElement.classList.remove('no-bg');
-  }, []);
-
   return (
-    <div className="min-h-screen flex flex-col items-center w-full">
+    <div className="min-h-screen flex flex-col items-center w-full" style={{ background: FIGMA_BG }}>
 
       {/* ── Navbar ────────────────────────────────────────── */}
       <nav
@@ -107,27 +104,27 @@ export default function Landing() {
           <img src={FTU_LOGO} alt="FTU" className="h-full aspect-square object-contain rounded-full" />
           <img src={DOAN_LOGO} alt="Đoàn TNCS HCM" className="h-full aspect-square object-contain" />
           <img src={CTE_LOGO} alt="CTE FTU" className="h-full aspect-square object-contain" />
+          <img src={DSTC_LOGO} alt="DSTC" className="h-full object-contain" />
         </div>
 
         {/* Title */}
         <p className="font-display font-bold text-sm lg:text-[20px] text-white text-center">
-          DSTC 2026&nbsp;&nbsp;
-          <span style={{ color: FIGMA_BORDER }}>//</span>
-          &nbsp;&nbsp;Vietnam Quant Challenge
+          Data Science Talent Competition 2026
         </p>
 
         {/* CTA */}
-        <Button
-          size="sm"
+        <button
           className="hidden rounded-full px-5 lg:px-[30px] py-2 lg:py-[15px] h-auto
                      font-display font-medium text-sm lg:text-[16px]
-                     md:flex gap-2 items-center transition-all duration-200"
-          style={{ background: FIGMA_GREEN, color: FIGMA_BG }}
+                     md:flex gap-2 items-center transition-colors duration-200
+                     hover:opacity-90 active:opacity-80
+                     outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+          style={{ background: FIGMA_GREEN, color: FIGMA_BG, border: 'none', outline: 'none' }}
           onClick={handleLogin}
         >
           Bắt đầu
           <ArrowRight className="w-4 h-4 lg:w-6 lg:h-6" />
-        </Button>
+        </button>
       </nav>
 
       {/* ── Hero ──────────────────────────────────────────── */}
@@ -158,28 +155,31 @@ export default function Landing() {
             </h1>
 
             <div className="flex flex-wrap gap-3 lg:gap-[15px] items-center justify-center lg:justify-start">
-              <Button
+              <button
                 className="rounded-full px-5 lg:px-[30px] py-2.5 lg:py-[15px] h-auto
                            font-display font-medium text-sm lg:text-[16px] flex gap-2 items-center
-                           transition-all duration-200"
-                style={{ background: FIGMA_GREEN, color: FIGMA_BG }}
+                           transition-colors duration-200
+                           hover:opacity-90 active:opacity-80
+                           outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+                style={{ background: FIGMA_GREEN, color: FIGMA_BG, border: 'none', outline: 'none' }}
                 onClick={handleLogin}
               >
                 Match ngay
                 <ArrowRight className="w-4 h-4 lg:w-6 lg:h-6" />
-              </Button>
+              </button>
 
               <Link to="/guide">
-                <Button
-                  variant="ghost"
+                <button
                   className="rounded-full px-5 lg:px-[30px] py-2.5 lg:py-[15px] h-auto
                              font-display font-medium text-sm lg:text-[16px] flex gap-2 items-center
-                             transition-all duration-200 hover:bg-transparent"
-                  style={{ color: FIGMA_GREEN }}
+                             transition-colors duration-200
+                             hover:opacity-80 active:opacity-60
+                             outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+                  style={{ color: FIGMA_GREEN, background: 'transparent', border: 'none', outline: 'none' }}
                 >
                   Xem hướng dẫn
-                  <ArrowRight className="w-4 h-4 lg:w-6 lg:h-6" style={{ color: FIGMA_GREEN }} />
-                </Button>
+                  <ArrowRight className="w-4 h-4 lg:w-6 lg:h-6" />
+                </button>
               </Link>
             </div>
           </motion.div>

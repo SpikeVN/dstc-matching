@@ -5,7 +5,66 @@ from typing import Optional
 from database import fetch, fetch_one, execute, generate_id, now
 from auth.dependencies import get_current_user
 
-router = APIRouter(prefix="/api/contestant-profiles")
+router = APIRouter(prefix="/api")
+
+
+class InfoShownUpdate(BaseModel):
+    info_shown: dict
+
+
+@router.patch("/user-preferences/info-shown")
+async def update_info_shown(update: InfoShownUpdate, user: dict = Depends(get_current_user)):
+    """Save the current user's privacy info_shown settings."""
+    existing = await fetch_one(
+        "SELECT id FROM public.user_preferences WHERE user_id = $1", user["id"]
+    )
+    if existing:
+        await execute(
+            "UPDATE public.user_preferences SET info_shown = $1::jsonb, updated_date = $2 WHERE user_id = $3",
+            json.dumps(update.info_shown), now(), user["id"],
+        )
+    else:
+        await execute(
+            """INSERT INTO public.user_preferences (id, user_id, info_shown)
+               VALUES ($1, $2, $3::jsonb)""",
+            generate_id(), user["id"], json.dumps(update.info_shown),
+        )
+    return {"info_shown": update.info_shown}
+
+
+# ── Contestant profiles ──────────────────────────────────────────────
+
+# ── Info shown field mapping ─────────────────────────────────────────────
+# Maps info_shown keys to contestant_profiles fields
+# When a key is False, the corresponding fields are stripped from the response
+INFO_SHOWN_MAP = {
+    "show_age": ("birth_year",),
+    "show_gender": ("gender",),
+    "show_location": ("city",),
+    "show_school": ("school",),
+    "show_major": ("major",),
+    "show_achievements": ("achievements", "achievements_other"),
+}
+
+
+def _strip_hidden_fields(profile: dict, info_shown: dict | None) -> dict:
+    """Remove profile fields that the user has hidden via info_shown.
+
+    Merges with defaults (all visible) so missing keys don't break anything.
+    """
+    if not info_shown:
+        return profile  # No preferences row — all fields visible
+
+    defaults = {k: True for k in INFO_SHOWN_MAP}
+    merged = {**defaults, **info_shown}
+
+    for key, shown in merged.items():
+        if not shown:
+            for field in INFO_SHOWN_MAP.get(key, ()):
+                profile.pop(field, None)
+
+    return profile
+
 
 
 class ProfileCreate(BaseModel):
@@ -56,35 +115,50 @@ class ProfileUpdate(BaseModel):
     social_links: Optional[dict] = None
 
 
-@router.get("")
+@router.get("/contestant-profiles")
 async def list_profiles(request: Request):
-    query = "SELECT * FROM contestant_profiles"
+    query = """
+        SELECT cp.*,
+               COALESCE(up.admin_visible, true) as admin_visible,
+               up.info_shown
+        FROM contestant_profiles cp
+        LEFT JOIN user_preferences up ON cp.created_by = up.user_id
+        WHERE COALESCE(up.admin_visible, true) = true
+    """
     params = []
     conditions = []
     idx = 1
 
     for key in request.query_params:
         if key in ('created_by', 'team_id', 'role', 'gender', 'experience', 'display_name', 'username'):
-            conditions.append(f"{key} = ${idx}")
+            conditions.append(f"cp.{key} = ${idx}")
             params.append(request.query_params[key])
             idx += 1
 
     if conditions:
-        query += " WHERE " + " AND ".join(conditions)
+        query += " AND " + " AND ".join(conditions)
 
-    query += " ORDER BY created_date DESC"
-    return await fetch(query, *params)
+    query += " ORDER BY cp.created_date DESC"
+    rows = await fetch(query, *params)
+    # Strip hidden fields per each profile owner's info_shown settings
+    return [_strip_hidden_fields(r, r.pop("info_shown", None)) for r in rows]
 
 
-@router.get("/{profile_id}")
+@router.get("/contestant-profiles/{profile_id}")
 async def get_profile(profile_id: str):
-    row = await fetch_one("SELECT * FROM contestant_profiles WHERE id = $1", profile_id)
+    row = await fetch_one(
+        """SELECT cp.*, up.info_shown
+           FROM contestant_profiles cp
+           LEFT JOIN user_preferences up ON cp.created_by = up.user_id
+           WHERE cp.id = $1""",
+        profile_id,
+    )
     if row is None:
         raise HTTPException(status_code=404, detail="Profile not found")
-    return row
+    return _strip_hidden_fields(row, row.pop("info_shown", None))
 
 
-@router.post("")
+@router.post("/contestant-profiles")
 async def create_profile(profile: ProfileCreate, user: dict = Depends(get_current_user)):
     pid = generate_id()
     now_ts = now()
@@ -108,7 +182,7 @@ async def create_profile(profile: ProfileCreate, user: dict = Depends(get_curren
     return await fetch_one("SELECT * FROM contestant_profiles WHERE id = $1", pid)
 
 
-@router.patch("/{profile_id}")
+@router.patch("/contestant-profiles/{profile_id}")
 async def update_profile(profile_id: str, update: ProfileUpdate, user: dict = Depends(get_current_user)):
     existing = await fetch_one("SELECT * FROM contestant_profiles WHERE id = $1", profile_id)
     if existing is None:
@@ -139,7 +213,7 @@ async def update_profile(profile_id: str, update: ProfileUpdate, user: dict = De
     return await fetch_one("SELECT * FROM contestant_profiles WHERE id = $1", profile_id)
 
 
-@router.delete("/{profile_id}")
+@router.delete("/contestant-profiles/{profile_id}")
 async def delete_profile(profile_id: str, user: dict = Depends(get_current_user)):
     existing = await fetch_one("SELECT * FROM contestant_profiles WHERE id = $1", profile_id)
     if existing is None:
@@ -150,7 +224,7 @@ async def delete_profile(profile_id: str, user: dict = Depends(get_current_user)
     return {"success": True}
 
 
-@router.patch("/{profile_id}/visit")
+@router.patch("/contestant-profiles/{profile_id}/visit")
 async def mark_profile_visited(profile_id: str, user: dict = Depends(get_current_user)):
     """Mark a profile as visited (visited_profile = true).
 

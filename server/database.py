@@ -73,12 +73,12 @@ def _record_to_dict(record: asyncpg.Record) -> dict:
         else:
             d[k] = v
     # Parse JSONB fields that asyncpg returns as strings
-    for field in ("technical_skills", "soft_skills", "goals", "social_links", "member_ids"):
+    for field in ("technical_skills", "soft_skills", "goals", "social_links", "member_ids", "info_shown"):
         if field in d and isinstance(d[field], str):
             try:
                 d[field] = json.loads(d[field])
             except (json.JSONDecodeError, TypeError):
-                d[field] = []
+                d[field] = {} if field in ("social_links", "info_shown") else []
     # Convert boolean fields (PostgreSQL returns real bools, but just in case)
     for field in ("has_team", "profile_complete", "visited_profile", "is_match", "is_read", "user1_confirmed", "user2_confirmed"):
         if field in d and d[field] is not None:

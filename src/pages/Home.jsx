@@ -12,7 +12,7 @@ function StatBadge({ value, label }) {
   return (
     <div className="text-center">
       <div className="font-display font-bold text-2xl text-primary">{value}</div>
-      <div className="font-mono text-[10px] text-muted-foreground mt-0.5">{label}</div>
+      <div className="text-[10px] text-muted-foreground mt-0.5">{label}</div>
     </div>);
 
 }
@@ -29,7 +29,7 @@ function FeatureCard({ icon: Icon, title, desc, delay }) {
         <Icon className="w-5 h-5 text-primary" />
       </div>
       <h3 className="font-display text-sm font-semibold text-foreground mb-1">{title}</h3>
-      <p className="font-mono text-xs text-muted-foreground leading-relaxed">{desc}</p>
+      <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
     </motion.div>);
 
 }
@@ -58,13 +58,13 @@ export default function Home() {
             className="w-8 h-8 object-contain" />
 
           <span className="font-display font-bold text-sm text-primary tracking-widest">DSTC</span>
-          <span className="font-mono text-[10px] text-muted-foreground/60 hidden sm:block">Matching Platform</span>
+          <span className="text-[10px] text-muted-foreground/60 hidden sm:block">Matching Platform</span>
         </div>
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
-            className="font-mono text-xs text-muted-foreground hover:text-primary hidden sm:flex"
+            className="text-xs text-muted-foreground hover:text-primary hidden sm:flex"
             onClick={() => navigate('/discover')}>
 
             Khám phá
@@ -94,7 +94,7 @@ export default function Home() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/25 bg-primary/5 mb-6">
             <Zap className="w-3 h-3 text-primary" />
-            <span className="font-mono text-[11px] text-primary/80">Data Science Talent Competition 2026</span>
+            <span className="text-[11px] text-primary/80">Data Science Talent Competition 2026</span>
           </div>
 
           <h1 className="font-display font-bold text-4xl md:text-6xl leading-tight mb-5" style={{ letterSpacing: '-0.02em' }}>
@@ -186,7 +186,7 @@ export default function Home() {
           alt="Đoàn trường" className="w-6 h-6 rounded-full object-cover" />
         <img src="/cte-logo.svg"
           alt="CTE FTU" className="w-6 h-6 rounded object-contain invert" />
-        <span className="font-mono text-[10px] text-muted-foreground">Trường Đại học Ngoại thương — Đoàn TNCS HCM — CTE FTU</span>
+        <span className="text-[10px] text-muted-foreground">Trường Đại học Ngoại thương — Đoàn TNCS HCM — CTE FTU</span>
       </div>
     </div>);
 

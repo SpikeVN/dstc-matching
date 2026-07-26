@@ -7,7 +7,6 @@ import { UNSAFE_NavigationContext as NavigationContext } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext';
 import InlineProfileEditor from '@/components/profile/InlineProfileEditor';
 import ProfilePreview from '@/components/profile/ProfilePreview';
-import PageFooter from '@/components/layout/PageFooter';
 import { Save, Eye } from 'lucide-react';
 import { Toggle } from '@/components/ui/toggle';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -104,10 +103,35 @@ export default function Profile() {
   };
 
   const handleSwitchToPreview = () => {
+    if (isDirty) {
+      // If there are unsaved changes, show the dialog first
+      setPendingNav({
+        type: 'modeSwitch',
+        proceed: () => {
+          // User confirmed — switch to preview with latest form data
+          setPreviewData(latestFormRef.current || myProfile);
+          setMode('preview');
+        }
+      });
+      return;
+    }
     // When switching to preview, use latest form data if available, else saved profile
     if (latestFormRef.current) setPreviewData(latestFormRef.current);
     else setPreviewData(myProfile);
     setMode('preview');
+  };
+
+  const handleSwitchToEdit = () => {
+    if (isDirty) {
+      setPendingNav({
+        type: 'modeSwitch',
+        proceed: () => {
+          setMode('edit');
+        }
+      });
+      return;
+    }
+    setMode('edit');
   };
 
   return (
@@ -126,7 +150,7 @@ export default function Profile() {
                 variant="outline"
                 className="px-3"
                 pressed={mode === 'preview'}
-                onPressedChange={(pressed) => pressed ? handleSwitchToPreview() : setMode('edit')}
+                onPressedChange={(pressed) => pressed ? handleSwitchToPreview() : handleSwitchToEdit()}
                 aria-label="Xem trước"
               >
                 <Eye className="w-3.5 h-3.5" />
@@ -183,7 +207,6 @@ export default function Profile() {
             )}
           </AnimatePresence>
         )}
-        <PageFooter />
       </div>
 
       {/* Unsaved changes confirmation dialog */}

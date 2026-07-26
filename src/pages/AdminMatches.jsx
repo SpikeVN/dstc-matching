@@ -2,21 +2,50 @@ import { db } from '@/api/apiClient';
 
 import React, { useState } from 'react';
 
-import { useQuery } from '@tanstack/react-query';
-import { Users, Search, Heart, MessageCircle, User, Shield } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Users, Search, Heart, MessageCircle, User, Shield, Eye, EyeOff } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { format, addHours } from 'date-fns';
 import MatchDashboard from '@/components/admin/MatchDashboard';
-import PageFooter from '@/components/layout/PageFooter';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+const ADMIN_ROLES = [
+  { value: 'owner', label: 'Owner', color: 'text-yellow-400', bg: 'bg-yellow-400/10' },
+  { value: 'mod', label: 'Mod', color: 'text-purple-400', bg: 'bg-purple-400/10' },
+  { value: 'manager', label: 'Manager', color: 'text-blue-400', bg: 'bg-blue-400/10' },
+  { value: 'user', label: 'User', color: 'text-muted-foreground', bg: 'bg-muted/50' },
+];
+
+function RoleBadge({ role }) {
+  const config = ADMIN_ROLES.find(r => r.value === role) || ADMIN_ROLES[3];
+  return (
+    <span className={`text-[11px] font-medium px-2 py-0.5 rounded ${config.bg} ${config.color}`}>
+      {config.label}
+    </span>
+  );
+}
 
 export default function AdminMatches() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [roleFilterValue, setRoleFilterValue] = useState('');
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => db.auth.me(),
   });
 
+  const canManageRoles = ['owner', 'mod'].includes(currentUser?.admin_role);
+
+  // ── Match data ──────────────────────────────────────────────────
   const { data: matches, isLoading: loadingMatches } = useQuery({
     queryKey: ['adminAllMatches'],
     queryFn: () => db.entities.Match.list('-created_date', 200),
@@ -35,7 +64,33 @@ export default function AdminMatches() {
     initialData: [],
   });
 
-  if (currentUser && currentUser.role !== 'admin') {
+  // ── User management data ────────────────────────────────────────
+  const { data: adminUsers, isLoading: loadingUsers } = useQuery({
+    queryKey: ['adminUsers', roleFilterValue, search],
+    queryFn: () => db.admin.listUsers({ role: roleFilterValue === 'all' ? undefined : roleFilterValue || undefined, search: search || undefined }),
+    initialData: [],
+    enabled: currentUser?.admin_role !== 'user',
+  });
+
+  // ── Mutations ───────────────────────────────────────────────────
+  const roleMutation = useMutation({
+    mutationFn: ({ userId, role }) => db.admin.updateUserRole(userId, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+    },
+  });
+
+  const visibilityMutation = useMutation({
+    mutationFn: ({ userId, visible }) => db.admin.updateVisibility(userId, visible),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+    },
+  });
+
+  // ── Access control ──────────────────────────────────────────────
+  if (currentUser && !['owner', 'mod', 'manager'].includes(currentUser.admin_role)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-3">
@@ -47,16 +102,16 @@ export default function AdminMatches() {
     );
   }
 
+  // ── Match data processing ───────────────────────────────────────
   const profileMap = {};
   allProfiles.forEach(p => { profileMap[p.created_by] = p; });
 
-  // Message count per match
   const msgCountByMatch = {};
   allMessages.forEach(msg => {
     msgCountByMatch[msg.match_id] = (msgCountByMatch[msg.match_id] || 0) + 1;
   });
 
-  const filtered = matches.filter(match => {
+  const filteredMatches = matches.filter(match => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     const p1 = profileMap[match.user1_id];
@@ -75,12 +130,12 @@ export default function AdminMatches() {
 
   return (
     <div className="min-h-screen flex flex-col p-4 md:p-8 grid-overlay">
-      <div className="max-w-4xl mx-auto gap-5 w-full flex-1 flex flex-col">
+      <div className="max-w-5xl mx-auto gap-5 w-full flex-1 flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="font-display font-bold text-xl tracking-wide text-primary flex items-center gap-2">
-              <Shield className="w-5 h-5" /> Admin — Match Viewer
+              <Shield className="w-5 h-5" /> Admin Panel
             </h1>
             <p className="font-body text-xs text-muted-foreground mt-1">
               {matches.length} matches — {allProfiles.length} thí sinh — {allMessages.length} tin nhắn
@@ -99,94 +154,234 @@ export default function AdminMatches() {
           </div>
         </div>
 
-        {/* Dashboard */}
-        <MatchDashboard matches={matches} allProfiles={allProfiles} allMessages={allMessages} />
-
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Tìm theo tên, email, trường..."
-            className="pl-9 bg-muted/40 border-primary/15 focus:border-primary/40 font-body text-sm"
-          />
-        </div>
-
-        {/* Match list */}
-        {isLoading ? (
-          <div className="text-center py-16">
-            <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-16">
-            <Heart className="w-10 h-10 text-primary/10 mx-auto mb-3" />
-            <p className="font-body text-sm text-muted-foreground">Không tìm thấy match nào</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filtered.map((match, i) => {
-              const p1 = profileMap[match.user1_id];
-              const p2 = profileMap[match.user2_id];
-              const msgCount = msgCountByMatch[match.id] || 0;
-
+        {/* Tabs (line variant) */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="h-auto bg-transparent p-0 border-b border-primary/10 rounded-none w-full justify-start gap-0">
+            {['dashboard', 'users', 'matches'].map(tab => {
+              const icons = { dashboard: Shield, users: Users, matches: Heart };
+              const labels = { dashboard: 'Dashboard', users: 'Quản lý người dùng', matches: 'Matches' };
+              const Icon = icons[tab];
               return (
-                <div key={match.id} className="glass-card rounded-xl border border-primary/10 p-4">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    {/* Index */}
-                    <span className="font-display text-xs text-muted-foreground/50 w-6 text-right flex-shrink-0">#{i + 1}</span>
-
-                    {/* User 1 */}
-                    <UserCard profile={p1} email={match.user1_id} />
-
-                    {/* Match icon */}
-                    <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                      <Heart className="w-5 h-5 text-pink-400" />
-                      <span className="font-body text-[9px] text-muted-foreground/50">match</span>
-                    </div>
-
-                    {/* User 2 */}
-                    <UserCard profile={p2} email={match.user2_id} />
-
-                    {/* Meta */}
-                    <div className="ml-auto flex flex-col items-end gap-1 flex-shrink-0">
-                      <div className="flex items-center gap-1 text-[10px] font-body text-muted-foreground">
-                        <MessageCircle className="w-3 h-3" />
-                        <span>{msgCount} tin nhắn</span>
-                      </div>
-                      <span className="text-[10px] font-body text-muted-foreground/50">
-                        {match.created_date ? format(addHours(new Date(match.created_date), 7), 'HH:mm dd/MM/yyyy') : '—'}
-                      </span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded border font-body ${match.status === 'team_joined' ? 'text-primary border-primary/30 bg-primary/5' :
-                          match.status === 'team_invited' ? 'text-yellow-300 border-yellow-400/30 bg-yellow-400/5' :
-                            'text-pink-300 border-pink-400/30 bg-pink-400/5'
-                        }`}>{match.status}</span>
-                    </div>
-                  </div>
-                </div>
+                <TabsTrigger
+                  key={tab}
+                  value={tab}
+                  className="px-4 py-2.5 text-xs font-body rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground hover:text-foreground transition-all"
+                >
+                  <Icon className="w-3.5 h-3.5 inline mr-1.5" />
+                  {labels[tab]}
+                </TabsTrigger>
               );
             })}
-          </div>
-        )}
-        <PageFooter />
-      </div>
-    </div>
-  );
-}
+          </TabsList>
 
-function UserCard({ profile, email }) {
-  return (
-    <div className="flex items-center gap-2 flex-1 min-w-0 max-w-[200px]">
-      <div className="w-9 h-9 rounded-lg overflow-hidden border border-primary/20 bg-muted/50 flex-shrink-0">
-        {profile?.profile_image
-          ? <img src={profile.profile_image} alt="" className="w-full h-full object-cover" />
-          : <div className="w-full h-full flex items-center justify-center"><User className="w-4 h-4 text-primary/30" /></div>
-        }
-      </div>
-      <div className="min-w-0">
-        <p className="font-display font-semibold text-xs text-foreground truncate">{profile?.display_name || 'Unknown'}</p>
-        <p className="font-body text-[10px] text-muted-foreground truncate">{email}</p>
-        {profile?.role && <p className="font-body text-[10px] text-primary/60 truncate">{profile.role}</p>}
+          <TabsContent value="dashboard" className="mt-5">
+            <MatchDashboard matches={matches} allProfiles={allProfiles} allMessages={allMessages} />
+          </TabsContent>
+
+          <TabsContent value="users" className="mt-5">
+          <div className="space-y-4">
+            {/* Search and filters */}
+            <div className="flex gap-3 flex-wrap">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Tìm theo tên, email..."
+                  className="pl-9 bg-muted/40 border-primary/15 focus:border-primary/40 font-body text-sm"
+                />
+              </div>
+              <Select value={roleFilterValue} onValueChange={setRoleFilterValue}>
+                <SelectTrigger className="w-[140px] h-9 text-xs bg-muted/40 border-primary/15 text-foreground">
+                  <SelectValue placeholder="Tất cả vai trò" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả vai trò</SelectItem>
+                  <SelectItem value="owner">Owner</SelectItem>
+                  <SelectItem value="mod">Mod</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="user">User</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Users table */}
+            {loadingUsers ? (
+              <div className="text-center py-16">
+                <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
+              </div>
+            ) : adminUsers.length === 0 ? (
+              <div className="text-center py-16">
+                <Users className="w-10 h-10 text-primary/10 mx-auto mb-3" />
+                <p className="font-body text-sm text-muted-foreground">Không tìm thấy người dùng</p>
+              </div>
+            ) : (
+              <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+                <table className="w-full text-xs font-body">
+                  <thead>
+                    <tr className="border-b border-primary/10 bg-muted/20">
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Người dùng</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Email</th>
+                      <th className="text-center px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Vai trò</th>
+                      <th className="text-center px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Hiển thị</th>
+                      <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider hidden sm:table-cell">Gán ngày</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-primary/8">
+                    {adminUsers.map(u => (
+                      <tr key={u.id} className="hover:bg-primary/5 transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-lg overflow-hidden border border-primary/20 bg-muted/50 flex-shrink-0">
+                              {u.profile_image
+                                ? <img src={u.profile_image} alt="" className="w-full h-full object-cover" />
+                                : <div className="w-full h-full flex items-center justify-center"><User className="w-4 h-4 text-primary/30" /></div>
+                              }
+                            </div>
+                            <span className="font-medium text-sm text-foreground truncate max-w-[160px]">{u.display_name || 'Unknown'}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground truncate max-w-[200px]">{u.email}</td>
+                        <td className="px-4 py-3 text-center">
+                          {canManageRoles ? (
+                            <Select
+                              value={u.admin_role}
+                              onValueChange={role => roleMutation.mutate({ userId: u.id, role })}
+                            >
+                              <SelectTrigger className="h-7 text-xs font-medium px-2 border border-primary/20 bg-transparent text-foreground gap-1 w-auto min-w-[80px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {ADMIN_ROLES.filter(r => r.value !== 'owner').map(r => (
+                                  <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <RoleBadge role={u.admin_role} />
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => visibilityMutation.mutate({ userId: u.id, visible: !u.admin_visible })}
+                            className={`p-1.5 rounded-lg transition-all hover:bg-primary/10 ${
+                              u.admin_visible ? 'text-primary' : 'text-muted-foreground/50'
+                            }`}
+                            title={u.admin_visible ? 'Visible in matching' : 'Hidden from matching'}
+                          >
+                            {u.admin_visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                          </button>
+                        </td>
+                        <td className="px-4 py-3 text-right text-xs text-muted-foreground/50 hidden sm:table-cell">
+                          {u.assigned_date ? format(addHours(new Date(u.assigned_date), 7), 'dd/MM/yy') : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          </TabsContent>
+
+          <TabsContent value="matches" className="mt-5">
+          <div className="space-y-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Tìm theo tên, email, trường..."
+                className="pl-9 bg-muted/40 border-primary/15 focus:border-primary/40 font-body text-sm"
+              />
+            </div>
+
+            {/* Matches table */}
+            {isLoading ? (
+              <div className="text-center py-16">
+                <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
+              </div>
+            ) : filteredMatches.length === 0 ? (
+              <div className="text-center py-16">
+                <Heart className="w-10 h-10 text-primary/10 mx-auto mb-3" />
+                <p className="font-body text-sm text-muted-foreground">Không tìm thấy match nào</p>
+              </div>
+            ) : (
+              <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+                <table className="w-full text-xs font-body">
+                  <thead>
+                    <tr className="border-b border-primary/10 bg-muted/20">
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider w-8">#</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">User 1</th>
+                      <th className="text-center px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider w-12"></th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">User 2</th>
+                      <th className="text-center px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider hidden sm:table-cell">Tin nhắn</th>
+                      <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-primary/8">
+                    {filteredMatches.map((match, i) => {
+                      const p1 = profileMap[match.user1_id];
+                      const p2 = profileMap[match.user2_id];
+                      const msgCount = msgCountByMatch[match.id] || 0;
+                      const statusLabel = {
+                        matched: 'Matched',
+                        team_invited: 'Đã mời',
+                        team_joined: 'Trong đội',
+                      }[match.status] || match.status;
+
+                      return (
+                        <tr key={match.id} className="hover:bg-primary/5 transition-colors">
+                          <td className="px-4 py-3 text-xs text-muted-foreground/50">{i + 1}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-lg overflow-hidden border border-primary/20 bg-muted/50 flex-shrink-0">
+                                {p1?.profile_image
+                                  ? <img src={p1.profile_image} alt="" className="w-full h-full object-cover" />
+                                  : <div className="w-full h-full flex items-center justify-center"><User className="w-4 h-4 text-primary/30" /></div>
+                                }
+                              </div>
+                              <span className="font-medium text-sm text-foreground truncate max-w-[150px]">{p1?.display_name || match.user1_id.slice(0, 8)}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <Heart className="w-4 h-4 text-pink-400 mx-auto" />
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-lg overflow-hidden border border-primary/20 bg-muted/50 flex-shrink-0">
+                                {p2?.profile_image
+                                  ? <img src={p2.profile_image} alt="" className="w-full h-full object-cover" />
+                                  : <div className="w-full h-full flex items-center justify-center"><User className="w-4 h-4 text-primary/30" /></div>
+                                }
+                              </div>
+                              <span className="font-medium text-sm text-foreground truncate max-w-[150px]">{p2?.display_name || match.user2_id.slice(0, 8)}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-center text-xs text-muted-foreground hidden sm:table-cell">
+                            <span className="flex items-center justify-center gap-1">
+                              <MessageCircle className="w-3.5 h-3.5" />
+                              {msgCount}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className={`text-[11px] px-2.5 py-1 rounded-md font-medium ${
+                              match.status === 'team_joined' ? 'text-primary bg-primary/10' :
+                              match.status === 'team_invited' ? 'text-yellow-400 bg-yellow-400/10' :
+                              'text-pink-400 bg-pink-400/10'
+                            }`}>{statusLabel}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

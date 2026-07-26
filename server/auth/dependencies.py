@@ -1,6 +1,7 @@
 from fastapi import Request, HTTPException
 
 from auth.jwt import verify_token
+from database import fetch_one
 
 
 async def get_current_user_id(request: Request) -> str:
@@ -25,8 +26,8 @@ async def get_current_user_id(request: Request) -> str:
 async def get_current_user(request: Request) -> dict:
     """Get the current user from the JWT token.
 
-    Decodes the JWT claims directly — no DB query needed.
-    Returns a dict with id, email, username (from user_metadata), and role.
+    Decodes JWT claims and queries user_preferences for admin role info.
+    Returns a dict with id, email, username, role, admin_role, admin_visible.
     Raises 401 if not authenticated.
     """
     user_id = await get_current_user_id(request)
@@ -36,11 +37,33 @@ async def get_current_user(request: Request) -> dict:
     payload = verify_token(token) if token else {}
 
     user_metadata = payload.get("user_metadata", {})
-    app_metadata = payload.get("app_metadata", {})
+
+    # Query user_preferences for admin role, visibility, and info_shown settings
+    prefs = await fetch_one(
+        "SELECT admin_role, admin_visible, info_shown FROM public.user_preferences WHERE user_id = $1",
+        user_id,
+    )
+
+    # Default info_shown settings
+    DEFAULT_INFO_SHOWN = {
+        "show_age": True,
+        "show_gender": True,
+        "show_location": True,
+        "show_school": True,
+        "show_major": True,
+        "show_achievements": True,
+    }
+
+    info_shown = prefs["info_shown"] if prefs and prefs.get("info_shown") else {}
+    # Merge with defaults so missing keys default to visible
+    merged_info_shown = {**DEFAULT_INFO_SHOWN, **info_shown}
 
     return {
         "id": user_id,
         "email": payload.get("email", ""),
         "username": user_metadata.get("full_name") or user_metadata.get("name", ""),
-        "role": app_metadata.get("role", "user"),
+        "role": "admin" if prefs and prefs["admin_role"] != "user" else "user",
+        "admin_role": prefs["admin_role"] if prefs else "user",
+        "admin_visible": prefs["admin_visible"] if prefs else True,
+        "info_shown": merged_info_shown,
     }
