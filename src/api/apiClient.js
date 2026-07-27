@@ -90,11 +90,26 @@ function clearTokens() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ code }),
   })
-    .then(res => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    .then(async res => {
+      if (!res.ok) {
+        // Try to extract the actual error detail from the response body
+        // (e.g. whitelist rejection message from the backend)
+        let errorMsg = 'Đăng+nhập+thất+bại';
+        try {
+          const errData = await res.json();
+          if (errData.detail) {
+            errorMsg = encodeURIComponent(errData.detail);
+          }
+        } catch (_) {
+          errorMsg = encodeURIComponent(res.statusText || 'Đăng+nhập+thất+bại');
+        }
+        window.location.href = `/login?error=${errorMsg}`;
+        return null; // signal to the next .then() that we already redirected
+      }
       return res.json();
     })
     .then(data => {
+      if (!data) return; // was an error case, already redirected
       if (data.access_token && data.refresh_token) {
         setTokens(data.access_token, data.refresh_token);
         // Redirect to clean URL — AuthContext will pick up the tokens
@@ -105,7 +120,7 @@ function clearTokens() {
     })
     .catch(err => {
       console.error('[API] OAuth code exchange failed:', err);
-      window.location.href = '/login?error=Đăng+nhập+GitHub+thất+bại';
+      window.location.href = '/login?error=Đăng+nhập+thất+bại';
     });
 })();
 
