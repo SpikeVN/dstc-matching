@@ -83,3 +83,4 @@ uvicorn==0.51.0
     # via dstc-matching
 wrapt==2.2.2
     # via deprecated
+supabase==2.31.0
