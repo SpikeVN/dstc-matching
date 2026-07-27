@@ -223,7 +223,7 @@ async def update_profile(profile_id: str, update: ProfileUpdate, user: dict = De
     vals = []
     idx = 1
     for key, value in update.model_dump(exclude_unset=True).items():
-        if value is not None:
+        if value is not None or key in ('team_id',):
             if key in ('technical_skills', 'soft_skills', 'goals', 'social_links'):
                 fields.append(f"{key} = ${idx}")
                 vals.append(json.dumps(value))

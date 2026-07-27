@@ -93,7 +93,7 @@ const ROLE_COLORS = {
 function ConversationItem({ match, profile, currentUser, myProfile, profileMap, sentInvites, receivedInvites, isSelected, unreadCount, isOnline, onClick, onSendTeamInvite, onCancelTeamInvite, onAcceptTeamInvite }) {
   const otherEmail = match.user1_id === currentUser?.id ? match.user2_id : match.user1_id;
   const otherProfile = profileMap[otherEmail];
-  const teammates = myProfile?.team_id && otherProfile?.team_id === myProfile?.team_id;
+  const teammates = myProfile?.has_team && myProfile?.team_id && otherProfile?.team_id === myProfile?.team_id;
   const sentInvite = sentInvites.find(inv => inv.invitee_id === otherEmail);
   const receivedInvite = receivedInvites.find(inv => inv.inviter_id === otherEmail);
   const [cancelConfirmId, setCancelConfirmId] = useState(null);
@@ -410,7 +410,7 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
     return messages.filter(m => m.sender_id === currentUser?.id).length;
   }, [messages, currentUser?.id]);
 
-  const teammates = myProfile?.team_id && otherProfile?.team_id === myProfile?.team_id;
+  const teammates = myProfile?.has_team && myProfile?.team_id && otherProfile?.team_id === myProfile?.team_id;
   const sentInvite = sentInvites.find(inv => inv.invitee_id === otherEmail);
   const receivedInvite = receivedInvites.find(inv => inv.inviter_id === otherEmail);
 
@@ -1036,15 +1036,16 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
 }
 
 export default function Messages() {
-  const [selectedMatch, setSelectedMatch] = useState(null);
+  const [selectedMatchId, setSelectedMatchId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [addingStranger, setAddingStranger] = useState(false);
   const onlineUsers = useOnlineContext();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const selectMatch = (match) => {
-    setSelectedMatch(match);
+    setSelectedMatchId(match?.id || null);
     if (match) {
       navigate(`/messages?match=${match.id}`, { replace: true });
     } else {
@@ -1105,6 +1106,7 @@ export default function Messages() {
     queryKey: ['allProfilesForMatch'],
     queryFn: () => db.entities.ContestantProfile.list(),
     initialData: [],
+    refetchInterval: 30000,
   });
 
   const { data: myProfiles } = useQuery({
@@ -1115,6 +1117,7 @@ export default function Messages() {
     },
     initialData: [],
     enabled: !!currentUser,
+    refetchInterval: 15000,
   });
   const myProfile = myProfiles[0];
 
@@ -1177,6 +1180,11 @@ export default function Messages() {
     onError: (err) => toast.error(err?.message || 'Không thể chấp nhận lời mời'),
   });
 
+  const selectedMatch = useMemo(() => {
+    if (!selectedMatchId || !matches) return null;
+    return matches.find(m => m.id === selectedMatchId) || null;
+  }, [selectedMatchId, matches]);
+
   const profileMap = useMemo(() => {
     const map = {};
     allProfiles.forEach(p => { map[p.created_by] = p; });
@@ -1191,11 +1199,10 @@ export default function Messages() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const matchId = params.get('match');
-    if (matchId && matches.length > 0) {
-      const found = matches.find(m => m.id === matchId);
-      if (found) setSelectedMatch(found);
+    if (matchId && matches.length > 0 && !selectedMatchId) {
+      setSelectedMatchId(matchId);
     }
-  }, [matches]);
+  }, [matches, selectedMatchId]);
 
   // Debounce search query
   useEffect(() => {

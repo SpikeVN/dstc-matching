@@ -208,10 +208,12 @@ async def update_user_visibility(
     req: VisibilityUpdateRequest,
     user: dict = Depends(get_current_user),
 ):
-    """Toggle user visibility in matching algorithms. Requires manager+ role."""
-    _require_admin_role(user, "mod")
+    """Toggle user visibility in matching algorithms.
 
-    # Users can toggle their own visibility
+    Any user can toggle their own visibility. Editing others requires mod+ role
+    and appropriate privilege level.
+    """
+    # Users can toggle their own visibility regardless of role
     if user_id == user["id"]:
         existing = await fetch_one(
             "SELECT id FROM public.user_preferences WHERE user_id = $1", user_id
@@ -232,6 +234,8 @@ async def update_user_visibility(
                 req.admin_visible,
             )
         return {"id": user_id, "admin_visible": req.admin_visible}
+
+    _require_admin_role(user, "mod")
 
     # Check permission for other users
     target_prefs = await fetch_one(
@@ -269,7 +273,7 @@ async def update_user_visibility(
 
 
 @router.delete("/users/{user_id}")
-async def admin_delete_user(
+async def delete_user(
     user_id: str,
     user: dict = Depends(get_current_user),
 ):
@@ -538,8 +542,8 @@ async def admin_update_setting(
     req: AdminSettingUpdateRequest,
     user: dict = Depends(get_current_user),
 ):
-    """Update a system setting. Requires mod+ role."""
-    _require_admin_role(user, "mod")
+    """Update a system setting. Requires manager+ role."""
+    _require_admin_role(user, "manager")
 
     await execute(
         """

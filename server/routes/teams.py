@@ -298,12 +298,19 @@ async def leave_team(team_id: str, user: dict = Depends(get_current_user)):
     new_member_ids = [m for m in member_ids if m != user["id"]]
     new_leader_id = existing["leader_id"] if existing["leader_id"] != user["id"] else (new_member_ids[0] if new_member_ids else None)
 
+    # Clear team_id and has_team on the leaving user's profile
+    now_ts = now()
+    await execute(
+        "UPDATE contestant_profiles SET team_id = null, has_team = false, updated_date = $1 WHERE created_by = $2",
+        now_ts,
+        user["id"],
+    )
+
     if not new_member_ids:
         # Last member leaving — delete the team
         await execute("DELETE FROM teams WHERE id = $1", team_id)
         return {"success": True, "message": "You have left the team"}
     else:
-        now_ts = now()
         await execute(
             "UPDATE teams SET member_ids = $1, leader_id = $2, updated_date = $3 WHERE id = $4",
             json.dumps(new_member_ids),
@@ -421,6 +428,15 @@ async def disband_respond(
         all_members = set(existing.get("member_ids") or [])
         if existing["leader_id"]:
             all_members.add(existing["leader_id"])
+
+        # Clear team_id and has_team on all members' profiles
+        now_ts = now()
+        for member_id in all_members:
+            await execute(
+                "UPDATE contestant_profiles SET team_id = null, has_team = false, updated_date = $1 WHERE created_by = $2",
+                now_ts,
+                member_id,
+            )
 
         await execute("DELETE FROM teams WHERE id = $1", team_id)
 
