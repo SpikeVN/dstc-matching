@@ -1,36 +1,43 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Match mới — DSTC Matching</title>
 </head>
+
 <body style="margin:0;padding:0;background-color:#0a120b;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a120b;padding:32px 16px;">
     <tr>
       <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background-color:#0f1a11;border:1px solid rgba(42,75,46,0.3);border-radius:16px;overflow:hidden;">
+        <table width="100%" cellpadding="0" cellspacing="0"
+          style="max-width:480px;background-color:#0f1a11;border:1px solid rgba(42,75,46,0.3);border-radius:16px;overflow:hidden;">
 
           <!-- Header -->
           <tr>
-            <td style="background:url('https://cdn.jsdelivr.net/gh/SpikeVN/dstc-matching@main/public/background.webp');padding:32px 24px;text-align:center;">
+            <td
+              style="background:url('https://cdn.jsdelivr.net/gh/SpikeVN/dstc-matching@main/public/background.webp');padding:32px 24px;text-align:center;">
               <p style="margin:0 0 8px;font-size:32px;">🎉</p>
               <h1 style="margin:0;font-size:22px;font-weight:700;color:#71d65b;">Match mới!</h1>
-              <p style="margin:8px 0 0;font-size:13px;color:rgba(255,255,255,0.6);">Bạn và {{ other_name }} đã match thành công</p>
+              <p style="margin:8px 0 0;font-size:13px;color:rgba(255,255,255,0.6);">Bạn và {{ other_name }} đã match
+                thành công</p>
             </td>
           </tr>
 
           <!-- Profile card -->
           <tr>
             <td style="padding:24px;">
-              <table width="100%" cellpadding="0" cellspacing="0" style="background-color:rgba(42,75,46,0.1);border:1px solid rgba(42,75,46,0.2);border-radius:12px;">
+              <table width="100%" cellpadding="0" cellspacing="0"
+                style="background-color:rgba(42,75,46,0.1);border:1px solid rgba(42,75,46,0.2);border-radius:12px;">
                 <tr>
                   <td style="padding:20px;">
                     <table cellpadding="0" cellspacing="0">
                       <tr>
                         {% if other_avatar %}
                         <td style="padding-right:16px;vertical-align:top;">
-                          <img src="{{ other_avatar }}" alt="" width="56" height="56" style="border-radius:12px;border:2px solid rgba(113,214,91,0.3);object-fit:cover;display:block;">
+                          <img src="{{ other_avatar }}" alt="" width="56" height="56"
+                            style="border-radius:12px;border:2px solid rgba(113,214,91,0.3);object-fit:cover;display:block;">
                         </td>
                         {% endif %}
                         <td style="vertical-align:top;">
@@ -57,7 +64,7 @@
                 <tr>
                   <td align="center">
                     <a href="{{ SITE_URL }}/messages?match={{ match_id }}"
-                       style="display:inline-block;background-color:#71d65b;color:#0a120b;font-size:14px;font-weight:700;text-decoration:none;padding:12px 32px;border-radius:10px;">
+                      style="display:inline-block;background-color:#71d65b;color:#0a120b;font-size:14px;font-weight:700;text-decoration:none;padding:12px 32px;border-radius:10px;">
                       Nhắn tin ngay →
                     </a>
                   </td>
@@ -81,8 +88,8 @@
                   href="mailto:datasciencetalent.cteftu@gmail.com">datasciencetalent.cteftu@gmail.com</a></p>
               <p style="margin:0 0 4px;font-size:13px;color:#cedfd0;"><strong>Địa chỉ:</strong> Bàn số 41, Nhà CLB, Tầng
                 01 Tòa B, Trường Đại học Ngoại thương - 91 Phố Chùa Láng, Phường Láng, TP. Hà Nội</p>
-              <p style="margin:0;font-size:13px;color:#cedfd0;"><strong>Hotline:</strong> 081 728 0206 (Mr. Nguyễn Đức
-                Phúc), 033 877 3879 (Ms. Trần Ngọc Cẩm).</p>
+              <p style="margin:0;font-size:13px;color:#cedfd0;"><strong>Hotline:</strong> 094 737 5991 (Ms Bảo Anh),
+                0949041674 (Mr Sỹ Bách).</p>
             </td>
           </tr>
 
@@ -91,4 +98,5 @@
     </tr>
   </table>
 </body>
+
 </html>

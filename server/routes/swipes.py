@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 from typing import Optional
-from database import fetch, fetch_one, execute, generate_id, now
+from database import fetch, fetch_one, execute, generate_id, now, is_disabled
 from auth.dependencies import get_current_user
 from mailer import fire_match_notification
 
@@ -60,6 +60,10 @@ async def get_swipe(swipe_id: str, user: dict = Depends(get_current_user)):
 
 @router.post("")
 async def create_swipe(swipe: SwipeCreate, user: dict = Depends(get_current_user)):
+    # Check global matching toggle
+    if await is_disabled("matching_disabled"):
+        raise HTTPException(status_code=400, detail="Đã hết thời hạn thực hiện matching.")
+
     # Enforce that the authenticated user is the swiper
     if swipe.swiper_id != user["id"]:
         raise HTTPException(status_code=403, detail="Cannot swipe on behalf of another user")

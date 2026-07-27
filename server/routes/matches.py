@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 from typing import Optional
-from database import fetch, fetch_one, execute, generate_id, now
+from database import fetch, fetch_one, execute, generate_id, now, is_disabled
 from auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/matches")
@@ -53,6 +53,8 @@ async def get_match(match_id: str, user: dict = Depends(get_current_user)):
 
 @router.post("")
 async def create_match(match: MatchCreate, user: dict = Depends(get_current_user)):
+    if await is_disabled("matching_disabled"):
+        raise HTTPException(status_code=400, detail="Đã hết thời hạn thực hiện matching.")
     if user["id"] not in (match.user1_id, match.user2_id):
         raise HTTPException(status_code=403, detail="Not authorized to create this match")
     mid = generate_id()
@@ -67,6 +69,8 @@ async def create_match(match: MatchCreate, user: dict = Depends(get_current_user
 
 @router.patch("/{match_id}")
 async def update_match(match_id: str, update: MatchUpdate, user: dict = Depends(get_current_user)):
+    if await is_disabled("matching_disabled"):
+        raise HTTPException(status_code=400, detail="Đã hết thời hạn thực hiện matching.")
     existing = await fetch_one("SELECT * FROM matches WHERE id = $1", match_id)
     if existing is None:
         raise HTTPException(status_code=404, detail="Match not found")
@@ -96,6 +100,8 @@ async def update_match(match_id: str, update: MatchUpdate, user: dict = Depends(
 async def delete_match(match_id: str, user: dict = Depends(get_current_user)):
     """Soft-delete a match: set status to 'unmatched'. Messages stay visible, but
     a 3-message limit is enforced (see messages.py)."""
+    if await is_disabled("matching_disabled"):
+        raise HTTPException(status_code=400, detail="Đã hết thời hạn thực hiện matching.")
     existing = await fetch_one("SELECT * FROM matches WHERE id = $1", match_id)
     if existing is None:
         raise HTTPException(status_code=404, detail="Match not found")

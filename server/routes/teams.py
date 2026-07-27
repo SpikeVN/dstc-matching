@@ -2,7 +2,7 @@ import json
 from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 from typing import Optional
-from database import fetch, fetch_one, execute, generate_id, now
+from database import fetch, fetch_one, execute, generate_id, now, is_disabled
 from auth.dependencies import get_current_user
 from mailer import (
     fire_team_invitation,
@@ -46,6 +46,8 @@ class InviteByEmailRequest(BaseModel):
 
 @router.post("/invite-by-email")
 async def invite_by_email(req: InviteByEmailRequest, user: dict = Depends(get_current_user)):
+    if await is_disabled("matching_disabled"):
+        raise HTTPException(status_code=400, detail="Đã hết thời hạn thực hiện matching.")
     # 1. Look up the invitee by email in contestant_profiles
     invitee = await fetch_one(
         "SELECT created_by AS id FROM contestant_profiles WHERE email = $1",
@@ -179,6 +181,8 @@ async def get_team(team_id: str, user: dict = Depends(get_current_user)):
 
 @router.post("")
 async def create_team(team: TeamCreate, user: dict = Depends(get_current_user)):
+    if await is_disabled("matching_disabled"):
+        raise HTTPException(status_code=400, detail="Đã hết thời hạn thực hiện matching.")
     tid = generate_id()
     now_ts = now()
 
@@ -248,6 +252,8 @@ async def update_team(
 @router.delete("/{team_id}")
 async def leave_team(team_id: str, user: dict = Depends(get_current_user)):
     """Leave a team. Any member can leave. If last member, team is deleted."""
+    if await is_disabled("matching_disabled"):
+        raise HTTPException(status_code=400, detail="Đã hết thời hạn thực hiện matching.")
     existing = await fetch_one("SELECT * FROM teams WHERE id = $1", team_id)
     if existing is None:
         raise HTTPException(status_code=404, detail="Team not found")
@@ -324,6 +330,8 @@ async def leave_team(team_id: str, user: dict = Depends(get_current_user)):
 @router.post("/{team_id}/accept-invite")
 async def accept_team_invite(team_id: str, user: dict = Depends(get_current_user)):
     """Accept a team invite and join the team. Verifies a pending invite exists."""
+    if await is_disabled("matching_disabled"):
+        raise HTTPException(status_code=400, detail="Đã hết thời hạn thực hiện matching.")
     # Verify the team exists
     team = await fetch_one("SELECT * FROM teams WHERE id = $1", team_id)
     if team is None:
@@ -402,6 +410,8 @@ async def disband_respond(
     user: dict = Depends(get_current_user),
 ):
     """Respond to a disband request. Any other member can accept or reject."""
+    if await is_disabled("matching_disabled"):
+        raise HTTPException(status_code=400, detail="Đã hết thời hạn thực hiện matching.")
     existing = await fetch_one("SELECT * FROM teams WHERE id = $1", team_id)
     if existing is None:
         raise HTTPException(status_code=404, detail="Team not found")

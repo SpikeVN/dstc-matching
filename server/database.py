@@ -88,3 +88,24 @@ def _record_to_dict(record: asyncpg.Record) -> dict:
         if field in d and d[field] is not None:
             d[field] = bool(d[field])
     return d
+
+
+async def is_disabled(feature: str) -> bool:
+    """Check whether a feature is disabled in system_settings.
+
+    Returns True when the setting's key exists AND its value is truthy.
+    Setting missing or falsy → feature is allowed.
+    """
+    row = await fetch_one(
+        "SELECT value FROM system_settings WHERE key = $1", feature
+    )
+    if row is None:
+        return False
+    val = row["value"]
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, (int, float)):
+        return val != 0
+    if isinstance(val, str):
+        return val.lower() in ("true", "1", "yes")
+    return False

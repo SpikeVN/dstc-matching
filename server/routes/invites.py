@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 from typing import Optional
-from database import fetch, fetch_one, execute, generate_id, now
+from database import fetch, fetch_one, execute, generate_id, now, is_disabled
 from auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/team-invites")
@@ -50,6 +50,8 @@ async def get_invite(invite_id: str, user: dict = Depends(get_current_user)):
 
 @router.post("")
 async def create_invite(invite: InviteCreate, user: dict = Depends(get_current_user)):
+    if await is_disabled("matching_disabled"):
+        raise HTTPException(status_code=400, detail="Đã hết thời hạn thực hiện matching.")
     iid = generate_id()
     now_ts = now()
     await execute("""

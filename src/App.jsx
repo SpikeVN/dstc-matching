@@ -18,6 +18,9 @@ import Settings from '@/pages/Settings';
 import AdminMatches from '@/pages/AdminMatches';
 import Guide from '@/pages/Guide';
 import ProfileDetail from '@/pages/ProfileDetail';
+import TermsPage from '@/pages/TermsPage';
+import AboutPage from '@/pages/AboutPage';
+import HelpPage from '@/pages/HelpPage';
 import LoginPage from '@/pages/LoginPage';
 import SignupPage from '@/pages/SignupPage';
 import VerifyEmail from '@/pages/VerifyEmail';
@@ -46,6 +49,9 @@ const PublicRoutes = () => (
     <Route path="/verify" element={<VerifyEmail />} />
     <Route path="/forgot-password" element={<ForgotPasswordPage />} />
     <Route path="/reset-password" element={<ResetPasswordPage />} />
+    <Route path="/terms" element={<TermsPage />} />
+    <Route path="/about" element={<AboutPage />} />
+    <Route path="/help" element={<HelpPage />} />
     <Route path="*" element={<LoginRedirect />} />
   </Routes>
 );
@@ -110,6 +116,9 @@ const AuthenticatedApp = () => {
         <Route path="/settings/:section?" element={<Settings />} />
         <Route path="/admin/:section?" element={<AdminMatches />} />
         <Route path="/guide" element={<Guide />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/help" element={<HelpPage />} />
         <Route path="/profile-view" element={<ProfileDetail />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />

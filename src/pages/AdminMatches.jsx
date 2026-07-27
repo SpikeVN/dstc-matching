@@ -1051,6 +1051,22 @@ export default function AdminMatches() {
                   </div>
                 ) : (
                   <>
+                  {/* ── Global matching toggle ──────────────────── */}
+                  <div className="flex items-center justify-between pb-4 border-b border-primary/10">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Tạm dừng Matching</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Khi bật, tất cả thao tác matching, tạo đội, giải tán đội và lời mời sẽ bị từ chối
+                      </p>
+                    </div>
+                    <Switch
+                      checked={systemSettings.matching_disabled === true}
+                      onCheckedChange={(checked) => {
+                        settingsMutation.mutate({ key: 'matching_disabled', value: checked });
+                      }}
+                    />
+                  </div>
+
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-foreground">Yêu cầu đồng ý khi giải tán đội</p>
