@@ -145,7 +145,7 @@ class ProfileUpdate(BaseModel):
 
 
 @router.get("/contestant-profiles")
-async def list_profiles(request: Request):
+async def list_profiles(request: Request, user: dict = Depends(get_current_user)):
     query = """
         SELECT cp.*,
                COALESCE(up.admin_visible, true) as admin_visible,
@@ -174,7 +174,7 @@ async def list_profiles(request: Request):
 
 
 @router.get("/contestant-profiles/{profile_id}")
-async def get_profile(profile_id: str):
+async def get_profile(profile_id: str, user: dict = Depends(get_current_user)):
     row = await fetch_one(
         """SELECT cp.*, up.info_shown
            FROM contestant_profiles cp

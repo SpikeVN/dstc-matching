@@ -3,10 +3,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:54322/postgres")
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL environment variable is required")
+
 GOTRUE_URL = os.getenv("GOTRUE_URL", "http://127.0.0.1:54321/auth/v1")
 GOTRUE_SERVICE_KEY = os.getenv("GOTRUE_SERVICE_KEY", "")
-JWT_SECRET = os.getenv("JWT_SECRET", "super-secret-jwt-token-with-at-least-32-characters-long")
+JWT_SECRET = os.getenv("JWT_SECRET")
+if not JWT_SECRET:
+    raise RuntimeError("JWT_SECRET environment variable is required")
 CORS_ORIGINS = os.getenv(
     "CORS_ORIGINS",
     "https://matching.cteftu.id.vn,http://localhost:4236",

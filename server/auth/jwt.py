@@ -1,3 +1,5 @@
+import time
+
 import httpx
 from jose import JWTError, jwt
 from fastapi import HTTPException
@@ -6,23 +8,25 @@ from auth.config import JWT_SECRET, GOTRUE_URL
 
 # Cache the JWKS public keys fetched from GoTrue's .well-known endpoint.
 # GoTrue rotates keys rarely; re-fetching on every request is wasteful.
-_jwks_cache: dict | None = None
+_jwks_cache: tuple[dict, float] | None = None
+JWKS_TTL = 3600  # 1 hour
 
 
 def _get_jwks() -> dict:
     """Fetch and cache the JWKS from GoTrue's well-known endpoint."""
     global _jwks_cache
-    if _jwks_cache is not None:
-        return _jwks_cache
+    now = time.time()
+    if _jwks_cache is not None and (now - _jwks_cache[1]) < JWKS_TTL:
+        return _jwks_cache[0]
 
     jwks_url = f"{GOTRUE_URL}/.well-known/jwks.json"
     try:
         resp = httpx.get(jwks_url, timeout=5.0)
         resp.raise_for_status()
-        _jwks_cache = resp.json()
+        _jwks_cache = (resp.json(), now)
     except Exception:
-        _jwks_cache = {"keys": []}
-    return _jwks_cache
+        _jwks_cache = ({"keys": []}, now)
+    return _jwks_cache[0]
 
 
 def verify_token(token: str) -> dict:

@@ -137,6 +137,11 @@
 .no-spinner::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .no-spinner[type=number] { -moz-appearance: textfield; }
 
+/* MDX-rendered markdown content — uses @tailwindcss/typography */
+.mdx-content {
+  @apply prose prose-invert prose-sm max-w-none;
+}
+
 /* Grid/dot pattern overlay */
 .grid-overlay {
   background-image: 

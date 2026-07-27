@@ -9,6 +9,7 @@ from auth.dependencies import get_current_user
 from auth.jwt import verify_token
 from auth import gotrue
 from database import fetch_one, execute, generate_id, now
+from ratelimit import limiter
 
 # Default privacy settings: all fields visible
 DEFAULT_INFO_SHOWN = json.dumps({
@@ -90,7 +91,8 @@ class ChangePasswordRequest(BaseModel):
 
 
 @router.post("/signup")
-async def signup(req: SignupRequest):
+@limiter.limit("5/minute")
+async def signup(request: Request, req: SignupRequest):
     """Create a new user via GoTrue, then create a contestant profile."""
     result = await gotrue.signup(req.email, req.password, req.username)
 
@@ -134,7 +136,8 @@ async def signup(req: SignupRequest):
 
 
 @router.post("/login")
-async def login(req: LoginRequest):
+@limiter.limit("10/minute")
+async def login(request: Request, req: LoginRequest):
     """Authenticate with email and password via GoTrue."""
     result = await gotrue.login(req.email, req.password)
     return {
@@ -385,7 +388,8 @@ async def change_username(
 
 
 @router.post("/forgot-password")
-async def forgot_password(req: ForgotPasswordRequest):
+@limiter.limit("3/minute")
+async def forgot_password(request: Request, req: ForgotPasswordRequest):
     """Send a password recovery email via a custom scoped JWT."""
     # Look up user by email in contestant_profiles
     profile = await fetch_one(
@@ -408,7 +412,8 @@ async def forgot_password(req: ForgotPasswordRequest):
 
 
 @router.post("/reset-password")
-async def reset_password(req: ResetPasswordRequest):
+@limiter.limit("5/minute")
+async def reset_password(request: Request, req: ResetPasswordRequest):
     """Reset a user's password using a scoped recovery token."""
     from auth.recovery import verify_recovery_token
 
@@ -422,7 +427,9 @@ async def reset_password(req: ResetPasswordRequest):
 
 
 @router.post("/change-password")
+@limiter.limit("5/minute")
 async def change_password(
+    request: Request,
     req: ChangePasswordRequest, user: dict = Depends(get_current_user)
 ):
     """Change the authenticated user's password (verify current password first)."""

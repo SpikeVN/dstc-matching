@@ -70,6 +70,10 @@ async def create_notification(
 ):
     """Create a notification. Only the backend uses this; for now, the caller
     must be the notification recipient or have elevated privileges."""
+    # Authorize: only the recipient or an admin can create a notification for a user
+    if notif.user_id != user["id"] and user.get("admin_role") == "user":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
     nid = generate_id()
     now_ts = now()
     await execute(
@@ -84,7 +88,7 @@ async def create_notification(
         notif.type,
         notif.title,
         notif.body,
-        notif.data,
+        json.dumps(notif.data) if notif.data else "{}",
         False,
     )
     # Return the created notification

@@ -19,7 +19,7 @@ class InviteUpdate(BaseModel):
 
 
 @router.get("")
-async def list_invites(request: Request):
+async def list_invites(request: Request, user: dict = Depends(get_current_user)):
     query = "SELECT * FROM team_invites"
     params = []
     conditions = []
@@ -39,10 +39,12 @@ async def list_invites(request: Request):
 
 
 @router.get("/{invite_id}")
-async def get_invite(invite_id: str):
+async def get_invite(invite_id: str, user: dict = Depends(get_current_user)):
     row = await fetch_one("SELECT * FROM team_invites WHERE id = $1", invite_id)
     if row is None:
         raise HTTPException(status_code=404, detail="TeamInvite not found")
+    if user["id"] not in (row["inviter_id"], row["invitee_id"]):
+        raise HTTPException(status_code=403, detail="Not authorized to view this invite")
     return row
 
 
@@ -53,7 +55,7 @@ async def create_invite(invite: InviteCreate, user: dict = Depends(get_current_u
     await execute("""
         INSERT INTO team_invites (id, created_date, updated_date, team_id, inviter_id, invitee_id, status)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
-    """, iid, now_ts, now_ts, invite.team_id, invite.inviter_id, invite.invitee_id, invite.status)
+    """, iid, now_ts, now_ts, invite.team_id, user["id"], invite.invitee_id, invite.status)
     return await fetch_one("SELECT * FROM team_invites WHERE id = $1", iid)
 
 

@@ -26,7 +26,7 @@ class EmailRequest(BaseModel):
 
 MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5 MB
 
-IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".tiff"}
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff"}
 DOCUMENT_EXTENSIONS = {".pdf", ".docx", ".odt", ".txt", ".md", ".rtf"}
 CODE_EXTENSIONS = {
     ".py", ".js", ".ts", ".jsx", ".tsx", ".java", ".cpp", ".c", ".h",
@@ -114,6 +114,8 @@ async def upload_file(
 
 @router.post("/send-email")
 async def send_email_route(req: EmailRequest, user: dict = Depends(get_current_user)):
+    from routes.admin import _require_admin_role
+    _require_admin_role(user, "mod")
     if not req.to or not req.subject:
         return {"success": False, "message": "Missing 'to' or 'subject'"}
     html = f"<div style='font-family:sans-serif;padding:16px;'>{req.body}</div>"

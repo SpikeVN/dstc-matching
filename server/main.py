@@ -5,12 +5,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 # Add server directory to path so imports work
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from auth.config import CORS_ORIGINS, GIT_SHA
 from database import close_pool
+from ratelimit import limiter
 from routes.auth import router as auth_router
 from routes.profiles import router as profiles_router
 from routes.matches import router as matches_router
@@ -40,14 +43,18 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="DSTC Matching API", lifespan=lifespan)
 
+# Rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # CORS - allow frontend origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
+    expose_headers=[],
 )
 
 # Mount GoTrue email templates (served so GoTrue can fetch them via URL)

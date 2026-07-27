@@ -25,7 +25,7 @@ class SwipeUpdate(BaseModel):
 
 
 @router.get("")
-async def list_swipes(request: Request):
+async def list_swipes(request: Request, user: dict = Depends(get_current_user)):
     query = "SELECT * FROM swipe_actions"
     params = []
     conditions = []
@@ -49,10 +49,12 @@ async def list_swipes(request: Request):
 
 
 @router.get("/{swipe_id}")
-async def get_swipe(swipe_id: str):
+async def get_swipe(swipe_id: str, user: dict = Depends(get_current_user)):
     row = await fetch_one("SELECT * FROM swipe_actions WHERE id = $1", swipe_id)
     if row is None:
         raise HTTPException(status_code=404, detail="SwipeAction not found")
+    if row["swiper_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized to view this swipe")
     return row
 
 

@@ -32,7 +32,7 @@ class MessageUpdate(BaseModel):
 
 
 @router.get("")
-async def list_messages(request: Request):
+async def list_messages(request: Request, user: dict = Depends(get_current_user)):
     query = "SELECT * FROM messages"
     params = []
     conditions = []
@@ -56,15 +56,22 @@ async def list_messages(request: Request):
 
 
 @router.get("/{message_id}")
-async def get_message(message_id: str):
+async def get_message(message_id: str, user: dict = Depends(get_current_user)):
     row = await fetch_one("SELECT * FROM messages WHERE id = $1", message_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Message not found")
+    # Verify user is a participant in the match owning this message
+    match = await fetch_one("SELECT * FROM matches WHERE id = $1", row["match_id"])
+    if not match or user["id"] not in (match["user1_id"], match["user2_id"]):
+        raise HTTPException(status_code=403, detail="Not authorized to view this message")
     return row
 
 
 @router.post("")
 async def create_message(msg: MessageCreate, user: dict = Depends(get_current_user)):
+    # Force sender_id to the authenticated user
+    msg.sender_id = user["id"]
+
     mid = generate_id()
     now_ts = now()
 

@@ -121,7 +121,7 @@ async def invite_by_email(req: InviteByEmailRequest, user: dict = Depends(get_cu
 
 
 @router.get("")
-async def list_teams(request: Request):
+async def list_teams(request: Request, user: dict = Depends(get_current_user)):
     query = "SELECT * FROM teams"
     params = []
     conditions = []
@@ -170,7 +170,7 @@ async def get_matched_users(user: dict = Depends(get_current_user)):
 
 
 @router.get("/{team_id}")
-async def get_team(team_id: str):
+async def get_team(team_id: str, user: dict = Depends(get_current_user)):
     row = await fetch_one("SELECT * FROM teams WHERE id = $1", team_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Team not found")

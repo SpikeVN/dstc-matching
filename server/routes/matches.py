@@ -22,7 +22,7 @@ class MatchUpdate(BaseModel):
 
 
 @router.get("")
-async def list_matches(request: Request):
+async def list_matches(request: Request, user: dict = Depends(get_current_user)):
     query = "SELECT * FROM matches"
     params = []
     conditions = []
@@ -42,15 +42,19 @@ async def list_matches(request: Request):
 
 
 @router.get("/{match_id}")
-async def get_match(match_id: str):
+async def get_match(match_id: str, user: dict = Depends(get_current_user)):
     row = await fetch_one("SELECT * FROM matches WHERE id = $1", match_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Match not found")
+    if user["id"] not in (row["user1_id"], row["user2_id"]):
+        raise HTTPException(status_code=403, detail="Not authorized to view this match")
     return row
 
 
 @router.post("")
 async def create_match(match: MatchCreate, user: dict = Depends(get_current_user)):
+    if user["id"] not in (match.user1_id, match.user2_id):
+        raise HTTPException(status_code=403, detail="Not authorized to create this match")
     mid = generate_id()
     now_ts = now()
     await execute("""

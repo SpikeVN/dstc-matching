@@ -230,7 +230,7 @@ export default function Landing() {
           className="font-body text-[18px] leading-relaxed text-justify flex-1"
           style={{ color: FIGMA_FG }}
         >
-          DSTC Matching Teammate là hệ thống ghép đội dành riêng cho thí sinh DSTC 2026: Vietnam Quant Challenge.
+          DSTC Matching Teammate là hệ thống ghép đội dành riêng cho thí sinh Data Science Talent Competition 2026.
           Thay vì tìm đội một cách thủ công, thí sinh chỉ cần tạo hồ sơ, khám phá và kết nối trực tiếp
           với những người cùng chí hướng.
           <br /><br />
@@ -283,9 +283,7 @@ export default function Landing() {
         {/* Title */}
         <div className="flex flex-col gap-4 w-fit h-fit lg:max-w-[50%]">
           <h2 className="z-10 font-display font-bold text-2xl lg:text-[30px] text-white leading-normal">
-            Về DSTC 2026&nbsp;&nbsp;&nbsp;
-            <span style={{ color: FIGMA_BORDER }}>//</span>
-            <br />Vietnam Quant Challenge
+            Về Data Science Talent Competition 2026;
           </h2>
 
           {/* Description */}

@@ -1,6 +1,7 @@
 import path from 'path'
 import { execSync } from 'child_process'
 import react from '@vitejs/plugin-react'
+import mdx from '@mdx-js/rollup'
 import { defineConfig } from 'vite'
 
 const commitHash = execSync('git rev-parse --short HEAD').toString().trim()
@@ -11,6 +12,7 @@ export default defineConfig({
     __COMMIT_HASH__: JSON.stringify(commitHash),
   },
   plugins: [
+    { enforce: 'pre', ...mdx() },
     react(),
   ],
   resolve: {
