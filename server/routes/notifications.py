@@ -118,18 +118,9 @@ async def mark_read(
 
 @router.post("/clear-all")
 async def clear_all(user: dict = Depends(get_current_user)):
-    """Delete all read notifications and mark all unread as read."""
-    now_ts = now()
-    # Delete all read notifications (older than 1 day)
+    """Delete all notifications for the current user."""
     await execute(
-        "DELETE FROM notifications WHERE user_id = $1 AND is_read = true AND created_date < $2",
-        user["id"],
-        now_ts - 86400,  # 1 day ago
-    )
-    # Mark all unread as read
-    await execute(
-        "UPDATE notifications SET is_read = true, read_at = $1, updated_date = $1 WHERE user_id = $2 AND is_read = false",
-        now_ts,
+        "DELETE FROM notifications WHERE user_id = $1",
         user["id"],
     )
     return {"success": True}

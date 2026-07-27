@@ -15,6 +15,14 @@ MIGRATIONS_DIR="$(dirname "$0")/supabase/migrations"
 TRACKING_TABLE="supabase_migrations.schema_migrations"
 
 # ──────────────────────────────────────────────
+# Ensure the tracking table exists (idempotent)
+# ──────────────────────────────────────────────
+ensure_tracking_table() {
+  ssh "$DB_HOST" "docker exec $DB_CONTAINER psql -U postgres -d postgres -c \
+    \"CREATE SCHEMA IF NOT EXISTS supabase_migrations; CREATE TABLE IF NOT EXISTS $TRACKING_TABLE (version text PRIMARY KEY, statements text[], name text, created_by text);\""
+}
+
+# ──────────────────────────────────────────────
 # Apply a single migration file and register it
 # ──────────────────────────────────────────────
 apply_one() {
@@ -33,13 +41,14 @@ apply_one() {
   fi
 
   echo "→ Applying migration: $FILE"
-  cat "$MIGRATIONS_DIR/$FILE" | ssh "$DB_HOST" "docker exec -i $DB_CONTAINER psql -U postgres -d postgres"
-  echo "✓ SQL applied successfully."
+  # Run SQL and registration in a single psql session (transactional).
+  # If either fails, the other is rolled back.
+  {
+    cat "$MIGRATIONS_DIR/$FILE"
+    echo "INSERT INTO $TRACKING_TABLE (version, name) VALUES ('$VERSION', '$NAME') ON CONFLICT (version) DO NOTHING;"
+  } | ssh "$DB_HOST" "docker exec -i $DB_CONTAINER psql -U postgres -d postgres"
 
-  echo "→ Registering version $VERSION..."
-  ssh "$DB_HOST" "docker exec $DB_CONTAINER psql -U postgres -d postgres -c \
-    \"INSERT INTO $TRACKING_TABLE (version, name) VALUES ('$VERSION', '$NAME');\""
-  echo "✓ Migration $FILE fully applied and registered."
+  echo "✓ Migration $FILE applied and registered."
 }
 
 # ──────────────────────────────────────────────
@@ -66,11 +75,13 @@ validate_file() {
 # ══════════════════════════════════════════════
 if [ $# -eq 0 ]; then
   echo "→ Scanning for all pending migrations..."
+  ensure_tracking_table
+
   # Get all .sql files sorted by name (timestamp order)
   ALL_FILES=()
-  while IFS= read -r f; do
+  while IFS= read -r -d '' f; do
     ALL_FILES+=("$(basename "$f")")
-  done < <(ls -1 "$MIGRATIONS_DIR"/*.sql | sort)
+  done < <(find "$MIGRATIONS_DIR" -maxdepth 1 -name '*.sql' -print0 | sort -z)
 
   # Fetch already-applied versions from production
   APPLIED_VERSIONS=$(ssh "$DB_HOST" "docker exec $DB_CONTAINER psql -U postgres -d postgres -tAc \
@@ -114,4 +125,5 @@ FILE="$1"
 FILE="$(basename "$FILE")"
 
 validate_file "$FILE"
+ensure_tracking_table
 apply_one "$FILE"
