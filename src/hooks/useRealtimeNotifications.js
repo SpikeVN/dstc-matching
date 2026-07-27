@@ -151,7 +151,15 @@ export function useRealtimeNotifications({ currentUser, profileMap, navigate }) 
           queryClient.invalidateQueries({ queryKey: ['notifications', currentUser.id] });
           queryClient.invalidateQueries({ queryKey: ['notificationsUnread', currentUser.id] });
 
-          // Show a toast for certain notification types
+          // Skip toasts for new_message and new_match since the
+          // dedicated messages/matches channels already show them.
+          if (notif.type === 'new_message' || notif.type === 'new_match') {
+            // Still invalidate queries so the UI is up to date
+            queryClient.invalidateQueries({ queryKey: ['messages'] });
+            return;
+          }
+
+          // Show a toast for other notification types
           if (!notifiedIds.current.has(notif.id)) {
             notifiedIds.current.add(notif.id);
 
@@ -179,15 +187,6 @@ export function useRealtimeNotifications({ currentUser, profileMap, navigate }) 
               case 'disband_rejected':
                 actionLabel = 'Xem đội';
                 actionPath = '/team';
-                break;
-              case 'new_message':
-                actionLabel = 'Xem';
-                actionPath = '/messages';
-                break;
-              case 'new_match':
-                actionLabel = 'Nhắn tin';
-                const matchId = notif.data?.match_id;
-                actionPath = matchId ? `/messages?match=${matchId}` : '/messages';
                 break;
             }
 

@@ -387,10 +387,13 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
   const [unmatchConfirmOpen, setUnmatchConfirmOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [reportReason, setReportReason] = useState('');
+  const [reportAttachment, setReportAttachment] = useState(null);
+  const [reportUploading, setReportUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [cancelInviteOpen, setCancelInviteOpen] = useState(false);
   const [acceptInviteDialogOpen, setAcceptInviteDialogOpen] = useState(false);
   const fileInputRef = useRef(null);
+  const reportFileInputRef = useRef(null);
   const viewportRef = useRef(null);
 
   const otherEmail = match.user1_id === currentUser?.id ? match.user2_id : match.user1_id;
@@ -465,6 +468,31 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
     }
   };
 
+  const handleReportAttachmentSelect = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    if (file.size > MAX_UPLOAD_SIZE) {
+      toast.error(`Tệp quá lớn (${formatFileSize(file.size)}). Giới hạn tối đa 5 MB.`);
+      return;
+    }
+
+    setReportUploading(true);
+    try {
+      const { file_url, file_category, error } = await db.integrations.Core.UploadFile({ file, bucket: 'uploads' });
+      if (!file_url) {
+        toast.error(error || 'Tải tệp thất bại');
+        return;
+      }
+      setReportAttachment({ url: file_url, name: file.name, type: file.type, category: file_category });
+    } catch (err) {
+      toast.error('Tải tệp thất bại: ' + (err?.message || 'Lỗi kết nối'));
+    } finally {
+      setReportUploading(false);
+    }
+  };
+
   const handleReport = async () => {
     if (!reportReason.trim()) {
       toast.error('Vui lòng nhập lý do báo cáo');
@@ -472,9 +500,14 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
     }
     setSubmitting(true);
     try {
-      await db.report(otherEmail, match.id, reportReason.trim());
+      await db.report(otherEmail, match.id, reportReason.trim(), {
+        url: reportAttachment?.url,
+        name: reportAttachment?.name,
+        type: reportAttachment?.type,
+      });
       setReportDialogOpen(false);
       setReportReason('');
+      setReportAttachment(null);
       toast.success('Đã gửi báo cáo! Cảm ơn bạn đã đóng góp.');
     } catch (err) {
       toast.error('Lỗi: ' + (err?.message || 'Không xác định'));
@@ -1007,7 +1040,7 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
       </AlertDialog>
 
       {/* Report dialog */}
-      <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
+      <Dialog open={reportDialogOpen} onOpenChange={(open) => { if (!open) { setReportReason(''); setReportAttachment(null); } setReportDialogOpen(open); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Báo cáo người dùng</DialogTitle>
@@ -1021,8 +1054,37 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
             placeholder="Nhập lý do báo cáo..."
             className="w-full min-h-[100px] p-3 rounded-lg border border-primary/20 bg-background/60 text-sm font-body text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:border-primary/40"
           />
+
+          {/* File attachment area */}
+          <input ref={reportFileInputRef} type="file" accept={FILE_ACCEPT} className="hidden" onChange={handleReportAttachmentSelect} />
+          {reportAttachment ? (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10 text-sm">
+              <File className="w-4 h-4 text-primary/60 flex-shrink-0" />
+              <span className="flex-1 truncate text-foreground">{reportAttachment.name}</span>
+              <button
+                onClick={() => setReportAttachment(null)}
+                className="p-1 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => reportFileInputRef.current?.click()}
+              disabled={reportUploading}
+              className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors self-start"
+            >
+              {reportUploading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Paperclip className="w-4 h-4" />
+              )}
+              {reportUploading ? 'Đang tải...' : 'Đính kèm tệp'}
+            </button>
+          )}
+
           <DialogFooter>
-            <Button variant="ghost" onClick={() => { setReportDialogOpen(false); setReportReason(''); }}>
+            <Button variant="ghost" onClick={() => { setReportDialogOpen(false); setReportReason(''); setReportAttachment(null); }}>
               Hủy
             </Button>
             <Button onClick={handleReport} disabled={submitting || !reportReason.trim()}>

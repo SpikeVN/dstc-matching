@@ -8,7 +8,9 @@ from auth.config import SITE_URL
 from auth.dependencies import get_current_user
 from auth.jwt import verify_token
 from auth import gotrue
-from database import fetch_one, execute, generate_id, now
+from auth.gotrue import admin_delete_user
+from auth.whitelist import is_email_whitelisted
+from database import fetch, fetch_one, execute, generate_id, now
 from ratelimit import limiter
 
 # Default privacy settings: all fields visible
@@ -94,6 +96,14 @@ class ChangePasswordRequest(BaseModel):
 @limiter.limit("5/minute")
 async def signup(request: Request, req: SignupRequest):
     """Create a new user via GoTrue, then create a contestant profile."""
+    # Check email whitelist before creating the user
+    whitelisted = await is_email_whitelisted(req.email)
+    if not whitelisted:
+        raise HTTPException(
+            status_code=403,
+            detail="Email không có trong danh sách cho phép. Vui lòng liên hệ admin.",
+        )
+
     result = await gotrue.signup(req.email, req.password, req.username)
 
     user_id = (result.get("user") or {}).get("id")
@@ -174,6 +184,17 @@ async def google_login(request: Request):
         "SELECT id, display_name, profile_image FROM public.contestant_profiles WHERE created_by = $1",
         user_id,
     )
+
+    # Check whitelist for new users
+    if not existing_profile:
+        whitelisted = await is_email_whitelisted(user["email"])
+        if not whitelisted:
+            await admin_delete_user(user_id)
+            raise HTTPException(
+                status_code=403,
+                detail="Email không có trong danh sách cho phép. Vui lòng liên hệ admin.",
+            )
+
     if existing_profile:
         updates = []
         params = []
@@ -256,6 +277,17 @@ async def github_callback(req: GitHubCallbackRequest):
         "SELECT id, display_name, profile_image FROM public.contestant_profiles WHERE created_by = $1",
         user_id,
     )
+
+    # Check whitelist for new users
+    if not existing_profile:
+        whitelisted = await is_email_whitelisted(user["email"])
+        if not whitelisted:
+            await admin_delete_user(user_id)
+            raise HTTPException(
+                status_code=403,
+                detail="Email không có trong danh sách cho phép. Vui lòng liên hệ admin.",
+            )
+
     if existing_profile:
         updates = []
         params = []
@@ -446,6 +478,53 @@ async def change_password(
     # Update the password via the admin API (service role)
     await gotrue.admin_update_password(user["id"], req.new_password)
     return {"success": True}
+
+
+# ── Whitelist check for OAuth redirect flows ──────────────────────────────
+
+
+@router.post("/check-signup-access")
+async def check_signup_access(user: dict = Depends(get_current_user)):
+    """Check if the current user is allowed to access the platform.
+
+    For users created via OAuth redirect flow (no contestant_profile yet),
+    verify their email is whitelisted. If not, delete the GoTrue user.
+    Existing users are always allowed.
+    """
+    profile = await fetch_one(
+        "SELECT 1 FROM public.contestant_profiles WHERE created_by = $1",
+        user["id"],
+    )
+    if profile:
+        return {"allowed": True}
+
+    # New user from redirect flow — check whitelist
+    whitelisted = await is_email_whitelisted(user["email"])
+    if not whitelisted:
+        await admin_delete_user(user["id"])
+        return {"allowed": False, "reason": "EMAIL_NOT_WHITELISTED"}
+
+    return {"allowed": True}
+
+
+# ── Signup methods ─────────────────────────────────────────────────────────
+
+
+@router.get("/signup-methods")
+async def get_signup_methods():
+    """Return which signup methods are enabled (public, no auth required)."""
+    rows = await fetch(
+        "SELECT key, value FROM public.system_settings WHERE key IN ($1, $2, $3)",
+        "signup_email_enabled",
+        "signup_google_enabled",
+        "signup_github_enabled",
+    )
+    settings = {row["key"]: row["value"] for row in rows}
+    return {
+        "email": settings.get("signup_email_enabled", True),
+        "google": settings.get("signup_google_enabled", True),
+        "github": settings.get("signup_github_enabled", True),
+    }
 
 
 # ── Logout ────────────────────────────────────────────────────────────────

@@ -45,6 +45,22 @@ export const AuthProvider = ({ children }) => {
 
       const currentUser = await db.auth.me();
       if (currentUser) {
+        // Check whitelist for OAuth redirect users (Google implicit grant)
+        const access = await db.auth.checkSignupAccess();
+        if (!access.allowed) {
+          console.log('[Auth] User not whitelisted — forcing logout');
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          setUser(null);
+          setIsAuthenticated(false);
+          setAuthChecked(true);
+          setAuthError({ type: 'auth_required', message: 'Email không có trong danh sách cho phép.' });
+          import('sonner').then(({ toast }) => {
+            toast.error('Tài khoản không được phép truy cập. Vui lòng liên hệ admin.');
+          });
+          return;
+        }
+
         console.log('[Auth] User authenticated:', currentUser?.id);
         setUser(currentUser);
         setIsAuthenticated(true);

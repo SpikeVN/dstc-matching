@@ -107,8 +107,8 @@ const AuthenticatedApp = () => {
         <Route path="/discover" element={<Discover />} />
         <Route path="/messages" element={<Messages />} />
         <Route path="/team" element={<TeamPage />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/admin" element={<AdminMatches />} />
+        <Route path="/settings/:section?" element={<Settings />} />
+        <Route path="/admin/:section?" element={<AdminMatches />} />
         <Route path="/guide" element={<Guide />} />
         <Route path="/profile-view" element={<ProfileDetail />} />
       </Route>

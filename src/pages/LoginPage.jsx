@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { db } from '@/api/apiClient';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
@@ -24,8 +25,22 @@ export default function LoginPage() {
   const [resetSuccess, setResetSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Fetch enabled signup methods (public endpoint, no auth needed)
+  const { data: signupMethods } = useQuery({
+    queryKey: ['signupMethods'],
+    queryFn: () => db.auth.getSignupMethods(),
+    staleTime: 300_000, // 5 min
+  });
+
   // After login, go back to the page the user was trying to visit (or /)
   const returnTo = searchParams.get('redirect') || '/';
+
+  // Which auth methods are visible
+  const showEmail = signupMethods?.email !== false;
+  const showGoogle = signupMethods?.google !== false;
+  const showGithub = signupMethods?.github !== false;
+  const visibleCount = [showEmail, showGoogle, showGithub].filter(Boolean).length;
+  const showDivider = visibleCount >= 2 && (showGoogle || showGithub);
 
   // Show error from URL query param (e.g. from GoTrue redirect with expired token)
   // Show success message after password reset
@@ -124,7 +139,24 @@ export default function LoginPage() {
               </motion.div>
             )}
 
-            {/* Form */}
+            {/* No methods available */}
+            {visibleCount === 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-2 p-3 rounded-lg text-xs text-center"
+                style={{
+                  background: 'rgba(239,68,68,0.1)',
+                  color: '#fca5a5',
+                  border: '1px solid rgba(239,68,68,0.15)',
+                }}
+              >
+                Hiện tại không có phương thức đăng nhập nào được bật. Vui lòng liên hệ admin.
+              </motion.div>
+            )}
+
+            {/* Email Form */}
+            {showEmail && (
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="grid gap-1.5">
                 <label
@@ -202,8 +234,10 @@ export default function LoginPage() {
                 )}
               </Button>
             </form>
+            )}
 
             {/* Divider */}
+            {showDivider && (
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full h-px" style={{ background: `${BORDER}60` }} />
@@ -214,8 +248,10 @@ export default function LoginPage() {
                 </span>
               </div>
             </div>
+            )}
 
             {/* Google Login (redirect flow — same as GitHub) */}
+            {showGoogle && (
             <Button
               variant="outline"
               className="w-full h-10 rounded-lg font-medium text-sm cursor-pointer bg-transparent hover:bg-white/5"
@@ -237,8 +273,10 @@ export default function LoginPage() {
               </svg>
               Tiếp tục với Google
             </Button>
+            )}
 
             {/* GitHub Login */}
+            {showGithub && (
             <Button
               variant="outline"
               className="w-full h-10 rounded-lg font-medium text-sm mt-3 cursor-pointer bg-transparent hover:bg-white/5"
@@ -257,6 +295,7 @@ export default function LoginPage() {
               </svg>
               Tiếp tục với GitHub
             </Button>
+            )}
 
             {/* Sign up link */}
             <p className="text-center text-sm mt-5" style={{ color: SUBTEXT }}>

@@ -28,7 +28,7 @@ const PAGE_TITLES = {
 export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const title = PAGE_TITLES[location.pathname] || '';
+  const title = location.pathname.startsWith('/admin') ? 'Admin Panel' : (PAGE_TITLES[location.pathname] || '');
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],

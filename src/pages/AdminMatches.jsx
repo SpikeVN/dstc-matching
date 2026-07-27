@@ -1,10 +1,12 @@
 import { db } from '@/api/apiClient';
 
 import React, { useState, useDeferredValue } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { Users, Search, Heart, MessageCircle, User, Shield, Eye, EyeOff, Flag, X, Clock, Trash2, Pencil, Settings, Ban } from 'lucide-react';
+import { Users, Search, Heart, MessageCircle, User, Shield, Eye, EyeOff, Flag, X, Clock, Trash2, Pencil, Settings, Ban, File, MailCheck, MailPlus, Upload } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { format, addHours } from 'date-fns';
 import MatchDashboard from '@/components/admin/MatchDashboard';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -24,6 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { toast } from 'sonner';
 /** @type {Record<string, number>} Lower = more privilege */
 const ROLE_HIERARCHY = { owner: 0, manager: 1, mod: 2, user: 3 };
 
@@ -45,9 +48,10 @@ function RoleBadge({ role }) {
 
 export default function AdminMatches() {
   const queryClient = useQueryClient();
+  const { section = 'dashboard' } = useParams();
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
-  const [activeTab, setActiveTab] = useState('dashboard');
   const [roleFilterValue, setRoleFilterValue] = useState('');
   const [matchStatusFilter, setMatchStatusFilter] = useState('');
   const [selectedReport, setSelectedReport] = useState(null);
@@ -55,6 +59,9 @@ export default function AdminMatches() {
   const [editingTeam, setEditingTeam] = useState(null); // { id, name } for rename
   const [renamingTeamId, setRenamingTeamId] = useState(null); // for rename
   const [renamingTeamValue, setRenamingTeamValue] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [bulkEmails, setBulkEmails] = useState('');
+  const [showBulkAdd, setShowBulkAdd] = useState(false);
   const deferredSearch = useDeferredValue(search);
 
   const { data: currentUser } = useQuery({
@@ -64,6 +71,7 @@ export default function AdminMatches() {
 
   const currentUserLevel = (ROLE_HIERARCHY)[currentUser?.admin_role] ?? 3;
   const canManageRoles = currentUserLevel < ROLE_HIERARCHY.user;
+  const canManageWhitelist = currentUserLevel <= ROLE_HIERARCHY.manager; // manager+ (level 0-1)
   // Roles the current user is allowed to assign (strictly lower privilege, never owner)
   const assignableRoles = ADMIN_ROLES.filter(r => (ROLE_HIERARCHY)[r.value] > currentUserLevel && r.value !== 'owner');
 
@@ -187,6 +195,38 @@ export default function AdminMatches() {
     },
   });
 
+  // ── Whitelist data ──────────────────────────────────────────
+  const { data: whitelistEntries, isLoading: loadingWhitelist } = useQuery({
+    queryKey: ['adminWhitelist', deferredSearch],
+    queryFn: () => db.admin.listWhitelist({ search: deferredSearch || undefined }),
+    initialData: [],
+    enabled: currentUser?.admin_role !== 'user',
+  });
+
+  const addWhitelistMutation = useMutation({
+    mutationFn: (email) => db.admin.addWhitelistEmail(email),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['adminWhitelist'] }); },
+    onError: (error) => toast.error(error.message || 'Không thể thêm email'),
+  });
+
+  const bulkAddWhitelistMutation = useMutation({
+    mutationFn: (emails) => db.admin.bulkAddWhitelist(emails),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['adminWhitelist'] }); },
+    onError: (error) => toast.error(error.message || 'Không thể thêm danh sách email'),
+  });
+
+  const removeWhitelistMutation = useMutation({
+    mutationFn: (id) => db.admin.removeWhitelistEmail(id),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['adminWhitelist'] }); },
+    onError: (error) => toast.error(error.message || 'Không thể xóa email'),
+  });
+
+  const clearWhitelistMutation = useMutation({
+    mutationFn: () => db.admin.clearAllWhitelist(),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['adminWhitelist'] }); },
+    onError: (error) => toast.error(error.message || 'Không thể xóa danh sách'),
+  });
+
   // ── Access control ──────────────────────────────────────────────
   if (currentUser && !['owner', 'mod', 'manager'].includes(currentUser.admin_role)) {
     return (
@@ -279,11 +319,11 @@ export default function AdminMatches() {
         </div>
 
         {/* Tabs (line variant) */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={section} onValueChange={(tab) => navigate(`/admin/${tab}`)}>
           <TabsList className="h-auto bg-transparent p-0 border-b border-primary/10 rounded-none w-full justify-start gap-0">
-            {['dashboard', 'users', 'matches', 'reports', 'teams', 'blocks', 'settings'].map(tab => {
-              const icons = { dashboard: Shield, users: Users, matches: Heart, reports: Flag, teams: Users, blocks: Ban, settings: Settings };
-              const labels = { dashboard: 'Dashboard', users: 'Quản lý người dùng', matches: 'Matches', reports: 'Reports', teams: 'Đội', blocks: 'Chặn', settings: 'Cài đặt' };
+            {['dashboard', 'users', 'matches', 'reports', 'teams', 'blocks', 'whitelist', 'settings'].map(tab => {
+              const icons = { dashboard: Shield, users: Users, matches: Heart, reports: Flag, teams: Users, blocks: Ban, whitelist: MailCheck, settings: Settings };
+              const labels = { dashboard: 'Dashboard', users: 'Quản lý người dùng', matches: 'Matches', reports: 'Reports', teams: 'Đội', blocks: 'Chặn', whitelist: 'Whitelist', settings: 'Cài đặt' };
               const Icon = icons[tab];
               return (
                 <TabsTrigger
@@ -815,6 +855,187 @@ export default function AdminMatches() {
           </div>
           </TabsContent>
 
+          {/* ── Whitelist tab ────────────────────────────────────────── */}
+          <TabsContent value="whitelist" className="mt-5">
+          <div className="space-y-4">
+            {/* Header with actions */}
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <p className="font-body text-xs text-muted-foreground">
+                Tổng số email trong danh sách: {whitelistEntries.length}
+              </p>
+              <div className="flex gap-2">
+                {canManageWhitelist && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => setShowBulkAdd(!showBulkAdd)}
+                    >
+                      <Upload className="w-3.5 h-3.5 mr-1" />
+                      Thêm hàng loạt
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
+                      onClick={() => {
+                        if (window.confirm(`Xóa tất cả ${whitelistEntries.length} email khỏi danh sách cho phép?`)) {
+                          clearWhitelistMutation.mutate();
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-1" />
+                      Xóa tất cả
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Single email add form */}
+            {canManageWhitelist && !showBulkAdd && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (newEmail.trim()) {
+                    addWhitelistMutation.mutate(newEmail.trim(), {
+                      onSuccess: () => setNewEmail(''),
+                    });
+                  }
+                }}
+                className="flex gap-2"
+              >
+                <Input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="Nhập email để thêm..."
+                  className="max-w-sm h-9 text-sm bg-[rgba(10,18,11,0.75)] backdrop-blur-md border-primary/15"
+                />
+                <Button type="submit" size="sm" className="h-9 text-xs" disabled={addWhitelistMutation.isPending}>
+                  <MailPlus className="w-3.5 h-3.5 mr-1" />
+                  Thêm
+                </Button>
+              </form>
+            )}
+
+            {/* Bulk add form */}
+            {canManageWhitelist && showBulkAdd && (
+              <div className="glass-card rounded-lg border border-primary/10 p-4 space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Nhập danh sách email, mỗi email một dòng hoặc cách nhau bằng dấu phẩy
+                </p>
+                <textarea
+                  value={bulkEmails}
+                  onChange={(e) => setBulkEmails(e.target.value)}
+                  placeholder={`email1@example.com\nemail2@example.com\nemail3@example.com`}
+                  rows={5}
+                  className="w-full text-sm bg-[rgba(10,18,11,0.75)] backdrop-blur-md border border-primary/15 rounded-lg p-3 text-foreground font-body resize-none focus:outline-none focus:border-primary/40"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => {
+                      const emails = bulkEmails
+                        .split(/[\n,]+/)
+                        .map(e => e.trim())
+                        .filter(e => e.includes('@'));
+                      if (emails.length > 0) {
+                        bulkAddWhitelistMutation.mutate(emails, {
+                          onSuccess: () => { setBulkEmails(''); setShowBulkAdd(false); },
+                        });
+                      }
+                    }}
+                    disabled={bulkAddWhitelistMutation.isPending}
+                  >
+                    <Upload className="w-3.5 h-3.5 mr-1" />
+                    Thêm {bulkEmails.split(/[\n,]+/).filter(e => e.includes('@')).length} email
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-8 text-xs"
+                    onClick={() => { setShowBulkAdd(false); setBulkEmails(''); }}>
+                    Hủy
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Search */}
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/60 z-10" />
+              <Input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Tìm email..."
+                className="pl-9 bg-[rgba(10,18,11,0.75)] backdrop-blur-md border-primary/15 focus:border-primary/40 font-body text-sm"
+              />
+            </div>
+
+            {/* Whitelist table */}
+            {loadingWhitelist ? (
+              <div className="text-center py-16">
+                <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
+              </div>
+            ) : whitelistEntries.length === 0 ? (
+              <div className="text-center py-16">
+                <MailCheck className="w-10 h-10 text-primary/10 mx-auto mb-3" />
+                <p className="font-body text-sm text-muted-foreground">Chưa có email nào trong danh sách cho phép</p>
+                <p className="font-body text-xs text-muted-foreground/50 mt-1">
+                  Khi danh sách trống, tất cả email đều được phép đăng ký
+                </p>
+              </div>
+            ) : (
+              <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+                <table className="w-full text-xs font-body">
+                  <thead>
+                    <tr className="border-b border-primary/10 bg-muted/20">
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider w-8">#</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Email</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider hidden sm:table-cell">Người thêm</th>
+                      <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider hidden sm:table-cell">Ngày thêm</th>
+                      {canManageWhitelist && (
+                        <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Hành động</th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-primary/8">
+                    {whitelistEntries.map((entry, i) => (
+                      <tr key={entry.id} className="hover:bg-primary/5 transition-colors">
+                        <td className="px-4 py-3 text-xs text-muted-foreground/50">{i + 1}</td>
+                        <td className="px-4 py-3">
+                          <span className="text-sm text-foreground font-medium">{entry.email}</span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground hidden sm:table-cell">
+                          {entry.added_by_name || <span className="text-muted-foreground/50">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-right text-xs text-muted-foreground/50 hidden sm:table-cell">
+                          {entry.created_date ? format(addHours(new Date(entry.created_date), 7), 'dd/MM/yy HH:mm') : '—'}
+                        </td>
+                        {canManageWhitelist && (
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Xóa "${entry.email}" khỏi danh sách?`)) {
+                                  removeWhitelistMutation.mutate(entry.id);
+                                }
+                              }}
+                              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                              title="Xóa email"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          </TabsContent>
+
           {/* ── Settings tab ────────────────────────────────────────── */}
           <TabsContent value="settings" className="mt-5">
           <div className="space-y-4">
@@ -866,6 +1087,56 @@ export default function AdminMatches() {
                         className="w-16 h-9 text-center text-sm font-medium bg-black/30 border border-primary/20 rounded-lg text-foreground focus:outline-none focus:border-primary/50"
                       />
                       <span className="text-xs text-muted-foreground">thành viên</span>
+                    </div>
+                  </div>
+
+                  {/* ── Separator ─────────────────────────── */}
+                  <div className="border-t border-primary/10 pt-4">
+                    <p className="text-sm font-semibold text-foreground mb-3">Phương thức đăng ký</p>
+
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Email</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Cho phép đăng ký bằng email và mật khẩu
+                        </p>
+                      </div>
+                      <Switch
+                        checked={systemSettings.signup_email_enabled !== false}
+                        onCheckedChange={(checked) => {
+                          settingsMutation.mutate({ key: 'signup_email_enabled', value: checked });
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Google</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Cho phép đăng ký bằng tài khoản Google
+                        </p>
+                      </div>
+                      <Switch
+                        checked={systemSettings.signup_google_enabled !== false}
+                        onCheckedChange={(checked) => {
+                          settingsMutation.mutate({ key: 'signup_google_enabled', value: checked });
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">GitHub</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Cho phép đăng ký bằng tài khoản GitHub
+                        </p>
+                      </div>
+                      <Switch
+                        checked={systemSettings.signup_github_enabled !== false}
+                        onCheckedChange={(checked) => {
+                          settingsMutation.mutate({ key: 'signup_github_enabled', value: checked });
+                        }}
+                      />
                     </div>
                   </div>
                   </>
@@ -935,6 +1206,22 @@ export default function AdminMatches() {
                     {selectedReport.reason || <span className="italic text-muted-foreground/50">Không có lý do</span>}
                   </p>
                 </div>
+
+                {/* Attachment */}
+                {selectedReport.attachment_url && (
+                  <div className="glass-card rounded-lg p-3 border border-primary/10">
+                    <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Tệp đính kèm</p>
+                    <a
+                      href={selectedReport.attachment_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    >
+                      <File className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">{selectedReport.attachment_name || 'Tải xuống tệp'}</span>
+                    </a>
+                  </div>
+                )}
 
                 {/* Quick actions */}
                 <div className="glass-card rounded-lg p-3 border border-primary/10">

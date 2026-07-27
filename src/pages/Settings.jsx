@@ -7,14 +7,15 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { LogOut, Terminal, Eye, KeyRound, Activity, Clock, Heart, UserCheck, Shield, FileText, HelpCircle, Info, Mail, Trophy, Users, Star, Award, User, Check, X, Github, Bell, Trash2, MessageCircle, UserPlus, UserMinus } from 'lucide-react';
+import { LogOut, Terminal, Eye, KeyRound, Activity, Clock, Heart, UserCheck, Shield, FileText, HelpCircle, Info, Users, User, Check, X, Github, Bell, Trash2, MessageCircle, UserPlus, UserMinus } from 'lucide-react';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import TermsContent from '/docs/terms.mdx';
 import SupportContent from '/docs/support.mdx';
+import AboutContent from '/docs/about.mdx';
 
 const TABS = [
   { id: 'password', label: 'Bảo mật', icon: KeyRound },
@@ -184,9 +185,9 @@ function NotificationsTabContent({ currentUser }) {
 export default function Settings() {
   const { logout } = useAuth();
   const queryClient = useQueryClient();
-  const urlParams = new URLSearchParams(window.location.search);
-  const initialTab = urlParams.get('tab') || 'password';
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const navigate = useNavigate();
+  const { section = 'password' } = useParams();
+  const activeTab = section;
   const [privacy, setPrivacy] = useState({
     showAge: true,
     showGender: true,
@@ -468,63 +469,12 @@ export default function Settings() {
         return (
           <div className="space-y-4">
             <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
-              <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-3">
-                <img src="/cte-logo.svg" alt="CTE FTU" className="w-6 h-6 rounded object-contain opacity-80" />
-                <h3 className="font-display text-sm font-semibold text-primary">Đôi điều về CTE</h3>
+              <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+                <Info className="w-4 h-4 text-primary" />
+                <h3 className="font-display text-sm font-semibold text-primary">Về CTE & DSTC</h3>
               </div>
-              <div className="p-4 space-y-4 font-body text-xs text-muted-foreground leading-relaxed">
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/15">
-                  <Mail className="w-4 h-4 text-primary flex-shrink-0" />
-                  <a href="mailto:datasciencetalent.cteftu@gmail.com" className="text-primary font-mono hover:underline">datasciencetalent.cteftu@gmail.com</a>
-                </div>
-                <div>
-                  <p className="font-body font-medium text-foreground text-sm mb-1 flex items-center gap-1.5"><Star className="w-3.5 h-3.5 text-primary/60" /> Quá trình hình thành</p>
-                  <p>Thành lập ngày 10/8/2022, Câu lạc bộ Khoa học Công nghệ trong Kinh tế và Kinh doanh trường Đại học Ngoại thương (Club of Technology in Economics - <span className="text-primary">CTE FTU</span>) ra đời trong sứ mệnh chung của Nhà trường nhằm xây dựng hệ sinh thái về Khoa học Dữ liệu và Khoa học Công nghệ tại Trường Đại học Ngoại thương.</p>
-                  <p className="mt-2">Cho tới hiện tại, CTE là câu lạc bộ chuyên môn duy nhất hoạt động trong lĩnh vực Khoa học dữ liệu, trực thuộc Đoàn Thanh niên Cộng sản Hồ Chí Minh trường Đại học Ngoại thương.</p>
-                </div>
-                <div>
-                  <p className="font-body font-medium text-foreground text-sm mb-1 flex items-center gap-1.5"><Star className="w-3.5 h-3.5 text-primary/60" /> Sứ mệnh và tầm nhìn</p>
-                  <p>Là câu lạc bộ chuyên môn được xây dựng nhằm tập hợp các sinh viên kinh tế có đam mê Khoa học dữ liệu, Khoa học công nghệ, CTE luôn nỗ lực không ngừng trong quá trình phát triển năng lực cho cộng đồng sinh viên, với mục tiêu góp phần nhỏ trong việc đào tạo nguồn nhân lực chất lượng cao cho xã hội.</p>
-                </div>
-                <div className="space-y-2">
-                  <p className="font-body font-medium text-foreground text-sm flex items-center gap-1.5"><Award className="w-3.5 h-3.5 text-primary/60" /> Hoạt động nổi bật</p>
-                  <div className="p-3 rounded-lg bg-white/3 border border-primary/10 space-y-1">
-                    <p className="text-foreground/80 font-medium">Data Science Talent Competition (DSTC)</p>
-                    <p>Cuộc thi về lĩnh vực Khoa học dữ liệu đầu tiên do sinh viên Kinh tế tổ chức, quy tụ đông đảo học sinh, sinh viên toàn quốc đề xuất giải pháp cho các vấn đề xã hội bằng Khoa học dữ liệu.</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-white/3 border border-primary/10 space-y-1">
-                    <p className="text-foreground/80 font-medium">Chuỗi khóa học Data Bootcamp</p>
-                    <p>Tổ chức theo hai mùa: Summer Bootcamp và Winter Bootcamp, giúp học sinh và sinh viên linh hoạt chọn thời điểm phù hợp để tham gia.</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-white/3 border border-primary/10 space-y-1">
-                    <p className="text-foreground/80 font-medium">Game Bụt của Cô Tấm, tiền sự kiện DSTC 2026</p>
-                    <p>Game online mang tính giáo dục do CLB phát triển, đưa kiến thức KHCN đến gần giới trẻ qua trải nghiệm giải trí. <a href="https://butcuacotam.cteftu.id.vn/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Trải nghiệm tại butcuacotam.cteftu.id.vn →</a></p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-white/3 border border-primary/10 space-y-1">
-                    <p className="text-foreground/80 font-medium">Data Science Explorer Community</p>
-                    <p>Cộng đồng với gần <span className="text-primary font-medium">7.500 thành viên</span> năng động, chia sẻ tài liệu, trải nghiệm và tips phỏng vấn cho các vị trí Data.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
-              <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-3">
-                <Trophy className="w-4 h-4 text-primary" />
-                <h3 className="font-display text-sm font-semibold text-primary">Về Data Science Talent Competition</h3>
-              </div>
-              <div className="p-4 space-y-4 font-body text-xs text-muted-foreground leading-relaxed">
-                <p>DSTC là cuộc thi về Khoa học dữ liệu đầu tiên của FTU do <span className="text-primary">CTE FTU</span> tổ chức, được bảo trợ pháp lý bởi Đoàn TNCS HCM và bảo trợ chuyên môn bởi Khoa Công nghệ & Khoa học Dữ liệu nhà trường.</p>
-                <div className="p-3 rounded-lg bg-white/3 border border-primary/10 space-y-2">
-                  <p className="text-foreground font-medium">1. Tiền sự kiện</p>
-                  <p><span className="text-primary/70">Nội dung:</span> Game Bụt của Cô Tấm — game online mang tính giáo dục do CLB phát triển, đưa kiến thức KHCN đến gần với giới trẻ thông qua trò chơi giải trí.</p>
-                  <p><span className="text-primary/70">Link:</span> <a href="https://butcuacotam.cteftu.id.vn/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">butcuacotam.cteftu.id.vn</a></p>
-                  <p><span className="text-primary/70">Đối tác:</span> <a href="https://ntq-solution.com.vn" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">NTQ Solutions</a> — đơn vị cung cấp nền tảng công nghệ cho game.</p>
-                </div>
-                <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-2">
-                  <p className="text-foreground font-medium">2. Data Science Talent Competition 226</p>
-                  <p><span className="text-primary/70">Nội dung:</span> Cuộc thi về tài chính định lượng (quant finance), thí sinh sử dụng kiến thức toán và tài chính để tìm ra alpha — phương trình dự báo giá cổ phiếu trên sàn chứng khoán Việt Nam (tương tự International Quant Championship).</p>
-                  <p><span className="text-primary/70">Đối tác:</span> <span className="text-foreground/80">XNO Quant</span> — đơn vị cung cấp nền tảng thi đấu cho cuộc thi.</p>
-                </div>
+              <div className="p-4 prose prose-invert prose-sm max-w-none">
+                <AboutContent />
               </div>
             </div>
           </div>
@@ -546,7 +496,7 @@ export default function Settings() {
           <p className="font-body text-xs text-muted-foreground mt-1">Quản lý tài khoản và quyền riêng tư</p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={(tab) => navigate(`/settings/${tab}`)}>
           <TabsList className="h-auto bg-transparent p-0 border-b border-primary/10 rounded-none w-full justify-start gap-0 flex-wrap mb-4">
             {TABS.map((tab) => {
               const Icon = tab.icon;

@@ -11,6 +11,9 @@ class ReportCreate(BaseModel):
     reported_id: str
     match_id: Optional[str] = None
     reason: str = ""
+    attachment_url: Optional[str] = None
+    attachment_name: Optional[str] = None
+    attachment_type: Optional[str] = None
 
 
 @router.post("")
@@ -22,9 +25,10 @@ async def create_report(body: ReportCreate, user: dict = Depends(get_current_use
     rid = generate_id()
     ts = now()
     await execute(
-        """INSERT INTO public.reports (id, reporter_id, reported_id, match_id, reason, created_date)
-           VALUES ($1, $2, $3, $4, $5, $6)""",
-        rid, user["id"], body.reported_id, body.match_id, body.reason, ts
+        """INSERT INTO public.reports (id, reporter_id, reported_id, match_id, reason, attachment_url, attachment_name, attachment_type, created_date)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)""",
+        rid, user["id"], body.reported_id, body.match_id, body.reason,
+        body.attachment_url, body.attachment_name, body.attachment_type, ts
     )
 
     # Auto-block the reported user

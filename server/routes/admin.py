@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from database import fetch, fetch_one, execute, generate_id, now
 from auth.dependencies import get_current_user
 from auth.gotrue import admin_delete_user
+from auth.whitelist import is_email_whitelisted, get_all_whitelisted_emails
 
 router = APIRouter(prefix="/api/admin")
 
@@ -365,6 +366,9 @@ async def list_reports(user: dict = Depends(get_current_user)):
             r.match_id,
             r.reason,
             r.created_date,
+            r.attachment_url,
+            r.attachment_name,
+            r.attachment_type,
             reporter.display_name AS reporter_name,
             reporter.profile_image AS reporter_image,
             reporter.email AS reporter_email,
@@ -556,3 +560,125 @@ async def admin_update_setting(
         now(),
     )
     return {"key": req.key, "value": req.value}
+
+
+# ── Whitelist endpoints ──────────────────────────────────────────────
+
+
+class WhitelistAddRequest(BaseModel):
+    email: str
+
+
+class WhitelistBulkAddRequest(BaseModel):
+    emails: list[str]
+
+
+@router.get("/whitelist")
+async def list_whitelist(
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    """List all whitelisted emails. Requires mod+ role."""
+    _require_admin_role(user, "mod")
+
+    search = request.query_params.get("search", "")
+    return await get_all_whitelisted_emails(search)
+
+
+@router.post("/whitelist")
+async def add_whitelist_email(
+    req: WhitelistAddRequest,
+    user: dict = Depends(get_current_user),
+):
+    """Add a single email to the whitelist. Requires manager+ role."""
+    _require_admin_role(user, "manager")
+
+    email = req.email.strip().lower()
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="Invalid email address")
+
+    # Check for duplicates
+    existing = await fetch_one(
+        "SELECT id FROM public.email_whitelist WHERE LOWER(email) = LOWER($1)", email
+    )
+    if existing:
+        raise HTTPException(status_code=409, detail="Email already in whitelist")
+
+    new_id = generate_id()
+    await execute(
+        "INSERT INTO public.email_whitelist (id, email, added_by) VALUES ($1, $2, $3)",
+        new_id,
+        email,
+        user["id"],
+    )
+
+    return await fetch_one(
+        "SELECT id, email, created_date FROM public.email_whitelist WHERE id = $1",
+        new_id,
+    )
+
+
+@router.post("/whitelist/bulk")
+async def bulk_add_whitelist(
+    req: WhitelistBulkAddRequest,
+    user: dict = Depends(get_current_user),
+):
+    """Bulk add emails to the whitelist. Requires manager+ role."""
+    _require_admin_role(user, "manager")
+
+    added = 0
+    skipped = 0
+    errors = []
+
+    for raw_email in req.emails:
+        email = raw_email.strip().lower()
+        if not email or "@" not in email:
+            errors.append(f"Invalid email: {raw_email}")
+            continue
+
+        existing = await fetch_one(
+            "SELECT 1 FROM public.email_whitelist WHERE LOWER(email) = LOWER($1)", email
+        )
+        if existing:
+            skipped += 1
+            continue
+
+        try:
+            await execute(
+                "INSERT INTO public.email_whitelist (id, email, added_by) VALUES ($1, $2, $3)",
+                generate_id(),
+                email,
+                user["id"],
+            )
+            added += 1
+        except Exception as exc:
+            errors.append(f"Failed to add {email}: {str(exc)}")
+
+    return {"added": added, "skipped": skipped, "errors": errors}
+
+
+@router.delete("/whitelist/{entry_id}")
+async def remove_whitelist_email(
+    entry_id: str,
+    user: dict = Depends(get_current_user),
+):
+    """Remove a single email from the whitelist by entry UUID. Requires manager+ role."""
+    _require_admin_role(user, "manager")
+
+    existing = await fetch_one(
+        "SELECT id, email FROM public.email_whitelist WHERE id = $1", entry_id
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Whitelist entry not found")
+
+    await execute("DELETE FROM public.email_whitelist WHERE id = $1", entry_id)
+    return {"success": True, "email": existing["email"]}
+
+
+@router.delete("/whitelist")
+async def clear_whitelist(user: dict = Depends(get_current_user)):
+    """Remove ALL emails from the whitelist. Requires manager+ role."""
+    _require_admin_role(user, "manager")
+
+    await execute("DELETE FROM public.email_whitelist")
+    return {"success": True}

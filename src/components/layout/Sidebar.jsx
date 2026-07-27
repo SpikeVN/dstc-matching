@@ -70,8 +70,8 @@ export default function Sidebar() {
         <div className="flex flex-col gap-1 px-2">
           {['owner', 'mod', 'manager'].includes(currentUser?.admin_role) && (
             <Link
-              to="/admin"
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm group ${location.pathname === '/admin' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-primary/5 hover:text-primary/80'
+              to="/admin/dashboard"
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm group ${location.pathname.startsWith('/admin') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-primary/5 hover:text-primary/80'
                 }`}
             >
               <Shield className="w-4 h-4" /> Admin Panel

@@ -331,6 +331,16 @@ const authClient = {
   redirectToLogin: () => {
     window.location.href = '/login';
   },
+  checkSignupAccess: async () => {
+    try {
+      return await request('POST', '/auth/check-signup-access');
+    } catch {
+      return { allowed: false };
+    }
+  },
+  getSignupMethods: async () => {
+    return request('GET', '/auth/signup-methods');
+  },
 };
 
 // ── Integrations (stubs) ───────────────────────────────────────────
@@ -405,6 +415,21 @@ export const db = {
     getSettings: async () => request('GET', '/api/admin/settings'),
     updateSetting: async (key, value) => request('PATCH', '/api/admin/settings', { key, value }),
     deleteUser: async (userId) => request('DELETE', `/api/admin/users/${userId}`),
+    listWhitelist: async (params = {}) => {
+      const clean = Object.fromEntries(
+        Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+      );
+      const qs = new URLSearchParams(clean).toString();
+      return request('GET', `/api/admin/whitelist${qs ? `?${qs}` : ''}`);
+    },
+    addWhitelistEmail: async (email) =>
+      request('POST', '/api/admin/whitelist', { email }),
+    bulkAddWhitelist: async (emails) =>
+      request('POST', '/api/admin/whitelist/bulk', { emails }),
+    removeWhitelistEmail: async (id) =>
+      request('DELETE', `/api/admin/whitelist/${id}`),
+    clearAllWhitelist: async () =>
+      request('DELETE', '/api/admin/whitelist'),
   },
   integrations: integrationsClient,
   block: {
@@ -422,8 +447,15 @@ export const db = {
   teams: {
     getMatchedUsers: async () => request('GET', '/api/teams/matched-users'),
   },
-  report: async (reportedId, matchId, reason) =>
-    request('POST', '/api/reports', { reported_id: reportedId, match_id: matchId, reason }),
+  report: async (reportedId, matchId, reason, attachment = {}) =>
+    request('POST', '/api/reports', {
+      reported_id: reportedId,
+      match_id: matchId,
+      reason,
+      attachment_url: attachment.url || undefined,
+      attachment_name: attachment.name || undefined,
+      attachment_type: attachment.type || undefined,
+    }),
   notifications: {
     list: async () => request('GET', '/api/notifications'),
     unreadCount: async () => request('GET', '/api/notifications/unread-count'),
