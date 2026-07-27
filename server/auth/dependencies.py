@@ -28,7 +28,7 @@ async def get_current_user(request: Request) -> dict:
 
     Decodes JWT claims and queries user_preferences for admin role info.
     Returns a dict with id, email, username, role, admin_role, admin_visible.
-    Raises 401 if not authenticated.
+    Raises 401 if not authenticated or if the user no longer exists (deleted).
     """
     user_id = await get_current_user_id(request)
 
@@ -37,6 +37,18 @@ async def get_current_user(request: Request) -> dict:
     payload = verify_token(token) if token else {}
 
     user_metadata = payload.get("user_metadata", {})
+
+    # Verify user still exists in the application database.  When an admin
+    # deletes a user the GoTrue auth record is removed and tables cascade,
+    # but the JWT the user already holds remains valid until expiry.  Without
+    # this check the deleted user can still hit authenticated endpoints and
+    # see a broken UI because their contestant_profiles row is gone.
+    alive = await fetch_one(
+        "SELECT 1 FROM public.contestant_profiles WHERE created_by = $1",
+        user_id,
+    )
+    if not alive:
+        raise HTTPException(status_code=401, detail="User no longer exists")
 
     # Query user_preferences for admin role, visibility, and info_shown settings
     prefs = await fetch_one(

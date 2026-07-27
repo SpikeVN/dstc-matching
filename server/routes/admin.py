@@ -278,7 +278,15 @@ async def delete_user(
     user_id: str,
     user: dict = Depends(get_current_user),
 ):
-    """Delete a user from auth and all related data. Requires manager+ role."""
+    """Delete a user from auth and all related data. Requires manager+ role.
+
+    Cleans up:
+      - Removes user from all team member_ids arrays
+      - Deletes solo teams (only member was the deleted user)
+      - Deletes the GoTrue auth record (FK cascades handle contestant_profiles,
+        matches, messages, swipe_actions, leader-owned teams, team_invites,
+        blocked_users, reports, notifications, user_preferences)
+    """
     _require_admin_role(user, "manager")
 
     # Cannot delete yourself
@@ -305,8 +313,42 @@ async def delete_user(
             detail="You don't have permission to delete this user",
         )
 
-    # Delete from GoTrue auth (cascades to auth.users, which cascades to
-    # contestant_profiles, user_preferences, etc. via FK ON DELETE CASCADE)
+    # ── Team cleanup (JSONB member_ids is not a FK, so no cascade) ─────────
+
+    # 1. Remove the user from all team member_ids arrays
+    await execute(
+        """UPDATE public.teams
+           SET member_ids = COALESCE(
+               (SELECT jsonb_agg(elem)
+                  FROM jsonb_array_elements(member_ids) elem
+                 WHERE elem <> to_jsonb($1::text)),
+               '[]'::jsonb
+           )
+           WHERE member_ids @> to_jsonb($1::text)::jsonb""",
+        user_id,
+    )
+
+    # 2. Delete teams that ended up with no members (the deleted user was
+    #    the only one in member_ids, and the leader deletion cascade will
+    #    handle teams where the deleted user was the leader)
+    await execute(
+        "DELETE FROM public.teams WHERE member_ids = '[]'::jsonb AND leader_id != $1",
+        user_id,
+    )
+
+    # 3. Clear disband_initiated_by references (FK ON DELETE SET NULL handles
+    #    this via the GoTrue cascade, but do it now so there's no FK worry
+    #    about the GoTrue call failing)
+    await execute(
+        "UPDATE public.teams SET disband_initiated_by = NULL WHERE disband_initiated_by = $1",
+        user_id,
+    )
+
+    # ── Delete from GoTrue auth ────────────────────────────────────────────
+    # This removes the row from auth.users, which cascades via FK to:
+    #   contestant_profiles, matches, messages, swipe_actions, teams (where
+    #   leader), team_invites, blocked_users, reports, notifications,
+    #   user_preferences, and SET NULL on email_whitelist.added_by.
     await admin_delete_user(user_id)
 
     return {"success": True, "message": f"User {user_id} deleted"}

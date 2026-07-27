@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
 from auth.config import SITE_URL
-from auth.dependencies import get_current_user
+from auth.dependencies import get_current_user, get_current_user_id
 from auth.jwt import verify_token
 from auth import gotrue
 from auth.gotrue import admin_delete_user
@@ -484,24 +484,34 @@ async def change_password(
 
 
 @router.post("/check-signup-access")
-async def check_signup_access(user: dict = Depends(get_current_user)):
+async def check_signup_access(request: Request):
     """Check if the current user is allowed to access the platform.
 
     For users created via OAuth redirect flow (no contestant_profile yet),
     verify their email is whitelisted. If not, delete the GoTrue user.
     Existing users are always allowed.
+
+    Note: this endpoint extracts user info directly from the JWT rather than
+    using get_current_user, because the latter checks for a contestant_profiles
+    row — a check that would incorrectly reject new OAuth redirect users.
     """
+    user_id = await get_current_user_id(request)
+    auth_header = request.headers.get("Authorization", "")
+    token = auth_header[7:] if auth_header.startswith("Bearer ") else ""
+    payload = verify_token(token) if token else {}
+    email = payload.get("email", "")
+
     profile = await fetch_one(
         "SELECT 1 FROM public.contestant_profiles WHERE created_by = $1",
-        user["id"],
+        user_id,
     )
     if profile:
         return {"allowed": True}
 
     # New user from redirect flow — check whitelist
-    whitelisted = await is_email_whitelisted(user["email"])
+    whitelisted = await is_email_whitelisted(email)
     if not whitelisted:
-        await admin_delete_user(user["id"])
+        await admin_delete_user(user_id)
         return {"allowed": False, "reason": "EMAIL_NOT_WHITELISTED"}
 
     return {"allowed": True}
