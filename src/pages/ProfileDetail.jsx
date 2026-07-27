@@ -195,7 +195,7 @@ export default function ProfileDetail() {
         {/* Message button */}
         <Button
           className="w-full h-10 font-display text-sm font-medium gap-2 bg-primary text-background hover:bg-primary/90"
-          onClick={() => navigate('/matches')}
+          onClick={() => navigate('/messages')}
         >
           <MessageSquare className="w-4 h-4" /> Nhắn tin
         </Button>

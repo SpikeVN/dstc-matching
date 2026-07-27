@@ -122,9 +122,7 @@ export default function Home() {
               <Button
                 variant="outline"
                 size="lg"
-                className="h-12 px-8 font-display text-sm font-medium border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-foreground rounded-lg transition-all duration-200"
-                onClick={() => navigate('/matches')}>
-
+                className="h-12 px-8 font-display text-sm font-medium border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-foreground rounded-lg transition-all duration-200">
                 Xem matches
               </Button>
             </motion.div>

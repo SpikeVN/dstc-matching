@@ -2,7 +2,7 @@ import { db } from '@/api/apiClient';
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { User, Heart, MessageCircle, Settings, LogOut, Sparkles, LayoutDashboard, BookOpen, Shield, HelpCircle } from 'lucide-react';
+import { User, MessageCircle, Settings, LogOut, Sparkles, LayoutDashboard, BookOpen, Shield, HelpCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import NotificationBell from './NotificationBell';
@@ -13,7 +13,6 @@ const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/discover', label: 'Khám phá', icon: Sparkles },
   { path: '/profile', label: 'Hồ sơ', icon: User },
-  { path: '/matches', label: 'Đã match', icon: Heart },
   { path: '/messages', label: 'Tin nhắn', icon: MessageCircle }];
 
 export default function Sidebar() {

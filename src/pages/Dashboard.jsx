@@ -44,7 +44,7 @@ function StatCard({ icon: Icon, value, label, color = 'text-primary', onClick })
   );
 }
 
-function ProfileCompletion({ profile }) {
+function ProfileCompletion({ profile, onClick }) {
   const fields = PROFILE_FIELDS.map(f => ({
     ...f,
     done: f.check ? f.check(profile?.[f.key]) : !!profile?.[f.key],
@@ -53,7 +53,7 @@ function ProfileCompletion({ profile }) {
   const pct = Math.round((done / fields.length) * 100);
 
   return (
-    <div className="glass-card rounded-xl border border-primary/10 p-4 space-y-3">
+    <div className={`glass-card rounded-xl border border-primary/10 p-4 space-y-3 ${onClick ? 'cursor-pointer hover:border-primary/25' : ''} transition-all duration-200`} onClick={onClick}>
       <div className="flex items-center justify-between">
         <h3 className="font-display font-semibold text-sm text-foreground">Hoàn thiện hồ sơ</h3>
         <span className="font-display font-bold text-lg text-primary">{pct}%</span>
@@ -201,7 +201,6 @@ export default function Dashboard() {
 
         {/* Stats row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard icon={Heart} value={matches.length} label="Matches" onClick={() => navigate('/matches')} />
           <StatCard icon={MessageCircle} value={unreadMessages.length} label="Chưa đọc" color="text-blue-400" onClick={() => navigate('/messages')} />
           <StatCard icon={Zap} value={swipes.length} label="Đã swipe" color="text-yellow-400" />
           <StatCard icon={Target} value={allProfiles.filter(p => p.profile_complete && p.created_by !== currentUser?.id).length} label="Ứng viên" color="text-purple-400" onClick={() => navigate('/discover')} />
@@ -210,7 +209,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Profile completion */}
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            <ProfileCompletion profile={myProfile} />
+            <ProfileCompletion profile={myProfile} onClick={() => navigate('/profile')} />
             {!myProfile?.profile_complete && (
               <Button
                 className="w-full mt-3 h-9 font-display text-xs font-medium bg-primary text-background hover:bg-primary/90 gap-2"
@@ -227,7 +226,6 @@ export default function Dashboard() {
             {[
               { Icon: Sparkles, label: 'Khám phá đồng đội', sub: 'Swipe & match với ứng viên phù hợp', path: '/discover', color: 'text-primary' },
               { Icon: MessageCircle, label: 'Xem tin nhắn', sub: `${unreadMessages.length} tin chưa đọc`, path: '/messages', color: 'text-blue-400' },
-              { Icon: Heart, label: 'Danh sách match', sub: `${matches.length} kết nối`, path: '/matches', color: 'text-pink-400' },
             ].map(item => (
               <button
                 key={item.path}
@@ -255,12 +253,7 @@ export default function Dashboard() {
         {/* Recent matches */}
         {recentMatches.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-display font-semibold text-sm text-foreground">Matches gần đây</h3>
-              <button onClick={() => navigate('/matches')} className="font-body text-xs text-primary/70 hover:text-primary transition-colors">
-                Xem tất cả →
-              </button>
-            </div>
+            <h3 className="font-display font-semibold text-sm text-foreground">Matches gần đây</h3>
             <div className="space-y-2">
               {recentMatches.map(match => (
                 <MatchCard

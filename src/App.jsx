@@ -12,7 +12,6 @@ import Landing from '@/pages/Landing';
 import Dashboard from '@/pages/Dashboard';
 import Profile from '@/pages/Profile';
 import Discover from '@/pages/Discover';
-import Matches from '@/pages/Matches';
 import Messages from '@/pages/Messages';
 import TeamPage from '@/pages/TeamPage';
 import Settings from '@/pages/Settings';
@@ -106,7 +105,6 @@ const AuthenticatedApp = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/discover" element={<Discover />} />
-        <Route path="/matches" element={<Matches />} />
         <Route path="/messages" element={<Messages />} />
         <Route path="/team" element={<TeamPage />} />
         <Route path="/settings" element={<Settings />} />

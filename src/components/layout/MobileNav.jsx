@@ -1,12 +1,11 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { User, MessageCircle, Sparkles, LayoutDashboard, Settings } from 'lucide-react';
+import { MessageCircle, Sparkles, LayoutDashboard, Settings } from 'lucide-react';
 
 const navItems = [
   { path: '/dashboard', label: 'Home', icon: LayoutDashboard },
   { path: '/discover', label: 'Khám phá', icon: Sparkles },
-  { path: '/messages', label: 'Kết nối', icon: MessageCircle, altPaths: ['/matches'] },
-  { path: '/profile', label: 'Hồ sơ', icon: User },
+  { path: '/messages', label: 'Kết nối', icon: MessageCircle },
   { path: '/settings', label: 'Cài đặt', icon: Settings },
 ];
 

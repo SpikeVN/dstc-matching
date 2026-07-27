@@ -125,7 +125,7 @@ VALUES (
     '00000000-0000-0000-0000-000000000000',
     gen_random_uuid(), 'authenticated', 'authenticated',
     'admin@cteftu.id.vn',
-    '$2b$10$uykYp4rVFm/FJt7w9hgRQey/HZoEldKgpZPHsmdgFQ1FsgIdI1yVW',
+    crypt('changeme', gen_salt('bf', 10)),
     now(), now(), now(), '', '', '', '',
     '{"full_name": "CLB Khoa học Công nghệ trong Kinh tế và Kinh doanh", "name": "CLB Khoa học công nghệ trong Kinh tế và Kinh doanh"}'::jsonb,
     '{"role": "owner"}'::jsonb
