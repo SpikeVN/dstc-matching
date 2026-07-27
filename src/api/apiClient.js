@@ -404,6 +404,7 @@ export const db = {
     deleteTeam: async (id) => request('DELETE', `/api/admin/teams/${id}`),
     getSettings: async () => request('GET', '/api/admin/settings'),
     updateSetting: async (key, value) => request('PATCH', '/api/admin/settings', { key, value }),
+    deleteUser: async (userId) => request('DELETE', `/api/admin/users/${userId}`),
   },
   integrations: integrationsClient,
   block: {

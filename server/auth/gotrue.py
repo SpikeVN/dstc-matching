@@ -214,6 +214,15 @@ async def admin_update_password(user_id: str, new_password: str) -> dict:
     return _user_to_dict(resp.user) if resp.user else {}
 
 
+async def admin_delete_user(user_id: str) -> None:
+    """Delete a user from auth.users via the admin API (service role)."""
+    sb = get_supabase()
+    try:
+        await sb.auth.admin.delete_user(user_id)
+    except Exception as exc:
+        _raise_auth_error(exc)
+
+
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
 

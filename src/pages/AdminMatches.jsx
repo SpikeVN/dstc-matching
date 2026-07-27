@@ -132,6 +132,13 @@ export default function AdminMatches() {
     },
   });
 
+  const deleteUserMutation = useMutation({
+    mutationFn: (userId) => db.admin.deleteUser(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+    },
+  });
+
   // ── Team management data ────────────────────────────────────────
   const { data: adminTeams, isLoading: loadingTeams } = useQuery({
     queryKey: ['adminTeams'],
@@ -342,6 +349,7 @@ export default function AdminMatches() {
                       <th className="text-center px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Vai trò</th>
                       <th className="text-center px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Hiển thị</th>
                       <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider hidden sm:table-cell">Sửa lần cuối</th>
+                      <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Hành động</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-primary/8">
@@ -411,6 +419,21 @@ export default function AdminMatches() {
                         </td>
                         <td className="px-4 py-3 text-right text-xs text-muted-foreground/50 hidden sm:table-cell">
                           {u.assigned_date ? format(addHours(new Date(u.assigned_date), 7), 'dd/MM/yy') : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {u.id !== currentUser?.id && u.admin_role !== 'owner' && (
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Xóa người dùng "${u.display_name || u.email}"? Hành động này không thể hoàn tác.`)) {
+                                  deleteUserMutation.mutate(u.id);
+                                }
+                              }}
+                              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                              title="Xóa người dùng"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}

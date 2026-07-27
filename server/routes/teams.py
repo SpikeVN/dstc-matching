@@ -4,6 +4,12 @@ from pydantic import BaseModel
 from typing import Optional
 from database import fetch, fetch_one, execute, generate_id, now
 from auth.dependencies import get_current_user
+from mailer import (
+    fire_team_invitation,
+    fire_team_acceptance,
+    fire_disband_request,
+    fire_disbandment,
+)
 
 # Helper to create a notification (imported inline to avoid circular deps)
 async def _create_notification(user_id: str, type_: str, title: str, body: str = "", data: dict = None):
@@ -107,6 +113,9 @@ async def invite_by_email(req: InviteByEmailRequest, user: dict = Depends(get_cu
         f"{team.get('name', 'Unknown')} đã mời bạn vào đội",
         {"team_id": req.team_id, "inviter_id": user["id"], "invite_id": iid},
     )
+
+    # Send email notification
+    fire_team_invitation(invitee_id, user["id"], req.team_id, team.get("name", "Unknown"))
 
     return await fetch_one("SELECT * FROM team_invites WHERE id = $1", iid)
 
@@ -280,6 +289,8 @@ async def leave_team(team_id: str, user: dict = Depends(get_current_user)):
                 f"{initiator_name} muốn giải tán đội {existing.get('name', 'Unknown')}",
                 {"team_id": team_id, "initiated_by": user["id"]},
             )
+            # Send email notification
+            fire_disband_request(other_id, user["id"], team_id, existing.get("name", "Unknown"))
 
         return {"disband_pending": True, "message": "Disband request sent to team members for approval"}
 
@@ -371,6 +382,9 @@ async def accept_team_invite(team_id: str, user: dict = Depends(get_current_user
             {"team_id": team_id, "accepted_by": user["id"]},
         )
 
+        # Send email notification to inviter
+        fire_team_acceptance(inviter_id, user["id"], team_id, team.get("name", "Unknown"))
+
     return await fetch_one("SELECT * FROM teams WHERE id = $1", team_id)
 
 
@@ -402,15 +416,26 @@ async def disband_respond(
     responder_name = responder_profile["display_name"] if responder_profile else user.get("username", "Ai đó")
 
     if req.action == "accept":
+        team_name = existing.get("name", "Unknown")
+        # Collect all member IDs to notify after deletion
+        all_members = set(existing.get("member_ids") or [])
+        if existing["leader_id"]:
+            all_members.add(existing["leader_id"])
+
         await execute("DELETE FROM teams WHERE id = $1", team_id)
+
         # Notify the initiator that disband was accepted
         await _create_notification(
             initiated_by,
             "disband_accepted",
             "Đội đã giải tán",
-            f"{responder_name} đã đồng ý giải tán đội {existing.get('name', 'Unknown')}",
+            f"{responder_name} đã đồng ý giải tán đội {team_name}",
             {"team_id": team_id, "accepted_by": user["id"]},
         )
+        # Send disbandment emails to all former members
+        for former_id in all_members:
+            fire_disbandment(former_id, team_name, responder_name)
+
         return {"success": True, "message": "Team has been disbanded"}
     elif req.action == "reject":
         now_ts = now()

@@ -143,6 +143,111 @@ async def _send_message_notification(sender_id: str, receiver_id: str, match_id:
         logger.exception("[EMAIL] Failed to send message notification for match %s", match_id)
 
 
+async def _send_team_invitation(invitee_id: str, inviter_id: str, team_id: str, team_name: str):
+    """Send a team invitation email to the invitee."""
+    try:
+        invitee = await _get_user_and_profile(invitee_id)
+        inviter = await _get_user_and_profile(inviter_id)
+        if not invitee or not inviter:
+            return
+
+        invitee_name = invitee.get("profile", {}).get("display_name") or "bạn"
+        inviter_name = inviter.get("profile", {}).get("display_name") or inviter.get("full_name") or "Ai đó"
+
+        html = render_template(
+            "team_invitation.html",
+            recipient_name=invitee_name,
+            inviter_name=inviter_name,
+            team_name=team_name,
+            team_id=team_id,
+        )
+        await send_email(
+            to=invitee["email"],
+            subject=f"🤝 {inviter_name} đã mời bạn vào đội {team_name}",
+            html=html,
+        )
+    except Exception:
+        logger.exception("[EMAIL] Failed to send team invitation for team %s", team_id)
+
+
+async def _send_team_acceptance(inviter_id: str, acceptor_id: str, team_id: str, team_name: str):
+    """Send a team acceptance notification email to the inviter."""
+    try:
+        inviter = await _get_user_and_profile(inviter_id)
+        acceptor = await _get_user_and_profile(acceptor_id)
+        if not inviter or not acceptor:
+            return
+
+        inviter_name = inviter.get("profile", {}).get("display_name") or "bạn"
+        acceptor_name = acceptor.get("profile", {}).get("display_name") or acceptor.get("full_name") or "Ai đó"
+
+        html = render_template(
+            "team_acceptance.html",
+            recipient_name=inviter_name,
+            acceptor_name=acceptor_name,
+            team_name=team_name,
+            team_id=team_id,
+        )
+        await send_email(
+            to=inviter["email"],
+            subject=f"🎊 {acceptor_name} đã tham gia đội {team_name}!",
+            html=html,
+        )
+    except Exception:
+        logger.exception("[EMAIL] Failed to send team acceptance for team %s", team_id)
+
+
+async def _send_disband_request(recipient_id: str, initiator_id: str, team_id: str, team_name: str):
+    """Send a disband-request notification email to a team member."""
+    try:
+        recipient = await _get_user_and_profile(recipient_id)
+        initiator = await _get_user_and_profile(initiator_id)
+        if not recipient or not initiator:
+            return
+
+        recipient_name = recipient.get("profile", {}).get("display_name") or "bạn"
+        initiator_name = initiator.get("profile", {}).get("display_name") or initiator.get("full_name") or "Ai đó"
+
+        html = render_template(
+            "team_disband_request.html",
+            recipient_name=recipient_name,
+            initiator_name=initiator_name,
+            team_name=team_name,
+            team_id=team_id,
+        )
+        await send_email(
+            to=recipient["email"],
+            subject=f"⚠️ {initiator_name} muốn giải tán đội {team_name}",
+            html=html,
+        )
+    except Exception:
+        logger.exception("[EMAIL] Failed to send disband request for team %s", team_id)
+
+
+async def _send_disbandment(recipient_id: str, team_name: str, responder_name: str = ""):
+    """Send a disbandment notification email to a former team member."""
+    try:
+        recipient = await _get_user_and_profile(recipient_id)
+        if not recipient:
+            return
+
+        recipient_name = recipient.get("profile", {}).get("display_name") or "bạn"
+
+        html = render_template(
+            "team_disbandment.html",
+            recipient_name=recipient_name,
+            team_name=team_name,
+            responder_name=responder_name,
+        )
+        await send_email(
+            to=recipient["email"],
+            subject=f"📢 Đội {team_name} đã giải tán",
+            html=html,
+        )
+    except Exception:
+        logger.exception("[EMAIL] Failed to send disbandment for team %s", team_name)
+
+
 def fire_match_notification(user1_id: str, user2_id: str, match_id: str):
     """Fire-and-forget match notification (non-blocking)."""
     asyncio.create_task(_send_match_notification(user1_id, user2_id, match_id))
@@ -151,3 +256,23 @@ def fire_match_notification(user1_id: str, user2_id: str, match_id: str):
 def fire_message_notification(sender_id: str, receiver_id: str, match_id: str, content: str):
     """Fire-and-forget message notification (non-blocking)."""
     asyncio.create_task(_send_message_notification(sender_id, receiver_id, match_id, content))
+
+
+def fire_team_invitation(invitee_id: str, inviter_id: str, team_id: str, team_name: str):
+    """Fire-and-forget team invitation email."""
+    asyncio.create_task(_send_team_invitation(invitee_id, inviter_id, team_id, team_name))
+
+
+def fire_team_acceptance(inviter_id: str, acceptor_id: str, team_id: str, team_name: str):
+    """Fire-and-forget team acceptance notification email."""
+    asyncio.create_task(_send_team_acceptance(inviter_id, acceptor_id, team_id, team_name))
+
+
+def fire_disband_request(recipient_id: str, initiator_id: str, team_id: str, team_name: str):
+    """Fire-and-forget disband-request notification email."""
+    asyncio.create_task(_send_disband_request(recipient_id, initiator_id, team_id, team_name))
+
+
+def fire_disbandment(recipient_id: str, team_name: str, responder_name: str = ""):
+    """Fire-and-forget disbandment notification email."""
+    asyncio.create_task(_send_disbandment(recipient_id, team_name, responder_name))

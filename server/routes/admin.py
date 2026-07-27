@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from database import fetch, fetch_one, execute, generate_id, now
 from auth.dependencies import get_current_user
+from auth.gotrue import admin_delete_user
 
 router = APIRouter(prefix="/api/admin")
 
@@ -265,6 +266,45 @@ async def update_user_visibility(
         )
 
     return {"id": user_id, "admin_visible": req.admin_visible}
+
+
+@router.delete("/users/{user_id}")
+async def admin_delete_user(
+    user_id: str,
+    user: dict = Depends(get_current_user),
+):
+    """Delete a user from auth and all related data. Requires manager+ role."""
+    _require_admin_role(user, "manager")
+
+    # Cannot delete yourself
+    if user_id == user["id"]:
+        raise HTTPException(status_code=400, detail="Cannot delete yourself")
+
+    # Check target user exists
+    target = await fetch_one(
+        "SELECT created_by FROM contestant_profiles WHERE created_by = $1", user_id
+    )
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Check permission: can only delete users with lower privilege
+    target_prefs = await fetch_one(
+        "SELECT admin_role FROM public.user_preferences WHERE user_id = $1", user_id
+    )
+    if target_prefs is None:
+        target_prefs = {"admin_role": "user"}
+
+    if not _can_manage_user(user, target_prefs):
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to delete this user",
+        )
+
+    # Delete from GoTrue auth (cascades to auth.users, which cascades to
+    # contestant_profiles, user_preferences, etc. via FK ON DELETE CASCADE)
+    await admin_delete_user(user_id)
+
+    return {"success": True, "message": f"User {user_id} deleted"}
 
 
 @router.get("/roles")

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Match mới — DSTC Matching</title>
+  <title>Đã tham gia đội — DSTC Matching</title>
 </head>
 <body style="margin:0;padding:0;background-color:#0a120b;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a120b;padding:32px 16px;">
@@ -13,52 +13,49 @@
 
           <!-- Header -->
           <tr>
-            <td style="background:url('https://cdn.jsdelivr.net/gh/SpikeVN/dstc-matching@main/public/background.webp');padding:32px 24px;text-align:center;">
-              <p style="margin:0 0 8px;font-size:32px;">🎉</p>
-              <h1 style="margin:0;font-size:22px;font-weight:700;color:#71d65b;">Match mới!</h1>
-              <p style="margin:8px 0 0;font-size:13px;color:rgba(255,255,255,0.6);">Bạn và {{ other_name }} đã match thành công</p>
+            <td style="background:#0f2514;padding:32px 24px;text-align:center;">
+              <p style="margin:0 0 8px;font-size:32px;">🎊</p>
+              <h1 style="margin:0;font-size:22px;font-weight:700;color:#71d65b;">Đã tham gia đội!</h1>
+              <p style="margin:8px 0 0;font-size:13px;color:rgba(255,255,255,0.6);">
+                {{ acceptor_name }} đã tham gia <strong style="color:#e8f0e9;">{{ team_name }}</strong>
+              </p>
             </td>
           </tr>
 
-          <!-- Profile card -->
+          <!-- Body -->
           <tr>
             <td style="padding:24px;">
-              <table width="100%" cellpadding="0" cellspacing="0" style="background-color:rgba(42,75,46,0.1);border:1px solid rgba(42,75,46,0.2);border-radius:12px;">
+              <p style="margin:0 0 16px;font-size:14px;color:#cedfd0;line-height:1.6;">
+                Xin chào <strong>{{ recipient_name }}</strong>,
+              </p>
+              <p style="margin:0 0 16px;font-size:14px;color:#cedfd0;line-height:1.6;">
+                <strong>{{ acceptor_name }}</strong> đã chấp nhận lời mời và chính thức tham gia
+                đội <strong>{{ team_name }}</strong> của bạn! 🎉
+              </p>
+
+              <!-- Acceptance info card -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color:rgba(42,75,46,0.1);border:1px solid rgba(42,75,46,0.2);border-radius:12px;margin-bottom:20px;">
                 <tr>
-                  <td style="padding:20px;">
-                    <table cellpadding="0" cellspacing="0">
-                      <tr>
-                        {% if other_avatar %}
-                        <td style="padding-right:16px;vertical-align:top;">
-                          <img src="{{ other_avatar }}" alt="" width="56" height="56" style="border-radius:12px;border:2px solid rgba(113,214,91,0.3);object-fit:cover;display:block;">
-                        </td>
-                        {% endif %}
-                        <td style="vertical-align:top;">
-                          <p style="margin:0;font-size:16px;font-weight:700;color:#e8f0e9;">{{ other_name }}</p>
-                          {% if other_role %}
-                          <p style="margin:4px 0 0;font-size:12px;color:#71d65b;">{{ other_role }}</p>
-                          {% endif %}
-                          {% if other_school %}
-                          <p style="margin:4px 0 0;font-size:12px;color:rgba(255,255,255,0.5);">{{ other_school }}</p>
-                          {% endif %}
-                        </td>
-                      </tr>
-                    </table>
+                  <td style="padding:16px 20px;">
+                    <p style="margin:0 0 8px;font-size:12px;color:rgba(255,255,255,0.5);">Thành viên mới</p>
+                    <p style="margin:0;font-size:16px;color:#e8f0e9;font-weight:700;">{{ acceptor_name }}</p>
+                    <p style="margin:12px 0 8px;font-size:12px;color:rgba(255,255,255,0.5);">Đội</p>
+                    <p style="margin:0;font-size:14px;color:#71d65b;font-weight:600;">{{ team_name }}</p>
                   </td>
                 </tr>
               </table>
 
-              <p style="margin:20px 0 0;font-size:13px;color:rgba(255,255,255,0.6);text-align:center;line-height:1.6;">
-                Bắt đầu trò chuyện ngay để tìm hiểu nhau và lập đội thi DSTC 2026!
+              <p style="margin:0 0 16px;font-size:13px;color:rgba(255,255,255,0.6);line-height:1.6;text-align:center;">
+                Hãy bắt đầu trò chuyện và lên kế hoạch cho DSTC 2026 nào!
               </p>
 
               <!-- CTA button -->
               <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;">
                 <tr>
                   <td align="center">
-                    <a href="{{ SITE_URL }}/messages?match={{ match_id }}"
+                    <a href="{{ SITE_URL }}/teams/{{ team_id }}"
                        style="display:inline-block;background-color:#71d65b;color:#0a120b;font-size:14px;font-weight:700;text-decoration:none;padding:12px 32px;border-radius:10px;">
-                      Nhắn tin ngay →
+                      Xem đội của bạn →
                     </a>
                   </td>
                 </tr>

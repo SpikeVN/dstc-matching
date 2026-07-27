@@ -52,6 +52,7 @@ export default function AppLayout() {
 
   // Heartbeat to mark the user as active (backend uses this to skip email notifications)
   useEffect(() => {
+    if (!currentUser?.id) return;
     const sendHeartbeat = () => {
       const token = localStorage.getItem('access_token');
       if (!token) return;
@@ -63,7 +64,7 @@ export default function AppLayout() {
     sendHeartbeat();
     const interval = setInterval(sendHeartbeat, 2 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [currentUser?.id]);
 
   return (
     <OnlineContext.Provider value={onlineUsers}>
@@ -74,7 +75,7 @@ export default function AppLayout() {
         </div>
 
         {/* Main content */}
-        <main className={`flex-1 min-h-screen overflow-x-hidden flex flex-col ${location.pathname === '/discover' ? 'overflow-hidden !p-0' : location.pathname === '/messages' ? 'pb-0' : 'pt-6 md:pt-8 pb-20 md:pb-0'}`}>
+        <main className={`flex-1 min-h-screen overflow-x-hidden flex flex-col md:ml-64 ${location.pathname === '/discover' ? 'overflow-hidden !p-0' : location.pathname === '/messages' ? 'pb-0' : 'pt-6 md:pt-8 pb-20 md:pb-0'}`}>
           <div className="flex-1">
             <Outlet />
           </div>
