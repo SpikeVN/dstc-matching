@@ -233,7 +233,7 @@ export default function Dashboard() {
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="space-y-3">
             <h3 className="font-display font-semibold text-sm text-foreground">Thao tác nhanh</h3>
             {[
-              { Icon: Sparkles, label: 'Khám phá đồng đội', sub: 'Swipe & match với ứng viên phù hợp', path: '/discover', color: 'text-primary' },
+              { Icon: Sparkles, label: 'Xem hướng dẫn sử dụng', sub: 'HDSD web Matching Teammate', path: '/guide', color: 'text-primary' },
               { Icon: MessageCircle, label: 'Xem tin nhắn', sub: `${unreadMessages.length} tin chưa đọc`, path: '/messages', color: 'text-blue-400' },
             ].map(item => (
               <button

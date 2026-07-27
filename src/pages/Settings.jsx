@@ -23,7 +23,6 @@ const TABS = [
   { id: 'terms', label: 'Điều khoản', icon: FileText },
   { id: 'support', label: 'Hỗ trợ', icon: HelpCircle },
   { id: 'about', label: 'Về CTE & DSTC', icon: Info },
-  { id: 'system', label: 'Hệ thống', icon: Terminal },
   { id: 'notifications', label: 'Thông báo', icon: Bell, mobileOnly: true },
 ];
 
@@ -155,9 +154,8 @@ function NotificationsTabContent({ currentUser }) {
                 <button
                   key={notif.id}
                   onClick={() => handleItemClick(notif)}
-                  className={`w-full flex items-start gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors text-left ${
-                    !notif.is_read ? 'bg-primary/[0.03]' : ''
-                  }`}
+                  className={`w-full flex items-start gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors text-left ${!notif.is_read ? 'bg-primary/[0.03]' : ''
+                    }`}
                 >
                   <div className={`w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 ${color}`}>
                     <Icon className="w-4 h-4" />
@@ -529,32 +527,6 @@ export default function Settings() {
                 </div>
               </div>
             </div>
-          </div>
-        );
-
-      case 'system':
-        return (
-          <div className="space-y-4">
-            <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
-              <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-primary" />
-                <h3 className="font-display text-sm font-semibold text-primary">Về hệ thống</h3>
-              </div>
-              <div className="p-4 space-y-2 font-body text-xs text-muted-foreground">
-                <div className="flex justify-between"><span className="text-primary/60">Platform</span>
-                  <div className="flex flex-row gap-2 w-fit">
-                    <code className="font-mono">dstc-matching</code>
-                    <a href="https://github.com/SpikeVN/dstc-matching" className="hover:text-accent flex flex-row font-mono">
-                      <Github height={18} />
-                      {__COMMIT_HASH__}
-                    </a>
-                  </div>
-                </div>
-                <div className="flex justify-between"><span className="text-primary/60">Ban tổ chức</span><span>CLB Khoa học Công nghệ trong Kinh tế và Kinh doanh</span></div>
-                <div className="flex justify-between"><span className="text-primary/60">Host</span><span>Đoàn TNCS Hồ Chí Minh, Trường Đại học Ngoại Thương</span></div>
-              </div>
-            </div>
-            <p className="text-[10px] text-muted-foreground/50">Bản quyền © 2026 CLB Khoa học Công nghệ trong Kinh tế và Kinh doanh. Bảo lưu mọi quyền.</p>
           </div>
         );
 
