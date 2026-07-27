@@ -5,6 +5,11 @@ from database import fetch, fetch_one, execute, generate_id, now
 from auth.dependencies import get_current_user
 from mailer import fire_message_notification
 
+# Helper to create a notification (imported inline to avoid circular deps)
+async def _create_notification(user_id: str, type_: str, title: str, body: str = "", data: dict = None):
+    from routes.notifications import create_notification_helper
+    await create_notification_helper(user_id, type_, title, body, data or {})
+
 router = APIRouter(prefix="/api/messages")
 
 
@@ -83,14 +88,15 @@ async def create_message(msg: MessageCreate, user: dict = Depends(get_current_us
         if blocked:
             raise HTTPException(status_code=403, detail="Cannot send message — user is blocked")
 
-    # Enforce 3-message limit for pending matches
-    if match and match["status"] == "pending":
+    # Enforce 3-message limit for pending and unmatched matches
+    if match and match["status"] in ("pending", "unmatched"):
         msg_count = await fetch_one(
             "SELECT COUNT(*) as cnt FROM messages WHERE match_id = $1 AND sender_id = $2",
             msg.match_id, msg.sender_id
         )
         if msg_count and msg_count["cnt"] >= 3:
-            raise HTTPException(status_code=403, detail="Message limit reached for pending match")
+            label = "chờ kết nối" if match["status"] == "pending" else "đã hủy kết nối"
+            raise HTTPException(status_code=403, detail=f"Message limit reached — {label}")
 
     await execute("""
         INSERT INTO messages (id, created_date, updated_date, match_id, sender_id, receiver_id, content, is_read,
@@ -102,6 +108,20 @@ async def create_message(msg: MessageCreate, user: dict = Depends(get_current_us
     # Send message notification email to receiver
     if receiver_id:
         fire_message_notification(msg.sender_id, receiver_id, msg.match_id, msg.content)
+
+        # Create in-app notification for the receiver
+        sender_profile = await fetch_one(
+            "SELECT display_name FROM contestant_profiles WHERE created_by = $1",
+            msg.sender_id,
+        )
+        sender_name = sender_profile["display_name"] if sender_profile else "Ai đó"
+        await _create_notification(
+            receiver_id,
+            "new_message",
+            f"Tin nhắn từ {sender_name}",
+            msg.content[:100] if msg.content else "",
+            {"match_id": msg.match_id, "sender_id": msg.sender_id, "message_id": mid},
+        )
 
     return await fetch_one("SELECT * FROM messages WHERE id = $1", mid)
 

@@ -3,7 +3,7 @@ import { db } from '@/api/apiClient';
 import React, { useState, useDeferredValue } from 'react';
 
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { Users, Search, Heart, MessageCircle, User, Shield, Eye, EyeOff, Flag, X, Clock } from 'lucide-react';
+import { Users, Search, Heart, MessageCircle, User, Shield, Eye, EyeOff, Flag, X, Clock, Trash2, Pencil, Settings, Ban } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { format, addHours } from 'date-fns';
 import MatchDashboard from '@/components/admin/MatchDashboard';
@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 /** @type {Record<string, number>} Lower = more privilege */
 const ROLE_HIERARCHY = { owner: 0, manager: 1, mod: 2, user: 3 };
 
@@ -51,6 +52,9 @@ export default function AdminMatches() {
   const [matchStatusFilter, setMatchStatusFilter] = useState('');
   const [selectedReport, setSelectedReport] = useState(null);
   const [reportDetailOpen, setReportDetailOpen] = useState(false);
+  const [editingTeam, setEditingTeam] = useState(null); // { id, name } for rename
+  const [renamingTeamId, setRenamingTeamId] = useState(null); // for rename
+  const [renamingTeamValue, setRenamingTeamValue] = useState('');
   const deferredSearch = useDeferredValue(search);
 
   const { data: currentUser } = useQuery({
@@ -125,6 +129,54 @@ export default function AdminMatches() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+    },
+  });
+
+  // ── Team management data ────────────────────────────────────────
+  const { data: adminTeams, isLoading: loadingTeams } = useQuery({
+    queryKey: ['adminTeams'],
+    queryFn: () => db.admin.listTeams(),
+    initialData: [],
+  });
+
+  const { data: systemSettings, isLoading: loadingSettings } = useQuery({
+    queryKey: ['adminSettings'],
+    queryFn: () => db.admin.getSettings(),
+    initialData: {},
+  });
+
+  const { data: blockList, isLoading: loadingBlocks } = useQuery({
+    queryKey: ['adminBlocks'],
+    queryFn: () => db.admin.listBlocks(),
+    initialData: [],
+  });
+
+  // ── Team mutations ──────────────────────────────────────────────
+  const teamRenameMutation = useMutation({
+    mutationFn: ({ id, name }) => db.admin.updateTeam(id, { name }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminTeams'] });
+      setRenamingTeamId(null);
+      setRenamingTeamValue('');
+    },
+  });
+
+  const teamDeleteMutation = useMutation({
+    mutationFn: (id) => db.admin.deleteTeam(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminTeams'] });
+    },
+  });
+
+  const settingsMutation = useMutation({
+    mutationFn: ({ key, value }) => db.admin.updateSetting(key, value),
+    onSuccess: (_data, variables) => {
+      // Immediately update the cache so the toggle reflects the change
+      queryClient.setQueryData(['adminSettings'], (old) => ({
+        ...(old || {}),
+        [variables.key]: variables.value,
+      }));
+      queryClient.invalidateQueries({ queryKey: ['adminSettings'] });
     },
   });
 
@@ -222,9 +274,9 @@ export default function AdminMatches() {
         {/* Tabs (line variant) */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="h-auto bg-transparent p-0 border-b border-primary/10 rounded-none w-full justify-start gap-0">
-            {['dashboard', 'users', 'matches', 'reports'].map(tab => {
-              const icons = { dashboard: Shield, users: Users, matches: Heart, reports: Flag };
-              const labels = { dashboard: 'Dashboard', users: 'Quản lý người dùng', matches: 'Matches', reports: 'Reports' };
+            {['dashboard', 'users', 'matches', 'reports', 'teams', 'blocks', 'settings'].map(tab => {
+              const icons = { dashboard: Shield, users: Users, matches: Heart, reports: Flag, teams: Users, blocks: Ban, settings: Settings };
+              const labels = { dashboard: 'Dashboard', users: 'Quản lý người dùng', matches: 'Matches', reports: 'Reports', teams: 'Đội', blocks: 'Chặn', settings: 'Cài đặt' };
               const Icon = icons[tab];
               return (
                 <TabsTrigger
@@ -562,6 +614,244 @@ export default function AdminMatches() {
             )}
           </div>
           </TabsContent>
+
+          {/* ── Teams tab ──────────────────────────────────────────── */}
+          <TabsContent value="teams" className="mt-5">
+          <div className="space-y-4">
+            <p className="font-body text-xs text-muted-foreground">Tổng số đội: {adminTeams.length}</p>
+
+            {loadingTeams ? (
+              <div className="text-center py-16">
+                <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
+              </div>
+            ) : adminTeams.length === 0 ? (
+              <div className="text-center py-16">
+                <Users className="w-10 h-10 text-primary/10 mx-auto mb-3" />
+                <p className="font-body text-sm text-muted-foreground">Chưa có đội nào</p>
+              </div>
+            ) : (
+              <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+                <table className="w-full text-xs font-body">
+                  <thead>
+                    <tr className="border-b border-primary/10 bg-muted/20">
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider w-8">#</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Tên đội</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Trưởng nhóm</th>
+                      <th className="text-center px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Thành viên</th>
+                      <th className="text-center px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Trạng thái</th>
+                      <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Hành động</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-primary/8">
+                    {adminTeams.map((team, i) => (
+                      <tr key={team.id} className="hover:bg-primary/5 transition-colors">
+                        <td className="px-4 py-3 text-xs text-muted-foreground/50">{i + 1}</td>
+                        <td className="px-4 py-3">
+                          {renamingTeamId === team.id ? (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                value={renamingTeamValue}
+                                onChange={e => setRenamingTeamValue(e.target.value)}
+                                className="text-xs h-7 w-32 bg-muted/50 border-primary/20"
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter' && renamingTeamValue.trim()) {
+                                    teamRenameMutation.mutate({ id: team.id, name: renamingTeamValue.trim() });
+                                  }
+                                  if (e.key === 'Escape') setRenamingTeamId(null);
+                                }}
+                                autoFocus
+                              />
+                              <Button size="sm" className="h-7 text-[10px] px-2 bg-primary text-background"
+                                onClick={() => renamingTeamValue.trim() && teamRenameMutation.mutate({ id: team.id, name: renamingTeamValue.trim() })}>
+                                Lưu
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="font-medium text-sm text-foreground">{team.name}</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-md overflow-hidden border border-primary/20 bg-muted/50 flex-shrink-0">
+                              {team.leader_image
+                                ? <img src={team.leader_image} alt="" className="w-full h-full object-cover" />
+                                : <div className="w-full h-full flex items-center justify-center"><User className="w-3 h-3 text-primary/30" /></div>
+                              }
+                            </div>
+                            <span className="text-xs text-foreground truncate max-w-[120px]">{team.leader_name || team.leader_id.slice(0, 8)}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-center text-xs text-muted-foreground">
+                          {(team.member_ids || []).length}/{team.max_members || 2}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`text-[11px] px-2.5 py-1 rounded-md font-medium ${
+                            team.status === 'forming' ? 'text-yellow-400 bg-yellow-400/10' :
+                            team.status === 'full' ? 'text-primary bg-primary/10' :
+                            team.status === 'locked' ? 'text-red-400 bg-red-400/10' : ''
+                          }`}>
+                            {team.status === 'forming' ? 'Đang thành lập' :
+                             team.status === 'full' ? 'Đủ thành viên' :
+                             team.status === 'locked' ? 'Đã khóa' : team.status}
+                          </span>
+                          {team.disband_initiated_by && (
+                            <span className="ml-1 text-[10px] text-amber-400">(đang giải tán)</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => { setRenamingTeamId(team.id); setRenamingTeamValue(team.name); }}
+                              className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                              title="Đổi tên"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Xóa đội "${team.name}"?`)) {
+                                  teamDeleteMutation.mutate(team.id);
+                                }
+                              }}
+                              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                              title="Xóa đội"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          </TabsContent>
+
+          {/* ── Blocks tab ──────────────────────────────────────────── */}
+          <TabsContent value="blocks" className="mt-5">
+          <div className="space-y-4">
+            <p className="font-body text-xs text-muted-foreground">Tổng số chặn: {blockList.length}</p>
+
+            {loadingBlocks ? (
+              <div className="text-center py-16">
+                <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
+              </div>
+            ) : blockList.length === 0 ? (
+              <div className="text-center py-16">
+                <Ban className="w-10 h-10 text-primary/10 mx-auto mb-3" />
+                <p className="font-body text-sm text-muted-foreground">Chưa có ai bị chặn</p>
+              </div>
+            ) : (
+              <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+                <table className="w-full text-xs font-body">
+                  <thead>
+                    <tr className="border-b border-primary/10 bg-muted/20">
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider w-8">#</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Người chặn</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Bị chặn</th>
+                      <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider hidden sm:table-cell">Ngày</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-primary/8">
+                    {blockList.map((block, i) => (
+                      <tr key={block.id} className="hover:bg-primary/5 transition-colors">
+                        <td className="px-4 py-3 text-xs text-muted-foreground/50">{i + 1}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-lg overflow-hidden border border-primary/20 bg-muted/50 flex-shrink-0">
+                              {block.blocker_image
+                                ? <img src={block.blocker_image} alt="" className="w-full h-full object-cover" />
+                                : <div className="w-full h-full flex items-center justify-center"><User className="w-4 h-4 text-primary/30" /></div>
+                              }
+                            </div>
+                            <span className="font-medium text-sm text-foreground truncate max-w-[150px]">{block.blocker_name || block.blocker_id.slice(0, 8)}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-lg overflow-hidden border border-primary/20 bg-muted/50 flex-shrink-0">
+                              {block.blocked_image
+                                ? <img src={block.blocked_image} alt="" className="w-full h-full object-cover" />
+                                : <div className="w-full h-full flex items-center justify-center"><User className="w-4 h-4 text-primary/30" /></div>
+                              }
+                            </div>
+                            <span className="font-medium text-sm text-foreground truncate max-w-[150px]">{block.blocked_name || block.blocked_id.slice(0, 8)}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right text-xs text-muted-foreground/50 hidden sm:table-cell">
+                          {block.created_date ? format(addHours(new Date(block.created_date), 7), 'dd/MM/yy HH:mm') : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          </TabsContent>
+
+          {/* ── Settings tab ────────────────────────────────────────── */}
+          <TabsContent value="settings" className="mt-5">
+          <div className="space-y-4">
+            <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+              <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+                <Settings className="w-4 h-4 text-primary" />
+                <h3 className="font-display text-sm font-semibold text-primary">Cài đặt hệ thống</h3>
+              </div>
+              <div className="p-4 space-y-4">
+                {loadingSettings ? (
+                  <div className="text-center py-8">
+                    <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
+                  </div>
+                ) : (
+                  <>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Yêu cầu đồng ý khi giải tán đội</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Khi bật, cần phải có xác nhận của thành viên còn lại trước khi giải tán đội
+                      </p>
+                    </div>
+                    <Switch
+                      checked={systemSettings.require_disband_consent === true}
+                      onCheckedChange={(checked) => {
+                        settingsMutation.mutate({ key: 'require_disband_consent', value: checked });
+                      }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Số thành viên tối đa mỗi đội</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Áp dụng cho các đội mới được tạo sau khi thay đổi
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={2}
+                        max={10}
+                        value={systemSettings.team_max_members ?? 2}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          if (val >= 2 && val <= 10) {
+                            settingsMutation.mutate({ key: 'team_max_members', value: val });
+                          }
+                        }}
+                        className="w-16 h-9 text-center text-sm font-medium bg-black/30 border border-primary/20 rounded-lg text-foreground focus:outline-none focus:border-primary/50"
+                      />
+                      <span className="text-xs text-muted-foreground">thành viên</span>
+                    </div>
+                  </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          </TabsContent>
+
         </Tabs>
 
         {/* Report detail dialog */}

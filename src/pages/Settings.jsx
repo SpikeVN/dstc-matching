@@ -5,11 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { LogOut, Terminal, Eye, KeyRound, Activity, Clock, Heart, UserCheck, Shield, FileText, HelpCircle, Info, Mail, BarChart2, Wrench, Trophy, MapPin, Link2, Users, Star, Award, User, Check, X, Github } from 'lucide-react';
+import { LogOut, Terminal, Eye, KeyRound, Activity, Clock, Heart, UserCheck, Shield, FileText, HelpCircle, Info, Mail, BarChart2, Wrench, Trophy, MapPin, Link2, Users, Star, Award, User, Check, X, Github, Bell, Trash2, MessageCircle, UserPlus, UserMinus } from 'lucide-react';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 
 const TABS = [
@@ -20,6 +22,7 @@ const TABS = [
   { id: 'support', label: 'Hỗ trợ', icon: HelpCircle },
   { id: 'about', label: 'Về CTE & DSTC', icon: Info },
   { id: 'system', label: 'Hệ thống', icon: Terminal },
+  { id: 'notifications', label: 'Thông báo', icon: Bell, mobileOnly: true },
 ];
 
 function PrivacyToggle({ label, desc, checked, onChange }) {
@@ -51,10 +54,139 @@ function ActivityItem({ icon: Icon, title, desc, time, color = 'text-primary' })
   );
 }
 
+const NOTIF_ICONS_MAP = {
+  new_message: MessageCircle,
+  new_match: Heart,
+  team_invite: UserPlus,
+  team_invite_accepted: UserPlus,
+  team_invite_rejected: UserMinus,
+  disband_request: LogOut,
+  disband_accepted: Users,
+  disband_rejected: X,
+};
+
+const NOTIF_COLORS_MAP = {
+  new_message: 'text-blue-400',
+  new_match: 'text-pink-400',
+  team_invite: 'text-primary',
+  team_invite_accepted: 'text-primary',
+  team_invite_rejected: 'text-orange-400',
+  disband_request: 'text-red-400',
+  disband_accepted: 'text-red-400',
+  disband_rejected: 'text-muted-foreground',
+};
+
+function NotificationsTabContent({ currentUser }) {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  const { data: notifications } = useQuery({
+    queryKey: ['notifications', currentUser?.id],
+    queryFn: () => db.notifications.list(),
+    initialData: [],
+    enabled: !!currentUser,
+  });
+
+  const handleMarkAllRead = async () => {
+    await db.notifications.clearAll();
+    queryClient.invalidateQueries({ queryKey: ['notifications', currentUser?.id] });
+    queryClient.invalidateQueries({ queryKey: ['notificationsUnread', currentUser?.id] });
+  };
+
+  const handleItemClick = (notif) => {
+    db.notifications.markRead([notif.id]);
+    queryClient.invalidateQueries({ queryKey: ['notifications', currentUser?.id] });
+    queryClient.invalidateQueries({ queryKey: ['notificationsUnread', currentUser?.id] });
+
+    switch (notif.type) {
+      case 'new_message':
+        navigate('/messages');
+        break;
+      case 'new_match':
+        navigate(notif.data?.match_id ? `/messages?match=${notif.data.match_id}` : '/messages');
+        break;
+      default:
+        navigate('/team');
+    }
+  };
+
+  const formatTime = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    const now = new Date();
+    const diff = Math.floor((now - d) / 60000);
+    if (diff < 60) return `${diff}p trước`;
+    if (diff < 1440) return `${Math.floor(diff / 60)}h trước`;
+    return `${Math.floor(diff / 1440)}d trước`;
+  };
+
+  return (
+    <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+      <div className="px-4 py-3 border-b border-primary/10 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Bell className="w-4 h-4 text-primary" />
+          <h3 className="font-display text-sm font-semibold text-primary">Thông báo</h3>
+        </div>
+        {notifications.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleMarkAllRead}
+            className="h-7 text-xs font-body text-muted-foreground hover:text-primary gap-1"
+          >
+            <Trash2 className="w-3 h-3" /> Đã đọc tất cả
+          </Button>
+        )}
+      </div>
+      <div className="p-4">
+        {notifications.length === 0 ? (
+          <div className="py-8 text-center">
+            <Bell className="w-8 h-8 text-primary/15 mx-auto mb-2" />
+            <p className="text-sm font-body text-muted-foreground">Không có thông báo</p>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {notifications.map((notif) => {
+              const Icon = NOTIF_ICONS_MAP[notif.type] || Bell;
+              const color = NOTIF_COLORS_MAP[notif.type] || 'text-primary';
+              return (
+                <button
+                  key={notif.id}
+                  onClick={() => handleItemClick(notif)}
+                  className={`w-full flex items-start gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors text-left ${
+                    !notif.is_read ? 'bg-primary/[0.03]' : ''
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 ${color}`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-body leading-tight ${notif.is_read ? 'text-muted-foreground' : 'text-foreground font-medium'}`}>
+                      {notif.title}
+                    </p>
+                    {notif.body && (
+                      <p className="text-xs font-body text-muted-foreground mt-0.5 truncate">{notif.body}</p>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-body text-muted-foreground/60 flex-shrink-0 mt-1">
+                    {formatTime(notif.created_date)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Settings() {
   const { logout } = useAuth();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('password');
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialTab = urlParams.get('tab') || 'password';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [privacy, setPrivacy] = useState({
     showAge: true,
     showGender: true,
@@ -142,11 +274,18 @@ export default function Settings() {
     }
   };
 
-  const handlePasswordChange = () => {
+  const handlePasswordChange = async () => {
     if (!pwForm.current) { setPwMsg('Vui lòng nhập mật khẩu hiện tại'); return; }
     if (pwForm.next.length < 6) { setPwMsg('Mật khẩu mới ít nhất 6 ký tự'); return; }
     if (pwForm.next !== pwForm.confirm) { setPwMsg('Mật khẩu xác nhận không khớp'); return; }
-    setPwMsg('✓ Tính năng đổi mật khẩu được quản lý bởi BTC — liên hệ admin để thay đổi.');
+    setPwMsg('');
+    try {
+      await db.auth.changePassword(pwForm.current, pwForm.next);
+      setPwMsg('✓ Đã đổi mật khẩu thành công');
+      setPwForm({ current: '', next: '', confirm: '' });
+    } catch (err) {
+      setPwMsg(err.message || 'Không thể đổi mật khẩu');
+    }
   };
 
   const handleUsernameChange = async () => {
@@ -226,8 +365,7 @@ export default function Settings() {
               ].map(({ label, field, placeholder }) => (
                 <div key={field} className="space-y-1.5">
                   <Label className="font-body text-xs text-muted-foreground">{label}</Label>
-                  <Input
-                    type="password"
+                  <PasswordInput
                     value={pwForm[field]}
                     onChange={(e) => setPwForm((p) => ({ ...p, [field]: e.target.value }))}
                     placeholder={placeholder}
@@ -497,12 +635,14 @@ export default function Settings() {
                 </div>
                 <div className="flex justify-between"><span className="text-primary/60">Ban tổ chức</span><span>CLB Khoa học Công nghệ trong Kinh tế và Kinh doanh</span></div>
                 <div className="flex justify-between"><span className="text-primary/60">Host</span><span>Đoàn TNCS Hồ Chí Minh, Trường Đại học Ngoại Thương</span></div>
-                <div className="h-px bg-primary/10 my-2" />
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground/50">Bản quyền © 2026 CLB Khoa học Công nghệ trong Kinh tế và Kinh doanh. Bảo lưu mọi quyền.</p>
           </div>
         );
+
+      case 'notifications':
+        return <NotificationsTabContent currentUser={currentUser} />;
 
       default:
         return null;
@@ -525,7 +665,7 @@ export default function Settings() {
                 <TabsTrigger
                   key={tab.id}
                   value={tab.id}
-                  className="px-4 py-2.5 text-xs font-body rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground hover:text-foreground transition-all shrink-0"
+                  className={`px-4 py-2.5 text-xs font-body rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground hover:text-foreground transition-all shrink-0 ${tab.mobileOnly ? 'md:hidden' : ''}`}
                 >
                   <Icon className="w-3.5 h-3.5 inline mr-1.5" />
                   {tab.label}

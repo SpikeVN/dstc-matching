@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { db } from '@/api/apiClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { motion } from 'framer-motion';
 import PageFooter from '@/components/layout/PageFooter';
 
@@ -157,9 +158,8 @@ export default function LoginPage() {
                 >
                   Mật khẩu
                 </label>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Nhập mật khẩu của bạn"

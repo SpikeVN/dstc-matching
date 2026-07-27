@@ -110,6 +110,13 @@ export default function Discover() {
     enabled: !!myProfile,
   });
 
+  const { data: blockedUsers } = useQuery({
+    queryKey: ['blockedUsers', myProfile?.created_by],
+    queryFn: () => db.block.list(),
+    initialData: [],
+    enabled: !!myProfile,
+  });
+
   const activeFilters = useMemo(() => {
     return Object.values(filters).flat().length;
   }, [filters]);
@@ -117,10 +124,12 @@ export default function Discover() {
   const candidates = useMemo(() => {
     if (!myProfile || !allProfiles.length) return [];
     const likedIds = new Set(mySwipes.filter(s => s.action === 'like').map(s => s.swiped_id));
+    const blockedIds = new Set(blockedUsers.map(b => b.blocked_id));
     let filtered = allProfiles.filter(p =>
       p.created_by !== myProfile.created_by &&
       p.display_name &&
       !likedIds.has(p.created_by) &&
+      !blockedIds.has(p.created_by) &&
       !seenInCurrentRound.has(p.created_by)
     );
     if (filters.roles?.length > 0) filtered = filtered.filter(p => filters.roles.includes(p.role));

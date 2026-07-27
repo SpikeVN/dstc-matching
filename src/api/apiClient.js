@@ -80,7 +80,7 @@ function clearTokens() {
     <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui;color:#cedfd0;background:#0a120b">
       <div style="text-align:center">
         <img src="/dstc-key-sphere.webp" alt="DSTC" style="width:64px;height:64px;margin-bottom:16px;animation:pulse 2s infinite" />
-        <p>Đang đăng nhập...</p>
+        <p style="text-align:center">Đang đăng nhập...</p>
       </div>
     </div>`;
 
@@ -322,6 +322,9 @@ const authClient = {
   updateUsername: async (username) => {
     return request('PATCH', '/auth/username', { username });
   },
+  changePassword: async (currentPassword, newPassword) => {
+    return request('POST', '/auth/change-password', { current_password: currentPassword, new_password: newPassword });
+  },
   updateInfoShown: async (infoShown) => {
     return request('PATCH', '/api/user-preferences/info-shown', { info_shown: infoShown });
   },
@@ -362,6 +365,9 @@ const integrationsClient = {
   },
 };
 
+// ── Exported helpers ─────────────────────────────────────────────
+export { request };
+
 // ── Exported db object ─────────────────────────────────────────────
 export const db = {
   auth: authClient,
@@ -392,6 +398,12 @@ export const db = {
     getStats: async () => request('GET', '/api/admin/stats'),
     listReports: async () => request('GET', '/api/admin/reports'),
     getReportMessages: async (reportId) => request('GET', `/api/admin/reports/${reportId}/messages`),
+    listBlocks: async () => request('GET', '/api/admin/blocks'),
+    listTeams: async () => request('GET', '/api/admin/teams'),
+    updateTeam: async (id, data) => request('PATCH', `/api/admin/teams/${id}`, data),
+    deleteTeam: async (id) => request('DELETE', `/api/admin/teams/${id}`),
+    getSettings: async () => request('GET', '/api/admin/settings'),
+    updateSetting: async (key, value) => request('PATCH', '/api/admin/settings', { key, value }),
   },
   integrations: integrationsClient,
   block: {
@@ -406,8 +418,17 @@ export const db = {
       return request('GET', `/api/users/search?q=${encodeURIComponent(query)}`);
     },
   },
+  teams: {
+    getMatchedUsers: async () => request('GET', '/api/teams/matched-users'),
+  },
   report: async (reportedId, matchId, reason) =>
     request('POST', '/api/reports', { reported_id: reportedId, match_id: matchId, reason }),
+  notifications: {
+    list: async () => request('GET', '/api/notifications'),
+    unreadCount: async () => request('GET', '/api/notifications/unread-count'),
+    markRead: async (ids = []) => request('POST', '/api/notifications/mark-read', { ids }),
+    clearAll: async () => request('POST', '/api/notifications/clear-all'),
+  },
 };
 
 export default db;

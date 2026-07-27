@@ -90,10 +90,17 @@ async def update_match(match_id: str, update: MatchUpdate, user: dict = Depends(
 
 @router.delete("/{match_id}")
 async def delete_match(match_id: str, user: dict = Depends(get_current_user)):
+    """Soft-delete a match: set status to 'unmatched'. Messages stay visible, but
+    a 3-message limit is enforced (see messages.py)."""
     existing = await fetch_one("SELECT * FROM matches WHERE id = $1", match_id)
     if existing is None:
         raise HTTPException(status_code=404, detail="Match not found")
     if user["id"] not in (existing["user1_id"], existing["user2_id"]):
         raise HTTPException(status_code=403, detail="Not authorized to delete this match")
-    await execute("DELETE FROM matches WHERE id = $1", match_id)
-    return {"success": True}
+
+    # Soft-delete: keep match visible, just change status
+    await execute(
+        "UPDATE matches SET status = 'unmatched', updated_date = $1 WHERE id = $2",
+        now(), match_id,
+    )
+    return {"success": True, "unmatched": True}

@@ -5,6 +5,11 @@ from database import fetch, fetch_one, execute, generate_id, now
 from auth.dependencies import get_current_user
 from mailer import fire_match_notification
 
+# Helper to create a notification (imported inline to avoid circular deps)
+async def _create_notification(user_id: str, type_: str, title: str, body: str = "", data: dict = None):
+    from routes.notifications import create_notification_helper
+    await create_notification_helper(user_id, type_, title, body, data or {})
+
 router = APIRouter(prefix="/api/swipe-actions")
 
 
@@ -95,6 +100,22 @@ async def create_swipe(swipe: SwipeCreate, user: dict = Depends(get_current_user
                       swipe.swiped_id, swipe.swiper_id)
         # Send match notification email to both users
         fire_match_notification(swipe.swiper_id, swipe.swiped_id, mid)
+
+        # Create in-app notifications for both users
+        for uid in (swipe.swiper_id, swipe.swiped_id):
+            other_id = swipe.swiped_id if uid == swipe.swiper_id else swipe.swiper_id
+            profile = await fetch_one(
+                "SELECT display_name FROM contestant_profiles WHERE created_by = $1",
+                other_id,
+            )
+            other_name = profile["display_name"] if profile else "Ai đó"
+            await _create_notification(
+                uid,
+                "new_match",
+                f"Match mới với {other_name}",
+                f"Bạn đã match với {other_name}",
+                {"match_id": mid, "matched_user_id": other_id},
+            )
 
     return await fetch_one("SELECT * FROM swipe_actions WHERE id = $1", sid)
 

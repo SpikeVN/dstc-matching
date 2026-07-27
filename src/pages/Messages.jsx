@@ -1,4 +1,4 @@
-import { db } from '@/api/apiClient';
+import { db, request } from '@/api/apiClient';
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
@@ -10,11 +10,12 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Message, MessageAvatar, MessageContent, MessageHeader, MessageFooter } from '@/components/ui/message';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { MessageScrollerProvider, MessageScroller, MessageScrollerViewport, MessageScrollerContent, MessageScrollerItem, MessageScrollerButton, useMessageScroller } from '@/components/ui/message-scroller';
-import { Send, ChevronLeft, ArrowDown, User, MessageCircle, Zap, Paperclip, FileText, Code, BookOpen, Archive, File, X, Download, MoreVertical, Users, Check, Loader2, Ban, UserMinus, Flag, Search } from 'lucide-react';
+import { Send, ChevronLeft, ArrowDown, User, MessageCircle, Zap, Paperclip, FileText, Code, BookOpen, Archive, File, X, Download, MoreVertical, Users, Check, Loader2, Ban, UserMinus, Flag, Search, UserPlus } from 'lucide-react';
 import { useOnlineContext } from '@/components/layout/AppLayout';
 import { toast } from 'sonner';
 import { format, addHours } from 'date-fns';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from '@/components/ui/context-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
@@ -89,45 +90,146 @@ const ROLE_COLORS = {
   'All-rounder': 'text-yellow-300',
 };
 
-function ConversationItem({ match, profile, isSelected, unreadCount, isOnline, onClick }) {
+function ConversationItem({ match, profile, currentUser, myProfile, profileMap, sentInvites, receivedInvites, isSelected, unreadCount, isOnline, onClick, onSendTeamInvite, onCancelTeamInvite, onAcceptTeamInvite }) {
+  const otherEmail = match.user1_id === currentUser?.id ? match.user2_id : match.user1_id;
+  const otherProfile = profileMap[otherEmail];
+  const teammates = myProfile?.team_id && otherProfile?.team_id === myProfile?.team_id;
+  const sentInvite = sentInvites.find(inv => inv.invitee_id === otherEmail);
+  const receivedInvite = receivedInvites.find(inv => inv.inviter_id === otherEmail);
+  const [cancelConfirmId, setCancelConfirmId] = useState(null);
+  const [acceptDialog, setAcceptDialog] = useState(null);
+
   return (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all text-left relative group ${isSelected
-        ? 'bg-primary/10 text-primary'
-        : 'hover:bg-primary/5 hover:text-primary/80'
-        }`}
-    >
-      <div className="relative flex-shrink-0">
-        <div className={`w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center bg-muted/60`}>
-          {profile?.profile_image
-            ? <img src={profile.profile_image} alt="" className="w-full h-full object-cover" />
-            : <User className="w-5 h-5 text-primary/40" />
-          }
-        </div>
-        {isOnline && (
-          <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-background" />
-        )}
-              </div>
-      <div className="flex-1 min-w-0">
-        <p className={`font-display font-bold text-sm truncate ${isSelected ? 'text-primary' : 'text-foreground'}`}>
-          {profile?.display_name || 'Unknown'}
-          {match.status === 'pending' && (
-            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-body font-medium bg-amber-500/15 text-amber-300">
-              Đang chờ
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <button
+          onClick={onClick}
+          className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all text-left relative group ${isSelected
+            ? 'bg-primary/10 text-primary'
+            : 'hover:bg-primary/5 hover:text-primary/80'
+            }`}
+        >
+          <div className="relative flex-shrink-0">
+            <div className={`w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center bg-muted/60`}>
+              {profile?.profile_image
+                ? <img src={profile.profile_image} alt="" className="w-full h-full object-cover" />
+                : <User className="w-5 h-5 text-primary/40" />
+              }
+            </div>
+            {isOnline && (
+              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-background" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className={`font-display font-bold text-sm truncate ${isSelected ? 'text-primary' : 'text-foreground'}`}>
+              {profile?.display_name || 'Unknown'}
+              {match.status === 'pending' && (
+                <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-body font-medium bg-amber-500/15 text-amber-300">
+                  Đang chờ
+                </span>
+              )}
+              {match.status === 'unmatched' && (
+                <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-body font-medium bg-neutral-500/15 text-neutral-400">
+                  Đã hủy
+                </span>
+              )}
+            </p>
+            <p className={`text-[10px] font-body truncate mt-0.5 ${ROLE_COLORS[profile?.role] || 'text-muted-foreground'}`}>
+              {profile?.role}{profile?.school ? ` — ${profile.school}` : ''}
+            </p>
+          </div>
+          {unreadCount > 0 && (
+            <span className="w-5 h-5 rounded-full bg-primary text-background text-[10px] font-display font-bold flex items-center justify-center flex-shrink-0">
+              {unreadCount}
             </span>
           )}
-        </p>
-        <p className={`text-[10px] font-body truncate mt-0.5 ${ROLE_COLORS[profile?.role] || 'text-muted-foreground'}`}>
-          {profile?.role}{profile?.school ? ` — ${profile.school}` : ''}
-        </p>
-      </div>
-      {unreadCount > 0 && (
-        <span className="w-5 h-5 rounded-full bg-primary text-background text-[10px] font-display font-bold flex items-center justify-center flex-shrink-0">
-          {unreadCount}
-        </span>
-      )}
-    </button>
+        </button>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="w-52">
+        {teammates ? (
+          <ContextMenuItem disabled className="text-primary">
+            <Check className="w-4 h-4 mr-2" />
+            Đồng đội ✓
+          </ContextMenuItem>
+        ) : sentInvite ? (
+          <ContextMenuItem onClick={() => { setCancelConfirmId(sentInvite.id); }}>
+            <Check className="w-4 h-4 mr-2" />
+            <span>Đã gửi lời mời</span>
+          </ContextMenuItem>
+        ) : receivedInvite ? (
+          <ContextMenuItem onClick={() => setAcceptDialog({ inviteId: receivedInvite.id, teamId: receivedInvite.team_id })}>
+            <Users className="w-4 h-4 mr-2" />
+            Đồng ý vào đội
+          </ContextMenuItem>
+        ) : (
+          <ContextMenuItem onClick={() => {
+            if (!myProfile?.has_team || !myProfile?.team_id) {
+              toast.error('Bạn chưa có đội. Hãy vào phần Lập đội để tạo đội trước.');
+              return;
+            }
+            if (!otherProfile?.email) {
+              toast.error('Không thể gửi lời mời — thiếu thông tin email');
+              return;
+            }
+            onSendTeamInvite(otherProfile.email);
+          }}>
+            <UserPlus className="w-4 h-4 mr-2" />
+            Mời vào đội
+          </ContextMenuItem>
+        )}
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={onClick} className="text-foreground">
+          <UserMinus className="w-4 h-4 mr-2" />
+          {match.status === 'pending' ? 'Đang chờ kết nối' : 'Hủy kết nối'}
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={onClick} className="text-red-400">
+          <Ban className="w-4 h-4 mr-2" />
+          Chặn
+        </ContextMenuItem>
+        <ContextMenuItem onClick={onClick} className="text-red-400">
+          <Flag className="w-4 h-4 mr-2" />
+          Báo cáo
+        </ContextMenuItem>
+      </ContextMenuContent>
+
+      {/* Cancel invite confirmation dialog */}
+      <AlertDialog open={!!cancelConfirmId} onOpenChange={() => setCancelConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hủy lời mời?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc muốn hủy lời mời vào đội đã gửi đến người này?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Không</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (cancelConfirmId) onCancelTeamInvite(cancelConfirmId); setCancelConfirmId(null); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Hủy lời mời
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Accept invite disclaimer dialog */}
+      <AlertDialog open={!!acceptDialog} onOpenChange={() => setAcceptDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Đồng ý vào đội?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>Sau khi vào đội, việc rời đội sẽ cần sự đồng ý của thành viên còn lại.</p>
+              <p>Nếu có vấn đề phát sinh, bạn có thể báo cáo với ban tổ chức.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (acceptDialog) onAcceptTeamInvite(acceptDialog.inviteId, acceptDialog.teamId); setAcceptDialog(null); }} className="bg-primary text-background hover:bg-primary/90">
+              Đồng ý
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </ContextMenu>
   );
 }
 
@@ -201,7 +303,7 @@ function ChatBubble({ msg, isMe, senderProfile, showHeader, showFooter, showAvat
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors max-w-[280px] ${isMe
                 ? 'bg-[#1e391e] border-[#1e391e] hover:bg-[#244524] self-end'
                 : 'bg-[#0e1b12] border-[#0e1b12] hover:bg-[#132218]'
-              }`}
+                }`}
             >
               <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isMe ? 'bg-primary/20' : 'bg-white/10'}`}>
                 <Icon className={`w-4 h-4 ${isMe ? 'text-primary' : 'text-primary/70'}`} />
@@ -276,23 +378,25 @@ function AutoScrollHandler({ messages, viewportRef }) {
   return null;
 }
 
-function ChatArea({ match, currentUser, profileMap, isOnline, onBack }) {
+function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, receivedInvites, isOnline, onBack, onSendTeamInvite, onCancelTeamInvite, onAcceptTeamInvite }) {
   const queryClient = useQueryClient();
   const [message, setMessage] = useState('');
   const [pendingAttachment, setPendingAttachment] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [confirming, setConfirming] = useState(false);
   const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
   const [unmatchConfirmOpen, setUnmatchConfirmOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [cancelInviteOpen, setCancelInviteOpen] = useState(false);
+  const [acceptInviteDialogOpen, setAcceptInviteDialogOpen] = useState(false);
   const fileInputRef = useRef(null);
   const viewportRef = useRef(null);
 
   const otherEmail = match.user1_id === currentUser?.id ? match.user2_id : match.user1_id;
   const otherProfile = profileMap[otherEmail];
   const isPending = match.status === 'pending';
+  const isUnmatched = match.status === 'unmatched';
   const isInitiator = match.user1_id === currentUser?.id;
 
   const { data: messages } = useQuery({
@@ -306,17 +410,9 @@ function ChatArea({ match, currentUser, profileMap, isOnline, onBack }) {
     return messages.filter(m => m.sender_id === currentUser?.id).length;
   }, [messages, currentUser?.id]);
 
-  // Current match data (for team confirmation state)
-  const { data: currentMatch } = useQuery({
-    queryKey: ['match', match.id],
-    queryFn: () => db.entities.Match.get(match.id),
-    initialData: match,
-  });
-
-  const isUser1 = currentUser?.id === currentMatch?.user1_id;
-  const myConfirmed = isUser1 ? currentMatch?.user1_confirmed : currentMatch?.user2_confirmed;
-  const otherConfirmed = isUser1 ? currentMatch?.user2_confirmed : currentMatch?.user1_confirmed;
-  const teamFormed = currentMatch?.status === 'team_joined';
+  const teammates = myProfile?.team_id && otherProfile?.team_id === myProfile?.team_id;
+  const sentInvite = sentInvites.find(inv => inv.invitee_id === otherEmail);
+  const receivedInvite = receivedInvites.find(inv => inv.inviter_id === otherEmail);
 
   // Check if either user has blocked the other
   const { data: blockedUsers } = useQuery({
@@ -333,43 +429,6 @@ function ChatArea({ match, currentUser, profileMap, isOnline, onBack }) {
     enabled: !!otherEmail && !!currentUser?.id,
   });
   const isBlockedByThem = blockedCheck?.blocked === true;
-
-  const handleConfirmTeam = async () => {
-    setConfirming(true);
-    try {
-      if (otherConfirmed) {
-        const team = await db.entities.Team.create({
-          name: `${otherProfile?.display_name || 'Team'} & ${currentUser?.username || 'Team'}`,
-          leader_id: currentUser.id,
-          member_ids: [currentUser.id, otherEmail],
-          max_members: 4,
-          status: 'forming',
-        });
-        await db.entities.Match.update(match.id, {
-          ...(isUser1 ? { user1_confirmed: true } : { user2_confirmed: true }),
-          status: 'team_joined',
-        });
-        const [myProfiles, otherProfiles] = await Promise.all([
-          db.entities.ContestantProfile.filter({ created_by: currentUser.id }),
-          db.entities.ContestantProfile.filter({ created_by: otherEmail }),
-        ]);
-        const updates = [];
-        if (myProfiles[0]?.id) updates.push({ id: myProfiles[0].id, has_team: true, team_id: team.id });
-        if (otherProfiles[0]?.id) updates.push({ id: otherProfiles[0].id, has_team: true, team_id: team.id });
-        if (updates.length > 0) await db.entities.ContestantProfile.bulkUpdate(updates);
-        toast.success('Đã lập đội thành công! 🎉');
-      } else {
-        await db.entities.Match.update(match.id, isUser1 ? { user1_confirmed: true } : { user2_confirmed: true });
-        toast.success('Đã xác nhận! Chờ đối phương xác nhận để lập đội.');
-      }
-      queryClient.invalidateQueries({ queryKey: ['match', match.id] });
-      queryClient.invalidateQueries({ queryKey: ['matches'] });
-    } catch (err) {
-      toast.error('Lỗi: ' + (err?.message || 'Không xác định'));
-    } finally {
-      setConfirming(false);
-    }
-  };
 
   const handleBlock = async () => {
     try {
@@ -398,8 +457,8 @@ function ChatArea({ match, currentUser, profileMap, isOnline, onBack }) {
     try {
       await db.entities.Match.delete(match.id);
       queryClient.invalidateQueries({ queryKey: ['matches'] });
+      queryClient.invalidateQueries({ queryKey: ['match', match.id] });
       setUnmatchConfirmOpen(false);
-      onBack();
       toast.success('Đã hủy kết nối');
     } catch (err) {
       toast.error('Lỗi: ' + (err?.message || 'Không xác định'));
@@ -605,29 +664,41 @@ function ChatArea({ match, currentUser, profileMap, isOnline, onBack }) {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
-            {teamFormed ? (
+            {teammates ? (
               <DropdownMenuItem disabled className="text-primary">
                 <Check className="w-4 h-4" />
-                Đã lập đội ✓
+                Đồng đội ✓
               </DropdownMenuItem>
-            ) : myConfirmed && !otherConfirmed ? (
-              <DropdownMenuItem disabled className="text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Đã xác nhận — chờ...
+            ) : sentInvite ? (
+              <DropdownMenuItem onClick={() => setCancelInviteOpen(true)}>
+                <Check className="w-4 h-4" />
+                <span>Đã gửi lời mời</span>
+              </DropdownMenuItem>
+            ) : receivedInvite ? (
+              <DropdownMenuItem onClick={() => setAcceptInviteDialogOpen(true)}>
+                <Users className="w-4 h-4" />
+                Đồng ý vào đội
               </DropdownMenuItem>
             ) : (
-              <DropdownMenuItem onClick={handleConfirmTeam} disabled={confirming}>
-                <Users className="w-4 h-4" />
-                <span>Xác nhận lập đội{otherConfirmed ? ' ✓' : ''}</span>
-                {otherConfirmed && (
-                  <span className="text-[10px] text-primary/70 ml-1">— đối phương đã xác nhận!</span>
-                )}
+              <DropdownMenuItem onClick={() => {
+                if (!myProfile?.has_team || !myProfile?.team_id) {
+                  toast.error('Bạn chưa có đội. Hãy vào phần Lập đội để tạo đội trước.');
+                  return;
+                }
+                if (!otherProfile?.email) {
+                  toast.error('Không thể gửi lời mời — thiếu thông tin email');
+                  return;
+                }
+                onSendTeamInvite(otherProfile.email);
+              }}>
+                <UserPlus className="w-4 h-4" />
+                Mời vào đội
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setUnmatchConfirmOpen(true)} className="text-muted-foreground">
+            <DropdownMenuItem onClick={() => setUnmatchConfirmOpen(true)} className="text-foreground">
               <UserMinus className="w-4 h-4" />
-              {isPending ? 'Đang chờ kết nối' : 'Hủy match'}
+              {isPending ? 'Đang chờ kết nối' : 'Hủy kết nối'}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={isBlockedByMe ? handleUnblock : () => setBlockConfirmOpen(true)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10">
@@ -674,6 +745,50 @@ function ChatArea({ match, currentUser, profileMap, isOnline, onBack }) {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Team invite banner */}
+      {receivedInvite && !isPending && !isUnmatched && !teammates && (
+        <div className="px-4 py-3 bg-muted/30 border-b border-primary/10">
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-body text-xs text-primary">{otherProfile?.display_name || 'Người này'} muốn mời bạn vào đội</p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                className="h-8 text-xs bg-primary text-background hover:bg-primary/90"
+                onClick={() => setAcceptInviteDialogOpen(true)}
+              >
+                Đồng ý
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs border-primary/30 text-muted-foreground hover:bg-primary/10 hover:text-muted-foreground"
+                onClick={() => { if (receivedInvite) onCancelTeamInvite(receivedInvite.id); }}
+              >
+                Từ chối
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {sentInvite && !isPending && !isUnmatched && !teammates && (
+        <div className="px-4 py-3 bg-muted/30 border-b border-primary/10">
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-body text-xs text-muted-foreground">
+              <Check className="w-3 h-3 inline mr-1 text-primary" />
+              Đã gửi lời mời vào đội — đang chờ phản hồi
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-[10px] border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => setCancelInviteOpen(true)}
+            >
+              Hủy
+            </Button>
+          </div>
         </div>
       )}
 
@@ -770,6 +885,12 @@ function ChatArea({ match, currentUser, profileMap, isOnline, onBack }) {
             <p className="font-body text-sm text-red-400">Bạn đã chặn người dùng này</p>
           </div>
         </div>
+      ) : isUnmatched && sentCount >= 3 ? (
+        <div className="p-3 pb-safe border-t border-neutral-500/20 bg-neutral-500/5" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+          <div className="flex items-center justify-center gap-2 py-2">
+            <p className="font-body text-sm text-neutral-400">Đã hủy kết nối — không thể gửi thêm tin nhắn</p>
+          </div>
+        </div>
       ) : isBlockedByThem ? (
         <div className="p-3 pb-safe border-t border-red-500/20 bg-red-500/5" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
           <div className="flex items-center justify-center gap-2 py-2">
@@ -778,38 +899,38 @@ function ChatArea({ match, currentUser, profileMap, isOnline, onBack }) {
           </div>
         </div>
       ) : (
-      <div className="relative z-10 p-3 pb-safe border-t border-white/10 bg-background/60 backdrop-blur-md md:pb-3" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
-        <div className="flex gap-2 items-center">
-          <input ref={fileInputRef} type="file" accept={FILE_ACCEPT} className="hidden" onChange={handleFileSelect} />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="flex-shrink-0 w-10 h-10 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-neutral-800 rounded-xl disabled:opacity-50"
-          >
-            {uploading ? (
-              <div className="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
-            ) : (
-              <Paperclip className="w-4 h-4" />
-            )}
-          </button>
-          <Input
-            value={message}
-            onChange={e => setMessage(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-            onPaste={handlePaste}
-            placeholder="Nhập tin nhắn..."
-            className="font-body text-sm bg-black/30 !border-neutral-700 focus:!border-neutral-500 focus-visible:!ring-neutral-500/30 text-foreground placeholder:text-muted-foreground rounded-xl h-10"
-          />
-          <Button
-            onClick={handleSend}
-            disabled={(!message.trim() && !pendingAttachment) || sendMutation.isPending || uploading}
-            size="icon"
-            className="flex-shrink-0 w-10 h-10 bg-primary text-background hover:bg-primary/90 disabled:opacity-30 rounded-xl"
-          >
-            <Send className="w-4 h-4" />
-          </Button>
+        <div className="relative z-10 p-3 pb-safe border-t border-white/10 bg-background/60 backdrop-blur-md md:pb-3" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+          <div className="flex gap-2 items-center">
+            <input ref={fileInputRef} type="file" accept={FILE_ACCEPT} className="hidden" onChange={handleFileSelect} />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="flex-shrink-0 w-10 h-10 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-neutral-800 rounded-xl disabled:opacity-50"
+            >
+              {uploading ? (
+                <div className="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+              ) : (
+                <Paperclip className="w-4 h-4" />
+              )}
+            </button>
+            <Input
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+              onPaste={handlePaste}
+              placeholder="Nhập tin nhắn..."
+              className="font-body text-sm bg-black/30 !border-white/10 focus:!border-white/30 focus-visible:!ring-white/20 text-foreground placeholder:text-muted-foreground rounded-xl h-10"
+            />
+            <Button
+              onClick={handleSend}
+              disabled={(!message.trim() && !pendingAttachment) || sendMutation.isPending || uploading}
+              size="icon"
+              className="flex-shrink-0 w-10 h-10 bg-primary text-background hover:bg-primary/90 disabled:opacity-30 rounded-xl"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
-      </div>
       )}
 
       {/* Block confirmation dialog */}
@@ -843,6 +964,43 @@ function ChatArea({ match, currentUser, profileMap, isOnline, onBack }) {
             <AlertDialogCancel>Hủy</AlertDialogCancel>
             <AlertDialogAction onClick={handleUnmatch} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Xác nhận
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cancel invite dialog */}
+      <AlertDialog open={cancelInviteOpen} onOpenChange={setCancelInviteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hủy lời mời?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc muốn hủy lời mời vào đội đã gửi đến người này?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Không</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (sentInvite) onCancelTeamInvite(sentInvite.id); setCancelInviteOpen(false); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Hủy lời mời
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Accept invite disclaimer dialog */}
+      <AlertDialog open={acceptInviteDialogOpen} onOpenChange={setAcceptInviteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Đồng ý vào đội?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>Sau khi vào đội, việc rời đội sẽ cần sự đồng ý của thành viên còn lại.</p>
+              <p>Nếu có vấn đề phát sinh, bạn có thể báo cáo với ban tổ chức.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (receivedInvite) onAcceptTeamInvite(receivedInvite.id, receivedInvite.team_id); setAcceptInviteDialogOpen(false); }} className="bg-primary text-background hover:bg-primary/90">
+              Đồng ý
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -927,7 +1085,7 @@ export default function Messages() {
         db.entities.Match.filter({ user1_id: me.id }),
         db.entities.Match.filter({ user2_id: me.id }),
       ]);
-      return [...m1, ...m2];
+      return [...m1, ...m2].filter(m => m.status !== 'blocked');
     },
     initialData: [],
     enabled: !!currentUser,
@@ -947,6 +1105,76 @@ export default function Messages() {
     queryKey: ['allProfilesForMatch'],
     queryFn: () => db.entities.ContestantProfile.list(),
     initialData: [],
+  });
+
+  const { data: myProfiles } = useQuery({
+    queryKey: ['myProfile'],
+    queryFn: async () => {
+      const me = await db.auth.me();
+      return db.entities.ContestantProfile.filter({ created_by: me.id });
+    },
+    initialData: [],
+    enabled: !!currentUser,
+  });
+  const myProfile = myProfiles[0];
+
+  const { data: sentInvites } = useQuery({
+    queryKey: ['sentInvites', currentUser?.id],
+    queryFn: async () => {
+      const me = await db.auth.me();
+      return db.entities.TeamInvite.filter({ inviter_id: me.id, status: 'pending' });
+    },
+    initialData: [],
+    enabled: !!currentUser,
+    refetchInterval: 5000,
+  });
+
+  const { data: receivedInvites } = useQuery({
+    queryKey: ['receivedInvites', currentUser?.id],
+    queryFn: async () => {
+      const me = await db.auth.me();
+      return db.entities.TeamInvite.filter({ invitee_id: me.id, status: 'pending' });
+    },
+    initialData: [],
+    enabled: !!currentUser,
+    refetchInterval: 5000,
+  });
+
+  const sendTeamInviteMutation = useMutation({
+    mutationFn: async ({ inviteeEmail, teamId }) => {
+      return request('POST', '/api/teams/invite-by-email', {
+        team_id: teamId,
+        invitee_email: inviteeEmail,
+      });
+    },
+    onSuccess: () => {
+      toast.success('Đã gửi lời mời!');
+      queryClient.invalidateQueries({ queryKey: ['sentInvites', currentUser?.id] });
+    },
+    onError: (err) => toast.error(err?.message || 'Không thể gửi lời mời'),
+  });
+
+  const cancelTeamInviteMutation = useMutation({
+    mutationFn: async (inviteId) => {
+      await db.entities.TeamInvite.update(inviteId, { status: 'rejected' });
+    },
+    onSuccess: () => {
+      toast.success('Đã hủy lời mời');
+      queryClient.invalidateQueries({ queryKey: ['sentInvites', currentUser?.id] });
+      queryClient.invalidateQueries({ queryKey: ['receivedInvites', currentUser?.id] });
+    },
+    onError: (err) => toast.error(err?.message || 'Không thể hủy lời mời'),
+  });
+
+  const acceptTeamInviteMutation = useMutation({
+    mutationFn: async ({ inviteId, teamId }) => {
+      await request('POST', `/api/teams/${teamId}/accept-invite`);
+    },
+    onSuccess: () => {
+      toast.success('Đã vào đội!');
+      queryClient.invalidateQueries();
+    },
+    onError: (err) => toast.error(err?.message || 'Không thể chấp nhận lời mời'),
   });
 
   const profileMap = useMemo(() => {
@@ -1049,10 +1277,18 @@ export default function Messages() {
                 key={match.id}
                 match={match}
                 profile={profileMap[otherEmail]}
+                currentUser={currentUser}
+                myProfile={myProfile}
+                profileMap={profileMap}
+                sentInvites={sentInvites}
+                receivedInvites={receivedInvites}
                 isSelected={selectedMatch?.id === match.id}
                 unreadCount={unreadByMatch[match.id] || 0}
                 isOnline={onlineUsers.has(otherEmail)}
                 onClick={() => selectMatch(match)}
+                onSendTeamInvite={(email) => sendTeamInviteMutation.mutate({ inviteeEmail: email, teamId: myProfile?.team_id })}
+                onCancelTeamInvite={(inviteId) => cancelTeamInviteMutation.mutate(inviteId)}
+                onAcceptTeamInvite={(inviteId, teamId) => acceptTeamInviteMutation.mutate({ inviteId, teamId })}
               />
             );
           })}
@@ -1062,7 +1298,7 @@ export default function Messages() {
       {/* Chat area */}
       <div className={`flex-1 flex flex-col bg-[hsl(150_20%_5%)] w-full max-w-full ${!selectedMatch ? 'hidden lg:flex' : 'flex'}`}>
         {selectedMatch ? (
-          <ChatArea key={selectedMatch.id} match={selectedMatch} currentUser={currentUser} profileMap={profileMap} isOnline={onlineUsers.has(selectedMatch?.user1_id === currentUser?.id ? selectedMatch?.user2_id : selectedMatch?.user1_id)} onBack={() => selectMatch(null)} />
+          <ChatArea key={selectedMatch.id} match={selectedMatch} currentUser={currentUser} myProfile={myProfile} profileMap={profileMap} sentInvites={sentInvites} receivedInvites={receivedInvites} isOnline={onlineUsers.has(selectedMatch?.user1_id === currentUser?.id ? selectedMatch?.user2_id : selectedMatch?.user1_id)} onBack={() => selectMatch(null)} onSendTeamInvite={(email) => sendTeamInviteMutation.mutate({ inviteeEmail: email, teamId: myProfile?.team_id })} onCancelTeamInvite={(inviteId) => cancelTeamInviteMutation.mutate(inviteId)} onAcceptTeamInvite={(inviteId, teamId) => acceptTeamInviteMutation.mutate({ inviteId, teamId })} />
         ) : (
           <div className="flex-1 flex items-center justify-center text-center p-8">
             <div>

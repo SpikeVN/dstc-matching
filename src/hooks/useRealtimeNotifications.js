@@ -6,8 +6,9 @@ import { getSupabase, setRealtimeAuth } from '@/lib/supabase-client';
 import { usePresenceChannel } from './useOnlinePresence';
 
 /**
- * Subscribes to Supabase Realtime postgres_changes on the `messages`
- * and `matches` tables. Invalidates React Query caches and shows toasts.
+ * Subscribes to Supabase Realtime postgres_changes on the `messages`,
+ * `matches`, and `notifications` tables.
+ * Invalidates React Query caches and shows toasts.
  */
 export function useRealtimeNotifications({ currentUser, profileMap, navigate }) {
   const queryClient = useQueryClient();
@@ -134,9 +135,92 @@ export function useRealtimeNotifications({ currentUser, profileMap, navigate }) 
         console.log('[realtime] matches channel:', status);
       });
 
+    // ── Notifications (INSERT) ───────────────────────────────────────
+    const notificationsChannel = supabase
+      .channel('notifications-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications' },
+        (payload) => {
+          const notif = payload.new;
+
+          // Only handle notifications for the current user
+          if (notif.user_id !== currentUser.id) return;
+
+          // Invalidate notification queries so the UI refreshes
+          queryClient.invalidateQueries({ queryKey: ['notifications', currentUser.id] });
+          queryClient.invalidateQueries({ queryKey: ['notificationsUnread', currentUser.id] });
+
+          // Show a toast for certain notification types
+          if (!notifiedIds.current.has(notif.id)) {
+            notifiedIds.current.add(notif.id);
+
+            // Determine the toast appearance and action based on type
+            let actionLabel = 'Xem';
+            let actionPath = null;
+
+            switch (notif.type) {
+              case 'team_invite':
+                actionLabel = 'Xem đội';
+                actionPath = '/team';
+                break;
+              case 'team_invite_accepted':
+                actionLabel = 'Xem đội';
+                actionPath = '/team';
+                break;
+              case 'disband_request':
+                actionLabel = 'Xem đội';
+                actionPath = '/team';
+                break;
+              case 'disband_accepted':
+                actionLabel = 'Xem đội';
+                actionPath = '/team';
+                break;
+              case 'disband_rejected':
+                actionLabel = 'Xem đội';
+                actionPath = '/team';
+                break;
+              case 'new_message':
+                actionLabel = 'Xem';
+                actionPath = '/messages';
+                break;
+              case 'new_match':
+                actionLabel = 'Nhắn tin';
+                const matchId = notif.data?.match_id;
+                actionPath = matchId ? `/messages?match=${matchId}` : '/messages';
+                break;
+            }
+
+            toast(notif.title, {
+              description: notif.body?.slice(0, 60) || '',
+              duration: 5000,
+              action: actionPath ? {
+                label: actionLabel,
+                onClick: () => navigate(actionPath),
+              } : undefined,
+            });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'notifications' },
+        (payload) => {
+          const notif = payload.new;
+          if (notif.user_id !== currentUser.id) return;
+          // Refresh notification data when read status changes
+          queryClient.invalidateQueries({ queryKey: ['notifications', currentUser.id] });
+          queryClient.invalidateQueries({ queryKey: ['notificationsUnread', currentUser.id] });
+        }
+      )
+      .subscribe((status) => {
+        console.log('[realtime] notifications channel:', status);
+      });
+
     return () => {
       supabase.removeChannel(messagesChannel);
       supabase.removeChannel(matchesChannel);
+      supabase.removeChannel(notificationsChannel);
     };
   }, [currentUser?.id, profileMap, navigate, queryClient]);
 

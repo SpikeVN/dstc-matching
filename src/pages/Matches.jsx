@@ -37,7 +37,7 @@ export default function Matches() {
         db.entities.Match.filter({ user1_id: me.id }),
         db.entities.Match.filter({ user2_id: me.id }),
       ]);
-      return [...m1, ...m2];
+      return [...m1, ...m2].filter(m => m.status !== 'blocked' && m.status !== 'unmatched');
     },
     initialData: [],
     enabled: !!currentUser,

@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import {
   Heart, MessageCircle, User, Sparkles, ChevronRight,
-  CheckCircle, Zap, Target
+  CheckCircle, Zap, Target, Bell
 } from 'lucide-react';
 import TopSuggestions from '@/components/dashboard/TopSuggestions';
 import PageFooter from '@/components/layout/PageFooter';
@@ -163,6 +163,14 @@ export default function Dashboard() {
     enabled: !!currentUser,
   });
 
+  const { data: notifUnread } = useQuery({
+    queryKey: ['notificationsUnread', currentUser?.id],
+    queryFn: () => db.notifications.unreadCount(),
+    enabled: !!currentUser,
+  });
+
+  const unreadNotifCount = notifUnread?.count ?? 0;
+
   const { data: allProfiles } = useQuery({
     queryKey: ['allProfilesForDash'],
     queryFn: () => db.entities.ContestantProfile.list(),
@@ -201,7 +209,8 @@ export default function Dashboard() {
 
         {/* Stats row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard icon={MessageCircle} value={unreadMessages.length} label="Chưa đọc" color="text-blue-400" onClick={() => navigate('/messages')} />
+          <StatCard icon={MessageCircle} value={unreadMessages.length} label="Tin nhắn chưa đọc" color="text-blue-400" onClick={() => navigate('/messages')} />
+          <StatCard icon={Bell} value={unreadNotifCount} label="Thông báo" color="text-primary" onClick={() => navigate('/settings?tab=notifications')} />
           <StatCard icon={Zap} value={swipes.length} label="Đã swipe" color="text-yellow-400" />
           <StatCard icon={Target} value={allProfiles.filter(p => p.profile_complete && p.created_by !== currentUser?.id).length} label="Ứng viên" color="text-purple-400" onClick={() => navigate('/discover')} />
         </div>

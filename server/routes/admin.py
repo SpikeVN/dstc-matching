@@ -1,3 +1,4 @@
+import json
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from database import fetch, fetch_one, execute, generate_id, now
@@ -362,3 +363,152 @@ async def get_report_messages(report_id: str, user: dict = Depends(get_current_u
         WHERE m.match_id = $1
         ORDER BY m.created_date ASC
     """, report["match_id"])
+
+
+# ── Blocks endpoints ─────────────────────────────────────────────────────────
+
+
+@router.get("/blocks")
+async def list_blocks(user: dict = Depends(get_current_user)):
+    """List all blocked users with profile info. Requires mod+ role."""
+    _require_admin_role(user, "mod")
+
+    return await fetch("""
+        SELECT
+            b.id,
+            b.blocker_id,
+            b.blocked_id,
+            b.created_date,
+            blocker.display_name AS blocker_name,
+            blocker.profile_image AS blocker_image,
+            blocker.email AS blocker_email,
+            blocked.display_name AS blocked_name,
+            blocked.profile_image AS blocked_image,
+            blocked.email AS blocked_email
+        FROM public.blocked_users b
+        LEFT JOIN public.contestant_profiles blocker ON b.blocker_id = blocker.created_by
+        LEFT JOIN public.contestant_profiles blocked ON b.blocked_id = blocked.created_by
+        ORDER BY b.created_date DESC
+    """)
+
+
+# ── Team management endpoints ───────────────────────────────────────
+
+
+class AdminTeamUpdateRequest(BaseModel):
+    name: Optional[str] = None
+
+
+class AdminSettingUpdateRequest(BaseModel):
+    key: str
+    value: bool | int
+
+
+@router.get("/teams")
+async def admin_list_teams(user: dict = Depends(get_current_user)):
+    """List all teams with leader profile info. Requires mod+ role."""
+    _require_admin_role(user, "mod")
+
+    return await fetch("""
+        SELECT
+            t.id,
+            t.created_date,
+            t.updated_date,
+            t.name,
+            t.leader_id,
+            t.member_ids,
+            t.max_members,
+            t.status,
+            t.disband_initiated_by,
+            cp.display_name AS leader_name,
+            cp.profile_image AS leader_image,
+            cp.email AS leader_email,
+            COALESCE(
+                (SELECT cp2.display_name FROM contestant_profiles cp2
+                 WHERE cp2.created_by = t.disband_initiated_by),
+                NULL
+            ) AS disband_initiator_name
+        FROM teams t
+        LEFT JOIN contestant_profiles cp ON t.leader_id = cp.created_by
+        ORDER BY t.created_date DESC
+    """)
+
+
+@router.patch("/teams/{team_id}")
+async def admin_update_team(
+    team_id: str,
+    req: AdminTeamUpdateRequest,
+    user: dict = Depends(get_current_user),
+):
+    """Admin update a team (e.g. rename). Requires mod+ role."""
+    _require_admin_role(user, "mod")
+
+    existing = await fetch_one("SELECT * FROM teams WHERE id = $1", team_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    fields = []
+    vals = []
+    idx = 1
+    if req.name is not None:
+        fields.append(f"name = ${idx}")
+        vals.append(req.name)
+        idx += 1
+
+    if fields:
+        fields.append(f"updated_date = ${idx}")
+        vals.append(now())
+        idx += 1
+        vals.append(team_id)
+        await execute(f"UPDATE teams SET {', '.join(fields)} WHERE id = ${idx}", *vals)
+
+    return await fetch_one("SELECT * FROM teams WHERE id = $1", team_id)
+
+
+@router.delete("/teams/{team_id}")
+async def admin_delete_team(team_id: str, user: dict = Depends(get_current_user)):
+    """Admin delete any team (skips consent flow). Requires mod+ role."""
+    _require_admin_role(user, "mod")
+
+    existing = await fetch_one("SELECT * FROM teams WHERE id = $1", team_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    await execute("DELETE FROM teams WHERE id = $1", team_id)
+    return {"success": True}
+
+
+# ── Settings endpoints ──────────────────────────────────────────────
+
+
+@router.get("/settings")
+async def admin_get_settings(user: dict = Depends(get_current_user)):
+    """Get all system settings. Requires mod+ role."""
+    _require_admin_role(user, "mod")
+
+    rows = await fetch("SELECT key, value FROM system_settings ORDER BY key")
+    settings = {}
+    for row in rows:
+        settings[row["key"]] = row["value"]
+    return settings
+
+
+@router.patch("/settings")
+async def admin_update_setting(
+    req: AdminSettingUpdateRequest,
+    user: dict = Depends(get_current_user),
+):
+    """Update a system setting. Requires mod+ role."""
+    _require_admin_role(user, "mod")
+
+    await execute(
+        """
+        INSERT INTO system_settings (key, value, updated_date)
+        VALUES ($1, $2::jsonb, $3)
+        ON CONFLICT (key) DO UPDATE SET value = $2::jsonb, updated_date = $3
+        """,
+        req.key,
+        json.dumps(req.value),
+        now(),
+    )
+    return {"key": req.key, "value": req.value}

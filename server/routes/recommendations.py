@@ -56,12 +56,25 @@ async def get_recommendations(
     )
     swiped_ids = {r["swiped_id"] for r in swiped_rows}
 
-    # 3. Remaining candidates: everyone except self + already-swiped
+    # 2b. Users who blocked the current user, or whom the current user blocked
+    blocked_rows = await fetch(
+        "SELECT blocker_id, blocked_id FROM public.blocked_users WHERE blocker_id = $1 OR blocked_id = $1",
+        user["id"],
+    )
+    blocked_ids = set()
+    for b in blocked_rows:
+        blocked_ids.add(b["blocker_id"])
+        blocked_ids.add(b["blocked_id"])
+
+    # 3. Remaining candidates: everyone except self + already-swiped + blocked
     all_rows = await fetch(
         "SELECT * FROM contestant_profiles WHERE created_by != $1 AND display_name != ''",
         user["id"],
     )
-    remaining = [_row_to_profile(r) for r in all_rows if r["created_by"] not in swiped_ids]
+    remaining = [
+        _row_to_profile(r) for r in all_rows
+        if r["created_by"] not in swiped_ids and r["created_by"] not in blocked_ids
+    ]
 
     # 4. Matched profiles (for future算法 use)
     match_rows = await fetch(

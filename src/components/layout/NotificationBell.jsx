@@ -2,61 +2,75 @@ import { db } from '@/api/apiClient';
 
 import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { Bell, MessageCircle, Heart, X } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { Bell, MessageCircle, Heart, X, Users, Trash2, UserPlus, UserMinus, LogOut } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { format } from 'date-fns';
 
-export default function NotificationBell() {
+const NOTIF_ICONS = {
+  new_message: MessageCircle,
+  new_match: Heart,
+  team_invite: UserPlus,
+  team_invite_accepted: UserPlus,
+  team_invite_rejected: UserMinus,
+  disband_request: LogOut,
+  disband_accepted: Users,
+  disband_rejected: X,
+};
+
+const NOTIF_COLORS = {
+  new_message: 'text-blue-400',
+  new_match: 'text-pink-400',
+  team_invite: 'text-primary',
+  team_invite_accepted: 'text-primary',
+  team_invite_rejected: 'text-orange-400',
+  disband_request: 'text-red-400',
+  disband_accepted: 'text-red-400',
+  disband_rejected: 'text-muted-foreground',
+};
+
+const NOTIF_BG = {
+  new_message: 'bg-blue-500/10',
+  new_match: 'bg-pink-500/10',
+  team_invite: 'bg-primary/10',
+  team_invite_accepted: 'bg-primary/10',
+  team_invite_rejected: 'bg-orange-500/10',
+  disband_request: 'bg-red-500/10',
+  disband_accepted: 'bg-red-500/10',
+  disband_rejected: 'bg-muted/20',
+};
+
+export default function NotificationBell({ compact }) {
   const [open, setOpen] = useState(false);
   const [popupPos, setPopupPos] = useState(null);
   const ref = useRef(null);
   const buttonRef = useRef(null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => db.auth.me(),
   });
 
-  const { data: unreadMessages } = useQuery({
-    queryKey: ['unreadMessages', currentUser?.id],
-    queryFn: async () => {
-      const me = await db.auth.me();
-      return db.entities.Message.filter({ receiver_id: me.id, is_read: false });
-    },
+  const { data: notifications } = useQuery({
+    queryKey: ['notifications', currentUser?.id],
+    queryFn: () => db.notifications.list(),
     initialData: [],
     enabled: !!currentUser,
   });
 
-  const { data: recentMatches } = useQuery({
-    queryKey: ['recentMatchesNotif', currentUser?.id],
-    queryFn: async () => {
-      const me = await db.auth.me();
-      const [m1, m2] = await Promise.all([
-        db.entities.Match.filter({ user1_id: me.id }),
-        db.entities.Match.filter({ user2_id: me.id }),
-      ]);
-      const all = [...m1, ...m2].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
-      return all.slice(0, 3);
-    },
-    initialData: [],
+  const { data: unreadCount } = useQuery({
+    queryKey: ['notificationsUnread', currentUser?.id],
+    queryFn: () => db.notifications.unreadCount(),
     enabled: !!currentUser,
+    refetchInterval: 30000,
   });
 
-  const { data: allProfiles } = useQuery({
-    queryKey: ['allProfilesForNotif'],
-    queryFn: () => db.entities.ContestantProfile.list(),
-    initialData: [],
-  });
-  const profileMap = {};
-  allProfiles.forEach(p => { profileMap[p.created_by] = p; });
+  const totalUnread = unreadCount?.count ?? 0;
 
-  const totalUnread = unreadMessages.length;
-
-  // Close on outside click (check both button and portal popup)
+  // Close on outside click
   useEffect(() => {
     const handler = (e) => {
       if (buttonRef.current?.contains(e.target) || ref.current?.contains(e.target)) return;
@@ -66,32 +80,56 @@ export default function NotificationBell() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const notifications = [
-    ...unreadMessages.slice(0, 5).map(msg => ({
-      id: `msg-${msg.id}`,
-      icon: MessageCircle,
-      color: 'text-primary',
-      bg: 'bg-primary/10',
-      title: `Tin nhắn mới`,
-      desc: msg.content?.slice(0, 40) + (msg.content?.length > 40 ? '...' : ''),
-      time: msg.created_date,
-      action: () => { navigate('/messages'); setOpen(false); },
-    })),
-    ...recentMatches.map(match => {
-      const otherEmail = match.user1_id === currentUser?.id ? match.user2_id : match.user1_id;
-      const profile = profileMap[otherEmail];
-      return {
-        id: `match-${match.id}`,
-        icon: Heart,
-        color: 'text-pink-400',
-        bg: 'bg-pink-500/10',
-        title: `Match mới với ${profile?.display_name || 'Unknown'}`,
-        desc: [profile?.role, profile?.school].filter(Boolean).join(' — '),
-        time: match.created_date,
-        action: () => { navigate(`/messages?match=${match.id}`); setOpen(false); },
-      };
-    }),
-  ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 8);
+  const handleClearAll = async () => {
+    await db.notifications.clearAll();
+    queryClient.invalidateQueries({ queryKey: ['notifications', currentUser?.id] });
+    queryClient.invalidateQueries({ queryKey: ['notificationsUnread', currentUser?.id] });
+  };
+
+  const handleItemClick = (notif) => {
+    setOpen(false);
+
+    // Mark as read
+    db.notifications.markRead([notif.id]).then(() => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', currentUser?.id] });
+      queryClient.invalidateQueries({ queryKey: ['notificationsUnread', currentUser?.id] });
+    });
+
+    // Navigate based on type
+    switch (notif.type) {
+      case 'new_message':
+        navigate('/messages');
+        break;
+      case 'new_match':
+        navigate(notif.data?.match_id ? `/messages?match=${notif.data.match_id}` : '/messages');
+        break;
+      case 'team_invite':
+      case 'team_invite_accepted':
+      case 'team_invite_rejected':
+      case 'disband_request':
+      case 'disband_accepted':
+      case 'disband_rejected':
+        navigate('/team');
+        break;
+      default:
+        navigate('/messages');
+    }
+  };
+
+  const handleToggle = () => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPopupPos({
+        top: rect.bottom + 4,
+        left: rect.left,
+      });
+    }
+    setOpen(true);
+  };
 
   const formatTime = (dateStr) => {
     if (!dateStr) return '';
@@ -104,32 +142,23 @@ export default function NotificationBell() {
     return `${gmt7.getUTCDate().toString().padStart(2, '0')}/${(gmt7.getUTCMonth() + 1).toString().padStart(2, '0')}`;
   };
 
-  const handleToggle = () => {
-    if (open) {
-      setOpen(false);
-      return;
-    }
-    if (buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setPopupPos({
-        bottom: window.innerHeight - rect.bottom,
-        left: rect.right + 8,
-      });
-    }
-    setOpen(true);
-  };
-
   return (
     <div className="relative">
       <button
         ref={buttonRef}
         onClick={handleToggle}
-        className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm w-full text-muted-foreground hover:bg-primary/5 hover:text-primary/80"
+        className={`transition-all duration-200 ${
+          compact
+            ? 'relative w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary/80'
+            : 'flex items-center gap-3 px-4 py-3 rounded-lg text-sm w-full text-muted-foreground hover:bg-primary/5 hover:text-primary/80'
+        }`}
       >
-        <Bell className="w-4 h-4" />
-        Thông báo
+        <Bell className={`${compact ? 'w-4 h-4' : 'w-4 h-4'} ${compact && totalUnread > 0 ? 'text-primary' : ''}`} />
+        {!compact && 'Thông báo'}
         {totalUnread > 0 && (
-          <span className="ml-auto w-4 h-4 rounded-full bg-primary text-background text-[9px] font-display font-bold flex items-center justify-center">
+          <span className={`rounded-full bg-primary text-background text-[9px] font-display font-bold flex items-center justify-center ${
+            compact ? 'absolute -top-0.5 -right-0.5 w-4 h-4' : 'ml-auto w-4 h-4'
+          }`}>
             {totalUnread > 9 ? '9+' : totalUnread}
           </span>
         )}
@@ -144,14 +173,25 @@ export default function NotificationBell() {
               exit={{ opacity: 0, y: -8, scale: 0.96 }}
               transition={{ duration: 0.15 }}
               className="fixed w-80 glass-card border border-primary/15 rounded-xl shadow-2xl z-[200] overflow-hidden"
-              style={{ bottom: popupPos.bottom, left: popupPos.left, boxShadow: '0 8px 40px rgba(0,0,0,0.5)' }}
+              style={{ top: popupPos.top, left: popupPos.left, boxShadow: '0 8px 40px rgba(0,0,0,0.5)' }}
               ref={ref}
             >
               <div className="flex items-center justify-between px-4 py-3 border-b border-primary/10">
                 <h4 className="font-display text-sm font-semibold text-foreground">Thông báo</h4>
-                <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
-                  <X className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {totalUnread > 0 && (
+                    <button
+                      onClick={handleClearAll}
+                      className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-primary/10"
+                      title="Đánh dấu tất cả đã đọc"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               {notifications.length === 0 ? (
@@ -161,23 +201,27 @@ export default function NotificationBell() {
                 </div>
               ) : (
                 <div className="max-h-80 overflow-y-auto">
-                  {notifications.map(n => {
-                    const Icon = n.icon;
+                  {notifications.slice(0, 20).map((n) => {
+                    const Icon = NOTIF_ICONS[n.type] || Bell;
+                    const color = NOTIF_COLORS[n.type] || 'text-primary';
+                    const bg = NOTIF_BG[n.type] || 'bg-primary/10';
                     return (
                       <button
                         key={n.id}
-                        onClick={n.action}
-                        className="w-full flex items-start gap-3 px-4 py-3 hover:bg-primary/5 transition-colors border-b border-primary/5 last:border-0 text-left"
+                        onClick={() => handleItemClick(n)}
+                        className={`w-full flex items-start gap-3 px-4 py-3 hover:bg-primary/5 transition-colors border-b border-primary/5 last:border-0 text-left ${!n.is_read ? 'bg-primary/[0.02]' : ''}`}
                       >
-                        <div className={`w-8 h-8 rounded-lg ${n.bg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
-                          <Icon className={`w-4 h-4 ${n.color}`} />
+                        <div className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
+                          <Icon className={`w-4 h-4 ${color}`} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-body text-foreground leading-tight">{n.title}</p>
-                          <p className="text-xs font-body text-muted-foreground mt-0.5 truncate">{n.desc}</p>
+                          <p className={`text-sm font-body leading-tight ${n.is_read ? 'text-muted-foreground' : 'text-foreground font-medium'}`}>
+                            {n.title}
+                          </p>
+                          <p className="text-xs font-body text-muted-foreground mt-0.5 truncate">{n.body}</p>
                         </div>
                         <span className="text-[10px] font-body text-muted-foreground/60 flex-shrink-0 mt-0.5">
-                          {formatTime(n.time)}
+                          {formatTime(n.created_date)}
                         </span>
                       </button>
                     );
@@ -187,10 +231,10 @@ export default function NotificationBell() {
 
               <div className="px-4 py-2 border-t border-primary/10">
                 <button
-                  onClick={() => { navigate('/messages'); setOpen(false); }}
+                  onClick={() => { navigate('/settings?tab=notifications'); setOpen(false); }}
                   className="w-full text-center text-xs font-body text-primary/70 hover:text-primary transition-colors py-1"
                 >
-                  Xem tất cả tin nhắn →
+                  Xem tất cả thông báo →
                 </button>
               </div>
             </motion.div>

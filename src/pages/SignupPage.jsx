@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { db } from '@/api/apiClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { motion } from 'framer-motion';
 import { Check, X } from 'lucide-react';
 import PageFooter from '@/components/layout/PageFooter';
@@ -194,9 +195,8 @@ export default function SignupPage() {
                     >
                       Mật khẩu
                     </label>
-                    <Input
+                    <PasswordInput
                       id="password"
-                      type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Nhập mật khẩu"
@@ -219,9 +219,8 @@ export default function SignupPage() {
                     >
                       Xác nhận mật khẩu
                     </label>
-                    <Input
+                    <PasswordInput
                       id="confirmPassword"
-                      type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Nhập lại mật khẩu"

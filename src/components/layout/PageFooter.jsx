@@ -8,7 +8,7 @@ export default function PageFooter({ compact }) {
                 <img src="/ftu.webp" alt="FTU" className={`${compact ? 'w-6 h-6' : 'w-8 h-8'} object-contain`} />
                 <img src="/fyu.svg" alt="Đoàn" className={`${compact ? 'w-6 h-6' : 'w-8 h-8'} object-contain`} />
                 <img src="/cte-logo.svg" alt="CTE FTU" className={`${compact ? 'w-5 h-5' : 'w-7 h-7'} object-contain`} />
-                <img src="/dstc-key.webp" alt="DSTC" className={`${compact ? 'w-6 h-6' : 'w-8 h-8'} object-contain`} />
+                <img src="/dstc-logo.png" alt="DSTC" className={`${compact ? 'w-6 h-6' : 'w-8 h-8'} object-contain`} />
             </div>
             <p className={`font-body text-muted-foreground/80 ${compact ? 'text-[11px]' : 'text-[12px]'}`}>
                 Bản quyền © 2026 CLB Khoa học Công nghệ trong Kinh tế và Kinh doanh. Bảo lưu mọi quyền.

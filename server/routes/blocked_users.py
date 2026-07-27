@@ -49,6 +49,12 @@ async def block_user(body: BlockCreate, user: dict = Depends(get_current_user)):
         ts, user["id"], body.blocked_id
     )
 
+    # Delete swipe records so blocked user doesn't appear in discover
+    await execute(
+        "DELETE FROM swipe_actions WHERE (swiper_id = $1 AND swiped_id = $2) OR (swiper_id = $2 AND swiped_id = $1)",
+        user["id"], body.blocked_id,
+    )
+
     return await fetch_one("SELECT * FROM public.blocked_users WHERE id = $1", bid)
 
 

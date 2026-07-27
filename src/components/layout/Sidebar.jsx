@@ -2,7 +2,7 @@ import { db } from '@/api/apiClient';
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { User, MessageCircle, Settings, LogOut, Sparkles, LayoutDashboard, BookOpen, Shield, HelpCircle } from 'lucide-react';
+import { User, MessageCircle, Settings, LogOut, Sparkles, LayoutDashboard, BookOpen, Shield, HelpCircle, Users } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import NotificationBell from './NotificationBell';
@@ -13,6 +13,7 @@ const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/discover', label: 'Khám phá', icon: Sparkles },
   { path: '/profile', label: 'Hồ sơ', icon: User },
+  { path: '/team', label: 'Lập đội', icon: Users },
   { path: '/messages', label: 'Tin nhắn', icon: MessageCircle }];
 
 export default function Sidebar() {
@@ -25,20 +26,22 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 h-screen flex flex-col sticky top-0 z-30 glass-card border-r border-primary/10">
-      {/* Logo */}
+      {/* Logo + Notifications */}
       <div className="p-5 flex items-center gap-3 border-b border-primary/10">
         <img
           src="/dstc-key-sphere.webp"
           alt="DSTC Logo"
           className="w-10 h-10 rounded-lg object-contain" />
 
-        <div className="leading-tight">
+        <div className="leading-tight flex-1">
           <div className="font-display font-bold text-sm text-white">
             DSTC 2026
 
           </div>
           <div className="font-display text-[12px] text-muted-foreground">Matching Platform</div>
         </div>
+
+        <NotificationBell compact />
       </div>
 
       {/* Navigation */}
@@ -74,7 +77,6 @@ export default function Sidebar() {
               <Shield className="w-4 h-4" /> Admin Panel
             </Link>
           )}
-          <NotificationBell />
           <Link
             to="/guide"
             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm group ${location.pathname === '/guide' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-primary/5 hover:text-primary/80'}`}

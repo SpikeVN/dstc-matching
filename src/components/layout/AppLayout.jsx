@@ -18,6 +18,7 @@ const PAGE_TITLES = {
   '/dashboard': 'Dashboard',
   '/discover': 'Khám phá',
   '/messages': 'Tin nhắn',
+  '/team': 'Đội',
   '/profile': 'Hồ sơ',
   '/settings': 'Cài đặt',
   '/admin': 'Admin Panel',

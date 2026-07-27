@@ -81,6 +81,11 @@ class ResetPasswordRequest(BaseModel):
     password: str
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
 # ── Auth endpoints ────────────────────────────────────────────────────────
 
 
@@ -413,6 +418,26 @@ async def reset_password(req: ResetPasswordRequest):
         raise HTTPException(status_code=400, detail=str(exc))
 
     await gotrue.admin_update_password(user_id, req.password)
+    return {"success": True}
+
+
+@router.post("/change-password")
+async def change_password(
+    req: ChangePasswordRequest, user: dict = Depends(get_current_user)
+):
+    """Change the authenticated user's password (verify current password first)."""
+    # Verify the current password by attempting a login
+    try:
+        await gotrue.login(user["email"], req.current_password)
+    except Exception as exc:
+        # Distinguish "wrong password" from other errors
+        msg = str(exc).lower()
+        if "invalid" in msg or "credentials" in msg or "401" in msg:
+            raise HTTPException(status_code=401, detail="Mật khẩu hiện tại không đúng")
+        raise HTTPException(status_code=400, detail="Không thể xác thực mật khẩu hiện tại")
+
+    # Update the password via the admin API (service role)
+    await gotrue.admin_update_password(user["id"], req.new_password)
     return {"success": True}
 
 
