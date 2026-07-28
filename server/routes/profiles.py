@@ -243,6 +243,16 @@ async def get_profile(profile_id: str, user: dict = Depends(get_current_user)):
 
 @router.post("/contestant-profiles")
 async def create_profile(profile: ProfileCreate, user: dict = Depends(get_current_user)):
+    # Check if user already has a profile to avoid unique constraint violation
+    existing = await fetch_one(
+        "SELECT id FROM contestant_profiles WHERE created_by = $1", user["id"]
+    )
+    if existing:
+        raise HTTPException(
+            status_code=409,
+            detail="Profile already exists. Use PATCH to update your existing profile.",
+        )
+
     pid = generate_id()
     now_ts = now()
     await execute("""
