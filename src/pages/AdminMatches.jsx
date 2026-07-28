@@ -27,6 +27,16 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 /** @type {Record<string, number>} Lower = more privilege */
 const ROLE_HIERARCHY = { owner: 0, manager: 1, mod: 2, user: 3 };
 
@@ -62,6 +72,8 @@ export default function AdminMatches() {
   const [newEmail, setNewEmail] = useState('');
   const [bulkEmails, setBulkEmails] = useState('');
   const [showBulkAdd, setShowBulkAdd] = useState(false);
+  const [noConfirmMode, setNoConfirmMode] = useState(false);
+  const [noConfirmDialogOpen, setNoConfirmDialogOpen] = useState(false);
   const deferredSearch = useDeferredValue(search);
 
   const { data: currentUser } = useQuery({
@@ -144,6 +156,9 @@ export default function AdminMatches() {
     mutationFn: (userId) => db.admin.deleteUser(userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Không thể xóa người dùng');
     },
   });
 
@@ -369,6 +384,40 @@ export default function AdminMatches() {
               </Select>
             </div>
 
+            {/* No-confirm toggle */}
+            <div className="flex items-center gap-2 pb-1">
+              <Switch
+                id="no-confirm-mode"
+                checked={noConfirmMode}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    setNoConfirmDialogOpen(true);
+                  } else {
+                    setNoConfirmMode(false);
+                  }
+                }}
+                className="data-[state=checked]:bg-destructive"
+              />
+              <label htmlFor="no-confirm-mode" className="text-xs font-body text-muted-foreground cursor-pointer select-none">
+                Chế độ xóa nhanh <span className="text-destructive font-medium">(bỏ qua xác nhận)</span>
+              </label>
+            </div>
+
+            <AlertDialog open={noConfirmDialogOpen} onOpenChange={setNoConfirmDialogOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Xác nhận chế độ xóa nhanh</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Bật chế độ xóa nhanh sẽ bỏ qua tất cả xác nhận khi xóa người dùng. Bạn có chắc chắn?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Hủy</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => setNoConfirmMode(true)}>Xác nhận</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
             {/* Users table */}
             {loadingUsers ? (
               <div className="text-center py-16">
@@ -464,7 +513,7 @@ export default function AdminMatches() {
                           {u.id !== currentUser?.id && u.admin_role !== 'owner' && (
                             <button
                               onClick={() => {
-                                if (window.confirm(`Xóa người dùng "${u.display_name || u.email}"? Hành động này không thể hoàn tác.`)) {
+                                if (noConfirmMode || window.confirm(`Xóa người dùng "${u.display_name || u.email}"? Hành động này không thể hoàn tác.`)) {
                                   deleteUserMutation.mutate(u.id);
                                 }
                               }}

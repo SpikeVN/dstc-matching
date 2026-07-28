@@ -56,3 +56,6 @@ CLAUDE-INFRA.md
 CLAUDE.md
 TASKS.md
 seed_owner.sql
+.tokensave/tokensave.db-shm
+.tokensave/tokensave.db
+.tokensave/tokensave.db-wal

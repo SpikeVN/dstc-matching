@@ -32,6 +32,26 @@ async def update_info_shown(update: InfoShownUpdate, user: dict = Depends(get_cu
     return {"info_shown": update.info_shown}
 
 
+@router.post("/user-preferences/accept-terms")
+async def accept_terms(user: dict = Depends(get_current_user)):
+    """Record that the user has accepted the terms and conditions."""
+    existing = await fetch_one(
+        "SELECT id FROM public.user_preferences WHERE user_id = $1", user["id"]
+    )
+    if existing:
+        await execute(
+            "UPDATE public.user_preferences SET terms_accepted = true, updated_date = $1 WHERE user_id = $2",
+            now(), user["id"],
+        )
+    else:
+        await execute(
+            """INSERT INTO public.user_preferences (id, user_id, terms_accepted)
+               VALUES ($1, $2, true)""",
+            generate_id(), user["id"],
+        )
+    return {"terms_accepted": True}
+
+
 # ── User search ─────────────────────────────────────────────────
 
 

@@ -84,6 +84,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const acceptTerms = async () => {
+    await db.auth.acceptTerms();
+    // Update local user state so the terms popup disappears immediately
+    setUser((prev) => (prev ? { ...prev, terms_accepted: true } : prev));
+  };
+
   const checkUserAuth = async () => {
     try {
       setIsLoadingAuth(true);
@@ -172,7 +178,8 @@ export const AuthProvider = ({ children }) => {
       logout,
       navigateToLogin,
       checkUserAuth,
-      checkAppState
+      checkAppState,
+      acceptTerms,
     }}>
       {children}
     </AuthContext.Provider>

@@ -197,7 +197,16 @@ const InlineProfileEditor = forwardRef(function InlineProfileEditor({ profile, o
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [imgLoading, setImgLoading] = useState(!!(profile?.profile_image));
   const [cropImageSrc, setCropImageSrc] = useState(null);
+
+  // Reset loading/error state when profile_image URL changes
+  useEffect(() => {
+    if (form.profile_image) {
+      setImgLoading(true);
+      setImgError(false);
+    }
+  }, [form.profile_image]);
 
   // Dirty-check: compare current form against the initial profile snapshot
   useEffect(() => {
@@ -311,10 +320,18 @@ const InlineProfileEditor = forwardRef(function InlineProfileEditor({ profile, o
           {/* Avatar */}
           <div className="relative group flex-shrink-0">
             <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-primary/30 flex items-center justify-center bg-muted/50">
-              {form.profile_image && !imgError ?
-                <img src={form.profile_image} alt="avatar" className="w-full h-full object-cover" onError={() => setImgError(true)} /> :
+              {form.profile_image && !imgError ? (
+                <>
+                  {imgLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10 rounded-2xl">
+                      <div className="w-5 h-5 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+                    </div>
+                  )}
+                  <img src={form.profile_image} alt="" className="w-full h-full object-cover" onLoad={() => setImgLoading(false)} onError={() => { setImgError(true); setImgLoading(false); }} />
+                </>
+              ) : (
                 <Camera className="w-7 h-7 text-primary/30" />
-              }
+              )}
             </div>
             <label className="absolute bottom-0 right-0 w-7 h-7 bg-primary rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:scale-110 transition-transform">
               <Camera className="w-3 h-3 text-background" />

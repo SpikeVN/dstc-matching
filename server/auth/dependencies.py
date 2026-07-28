@@ -50,9 +50,15 @@ async def get_current_user(request: Request) -> dict:
     if not alive:
         raise HTTPException(status_code=401, detail="User no longer exists")
 
-    # Query user_preferences for admin role, visibility, and info_shown settings
+    # Query profile_image from contestant_profiles
+    profile_row = await fetch_one(
+        "SELECT profile_image FROM public.contestant_profiles WHERE created_by = $1",
+        user_id,
+    )
+
+    # Query user_preferences for admin role, visibility, info_shown, and terms_accepted
     prefs = await fetch_one(
-        "SELECT admin_role, admin_visible, info_shown FROM public.user_preferences WHERE user_id = $1",
+        "SELECT admin_role, admin_visible, info_shown, terms_accepted FROM public.user_preferences WHERE user_id = $1",
         user_id,
     )
 
@@ -74,8 +80,10 @@ async def get_current_user(request: Request) -> dict:
         "id": user_id,
         "email": payload.get("email", ""),
         "username": user_metadata.get("full_name") or user_metadata.get("name", ""),
+        "profile_image": profile_row["profile_image"] if profile_row else "",
         "role": "admin" if prefs and prefs["admin_role"] != "user" else "user",
         "admin_role": prefs["admin_role"] if prefs else "user",
         "admin_visible": prefs["admin_visible"] if prefs else True,
         "info_shown": merged_info_shown,
+        "terms_accepted": prefs["terms_accepted"] if prefs else False,
     }

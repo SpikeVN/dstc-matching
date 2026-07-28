@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { LogOut, Terminal, Eye, KeyRound, Activity, Clock, Heart, UserCheck, Shield, FileText, HelpCircle, Info, Users, User, Check, X, Github, Bell, Trash2, MessageCircle, UserPlus, UserMinus } from 'lucide-react';
+import { LogOut, Terminal, Eye, KeyRound, Activity, Clock, Heart, UserCheck, Shield, FileText, HelpCircle, Info, Users, User, Check, X, Github, Bell, Trash2, MessageCircle, UserPlus, UserMinus, Award } from 'lucide-react';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -16,6 +16,7 @@ import { useAuth } from '@/lib/AuthContext';
 import TermsContent from '/docs/terms.mdx';
 import SupportContent from '/docs/support.mdx';
 import AboutContent from '/docs/about.mdx';
+import CreditsContent from '/docs/credits.mdx';
 
 const TABS = [
   { id: 'password', label: 'Bảo mật', icon: KeyRound },
@@ -23,6 +24,7 @@ const TABS = [
   { id: 'activity', label: 'Nhật ký', icon: Activity },
   { id: 'terms', label: 'Điều khoản', icon: FileText },
   { id: 'support', label: 'Hỗ trợ', icon: HelpCircle },
+  { id: 'credits', label: 'Credits', icon: Award },
   { id: 'about', label: 'Về CTE & DSTC', icon: Info },
   { id: 'notifications', label: 'Thông báo', icon: Bell, mobileOnly: true },
 ];
@@ -475,6 +477,21 @@ export default function Settings() {
               </div>
               <div className="p-4 prose prose-invert prose-sm max-w-none">
                 <AboutContent />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'credits':
+        return (
+          <div className="space-y-4">
+            <div className="glass-card rounded-xl border border-primary/10 overflow-hidden">
+              <div className="px-4 py-3 border-b border-primary/10 flex items-center gap-2">
+                <Award className="w-4 h-4 text-primary" />
+                <h3 className="font-display text-sm font-semibold text-primary">Credits</h3>
+              </div>
+              <div className="p-4 prose prose-invert prose-sm max-w-none">
+                <CreditsContent />
               </div>
             </div>
           </div>

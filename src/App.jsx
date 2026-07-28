@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate, useLocation, Outlet, 
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import TermsPopup from '@/components/TermsPopup';
 
 import AppLayout from '@/components/layout/AppLayout';
 import Landing from '@/pages/Landing';
@@ -57,7 +58,7 @@ const PublicRoutes = () => (
 );
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, authChecked } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, authChecked, user } = useAuth();
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
@@ -97,6 +98,11 @@ const AuthenticatedApp = () => {
   }
   if (!isAuthenticated) {
     return <PublicRoutes />;
+  }
+
+  // Show terms popup if user hasn't accepted yet (blocking, no navigation allowed)
+  if (user && !user.terms_accepted) {
+    return <TermsPopup />;
   }
 
   return (

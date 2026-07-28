@@ -349,7 +349,15 @@ async def delete_user(
     #   contestant_profiles, matches, messages, swipe_actions, teams (where
     #   leader), team_invites, blocked_users, reports, notifications,
     #   user_preferences, and SET NULL on email_whitelist.added_by.
-    await admin_delete_user(user_id)
+    try:
+        await admin_delete_user(user_id)
+    except HTTPException as exc:
+        # If the GoTrue auth record is already gone, our app-side cleanup
+        # (team member_ids, etc.) is still valid — treat as success.
+        if exc.status_code == 404 and "not found" in exc.detail.lower():
+            print(f"[admin.delete_user] GoTrue user {user_id} already deleted — skipping auth deletion")
+        else:
+            raise
 
     return {"success": True, "message": f"User {user_id} deleted"}
 

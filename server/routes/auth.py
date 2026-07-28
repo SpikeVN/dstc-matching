@@ -29,16 +29,32 @@ router = APIRouter(prefix="/auth")
 # ── Helpers ────────────────────────────────────────────────────────────────
 
 
-def _user_from_gotrue(result: dict) -> dict:
-    """Build a user dict from a GoTrue SDK response."""
+async def _user_from_gotrue(result: dict) -> dict:
+    """Build a user dict from a GoTrue SDK response, enriched with preferences."""
     gotrue_user = result.get("user") or {}
     user_metadata = gotrue_user.get("user_metadata", {})
     app_metadata = gotrue_user.get("app_metadata", {})
+    user_id = gotrue_user.get("id", "")
+
+    # Fetch profile_image from contestant_profiles
+    profile = await fetch_one(
+        "SELECT profile_image FROM public.contestant_profiles WHERE created_by = $1",
+        user_id,
+    )
+
+    # Fetch user preferences for terms_accepted (row created on signup)
+    prefs = await fetch_one(
+        "SELECT terms_accepted FROM public.user_preferences WHERE user_id = $1",
+        user_id,
+    )
+
     return {
-        "id": gotrue_user.get("id", ""),
+        "id": user_id,
         "email": gotrue_user.get("email", ""),
         "username": user_metadata.get("full_name") or user_metadata.get("name", ""),
+        "profile_image": profile["profile_image"] if profile else "",
         "role": app_metadata.get("role", "user"),
+        "terms_accepted": prefs["terms_accepted"] if prefs else False,
     }
 
 
@@ -136,12 +152,12 @@ async def signup(request: Request, req: SignupRequest):
 
     access_token = result.get("access_token")
     if not access_token:
-        return {"requires_email_confirmation": True, "user": _user_from_gotrue(result)}
+        return {"requires_email_confirmation": True, "user": await _user_from_gotrue(result)}
 
     return {
         "access_token": access_token,
         "refresh_token": result.get("refresh_token"),
-        "user": _user_from_gotrue(result),
+        "user": await _user_from_gotrue(result),
     }
 
 
@@ -153,7 +169,7 @@ async def login(request: Request, req: LoginRequest):
     return {
         "access_token": result.get("access_token"),
         "refresh_token": result.get("refresh_token"),
-        "user": _user_from_gotrue(result),
+        "user": await _user_from_gotrue(result),
     }
 
 
@@ -171,7 +187,7 @@ async def google_login(request: Request):
     if not access_token:
         raise HTTPException(status_code=500, detail="GoTrue did not return an access token")
 
-    user = _user_from_gotrue(result)
+    user = await _user_from_gotrue(result)
     user_id = user["id"]
 
     # Sync profile with Google data
@@ -264,7 +280,7 @@ async def github_callback(req: GitHubCallbackRequest):
     if not access_token:
         raise HTTPException(status_code=500, detail="GoTrue did not return an access token")
 
-    user = _user_from_gotrue(result)
+    user = await _user_from_gotrue(result)
     user_id = user["id"]
 
     # Sync profile with GitHub data
@@ -346,7 +362,7 @@ async def verify_email(req: VerifyRequest):
     return {
         "access_token": access_token,
         "refresh_token": result.get("refresh_token"),
-        "user": _user_from_gotrue(result),
+        "user": await _user_from_gotrue(result),
     }
 
 

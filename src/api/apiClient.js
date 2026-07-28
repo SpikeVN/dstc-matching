@@ -356,6 +356,9 @@ const authClient = {
   getSignupMethods: async () => {
     return request('GET', '/auth/signup-methods');
   },
+  acceptTerms: async () => {
+    return request('POST', '/api/user-preferences/accept-terms');
+  },
 };
 
 // ── Integrations (stubs) ───────────────────────────────────────────

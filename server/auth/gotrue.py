@@ -220,6 +220,8 @@ async def admin_delete_user(user_id: str) -> None:
     try:
         await sb.auth.admin.delete_user(user_id)
     except Exception as exc:
+        msg = str(exc)
+        print(f"[gotrue.admin_delete_user] FAILED user={user_id}: {msg}")
         _raise_auth_error(exc)
 
 
@@ -246,7 +248,7 @@ def _raise_auth_error(exc: Exception):
     low = msg.lower()
     if "401" in msg or "invalid" in low or "credentials" in low:
         status = 401
-    elif "404" in msg:
+    elif "404" in msg or "not found" in low:
         status = 404
     elif "422" in msg:
         status = 422
