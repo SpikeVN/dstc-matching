@@ -1291,7 +1291,23 @@ export default function Messages() {
         db.entities.Match.filter({ user1_id: me.id }),
         db.entities.Match.filter({ user2_id: me.id }),
       ]);
-      return [...m1, ...m2];
+      // Filter out unmatched and blocked matches, then deduplicate
+      // by user pair (keep the latest one) to handle any existing duplicates
+      const all = [...m1, ...m2]
+        .filter(m => m.status !== 'blocked' && m.status !== 'unmatched');
+      // Deduplicate by user pair — keep the most recent match per pair
+      const seen = new Set();
+      const deduped = [];
+      // Sort by updated_date descending so the latest match per pair wins
+      all.sort((a, b) => new Date(b.updated_date || b.created_date) - new Date(a.updated_date || a.created_date));
+      for (const m of all) {
+        const pairKey = [m.user1_id, m.user2_id].sort().join(':');
+        if (!seen.has(pairKey)) {
+          seen.add(pairKey);
+          deduped.push(m);
+        }
+      }
+      return deduped;
     },
     initialData: [],
     enabled: !!currentUser,

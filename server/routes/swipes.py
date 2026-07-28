@@ -92,13 +92,29 @@ async def create_swipe(swipe: SwipeCreate, user: dict = Depends(get_current_user
         VALUES ($1, $2, $3, $4, $5, $6, $7)
     """, sid, now_ts, now_ts, swipe.swiper_id, swipe.swiped_id, swipe.action, is_match)
 
-    # If mutual like, create a match record
+    # If mutual like, create or reactivate a match record
     if is_match:
-        mid = generate_id()
-        await execute("""
-            INSERT INTO matches (id, created_date, updated_date, user1_id, user2_id, status, user1_confirmed, user2_confirmed)
-            VALUES ($1, $2, $3, $4, $5, 'matched', false, false)
-        """, mid, now_ts, now_ts, swipe.swiper_id, swipe.swiped_id)
+        # Check for existing match (including unmatched ones) to avoid duplicates
+        existing_match = await fetch_one(
+            """SELECT id FROM matches
+               WHERE (user1_id = $1 AND user2_id = $2)
+                  OR (user1_id = $2 AND user2_id = $1)
+               LIMIT 1""",
+            swipe.swiper_id, swipe.swiped_id,
+        )
+        if existing_match:
+            # Reactivate the existing match
+            mid = existing_match["id"]
+            await execute(
+                "UPDATE matches SET status = 'matched', updated_date = $1 WHERE id = $2",
+                now_ts, mid,
+            )
+        else:
+            mid = generate_id()
+            await execute("""
+                INSERT INTO matches (id, created_date, updated_date, user1_id, user2_id, status, user1_confirmed, user2_confirmed)
+                VALUES ($1, $2, $3, $4, $5, 'matched', false, false)
+            """, mid, now_ts, now_ts, swipe.swiper_id, swipe.swiped_id)
         # Update both swipes to reflect the match
         await execute("UPDATE swipe_actions SET is_match = true WHERE id = $1", sid)
         await execute("UPDATE swipe_actions SET is_match = true WHERE swiper_id = $1 AND swiped_id = $2",
