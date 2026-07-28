@@ -1,6 +1,6 @@
 import React from 'react';
 import { Heart, Users, MessageCircle, TrendingUp, CheckCircle2, Clock } from 'lucide-react';
-import { format, addHours } from 'date-fns';
+import { formatDateTime } from '@/lib/timeUtils';
 
 function StatCard({ icon: Icon, label, value, color, sublabel }) {
   return (
@@ -123,7 +123,7 @@ export default function MatchDashboard({ matches, allProfiles, allMessages }) {
                       {msgCount}
                     </div>
                     <span className="font-body text-[10px] text-muted-foreground/60 flex-shrink-0 hidden sm:block">
-                      {match.created_date ? format(addHours(new Date(match.created_date), 7), 'dd/MM') : '—'}
+                      {match.created_date ? formatDateTime(match.created_date, 'dd/MM') : '—'}
                     </span>
                   </div>
                 );

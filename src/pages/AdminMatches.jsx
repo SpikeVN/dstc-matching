@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tansta
 import { Users, Search, Heart, MessageCircle, User, Shield, Eye, EyeOff, Flag, X, Clock, Trash2, Pencil, Settings, Ban, File, MailCheck, MailPlus, Upload } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { format, addHours } from 'date-fns';
+import { formatDateTime } from '@/lib/timeUtils';
 import MatchDashboard from '@/components/admin/MatchDashboard';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -507,7 +507,7 @@ export default function AdminMatches() {
                           </button>
                         </td>
                         <td className="px-4 py-3 text-right text-xs text-muted-foreground/50 hidden sm:table-cell">
-                          {u.assigned_date ? format(addHours(new Date(u.assigned_date), 7), 'dd/MM/yy') : '—'}
+                          {u.assigned_date ? formatDateTime(u.assigned_date, 'dd/MM/yy') : '—'}
                         </td>
                         <td className="px-4 py-3 text-right">
                           {u.id !== currentUser?.id && u.admin_role !== 'owner' && (
@@ -716,7 +716,7 @@ export default function AdminMatches() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right text-xs text-muted-foreground/50 hidden sm:table-cell">
-                          {report.created_date ? format(addHours(new Date(report.created_date), 7), 'dd/MM/yy HH:mm') : '—'}
+                          {report.created_date ? formatDateTime(report.created_date, 'dd/MM/yy HH:mm') : '—'}
                         </td>
                       </tr>
                     ))}
@@ -893,7 +893,7 @@ export default function AdminMatches() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right text-xs text-muted-foreground/50 hidden sm:table-cell">
-                          {block.created_date ? format(addHours(new Date(block.created_date), 7), 'dd/MM/yy HH:mm') : '—'}
+                          {block.created_date ? formatDateTime(block.created_date, 'dd/MM/yy HH:mm') : '—'}
                         </td>
                       </tr>
                     ))}
@@ -1059,7 +1059,7 @@ export default function AdminMatches() {
                           {entry.added_by_name || <span className="text-muted-foreground/50">—</span>}
                         </td>
                         <td className="px-4 py-3 text-right text-xs text-muted-foreground/50 hidden sm:table-cell">
-                          {entry.created_date ? format(addHours(new Date(entry.created_date), 7), 'dd/MM/yy HH:mm') : '—'}
+                          {entry.created_date ? formatDateTime(entry.created_date, 'dd/MM/yy HH:mm') : '—'}
                         </td>
                         {canManageWhitelist && (
                           <td className="px-4 py-3 text-right">
@@ -1337,7 +1337,7 @@ export default function AdminMatches() {
                                     {msg.sender_name || msg.sender_id.slice(0, 8)}
                                   </span>
                                   <span className="text-[10px] text-muted-foreground/50">
-                                    {format(addHours(new Date(msg.created_date), 7), 'dd/MM HH:mm')}
+                                    {formatDateTime(msg.created_date, 'dd/MM HH:mm')}
                                   </span>
                                 </div>
                                 <p className="text-sm text-foreground mt-0.5 whitespace-pre-wrap break-words">

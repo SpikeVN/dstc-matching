@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatNotificationTime } from '@/lib/timeUtils';
 
 const NOTIF_ICONS = {
   new_message: MessageCircle,
@@ -131,16 +132,7 @@ export default function NotificationBell({ compact }) {
     setOpen(true);
   };
 
-  const formatTime = (dateStr) => {
-    if (!dateStr) return '';
-    const d = new Date(dateStr);
-    const diff = Math.floor((new Date() - d) / 60000);
-    if (diff < 1) return 'Vừa xong';
-    if (diff < 60) return `${diff}p`;
-    if (diff < 1440) return `${Math.floor(diff / 60)}h`;
-    const gmt7 = new Date(d.getTime() + 7 * 60 * 60 * 1000);
-    return `${gmt7.getUTCDate().toString().padStart(2, '0')}/${(gmt7.getUTCMonth() + 1).toString().padStart(2, '0')}`;
-  };
+  const formatTime = formatNotificationTime;
 
   return (
     <div className="relative">

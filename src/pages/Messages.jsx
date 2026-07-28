@@ -13,7 +13,7 @@ import { MessageScrollerProvider, MessageScroller, MessageScrollerViewport, Mess
 import { Send, ChevronLeft, ArrowDown, User, MessageCircle, Zap, Paperclip, FileText, Code, BookOpen, Archive, File, X, Download, MoreVertical, Users, Check, Loader2, Ban, UserMinus, Flag, Search, UserPlus } from 'lucide-react';
 import { useOnlineContext } from '@/components/layout/AppLayout';
 import { toast } from 'sonner';
-import { format, addHours } from 'date-fns';
+import { formatDateTime, formatLastActive } from '@/lib/timeUtils';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from '@/components/ui/context-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -67,20 +67,6 @@ function LinkifiedText({ text }) {
       )}
     </>
   );
-}
-
-function formatLastActive(lastActiveAt) {
-  if (!lastActiveAt) return 'Không hoạt động';
-  const now = new Date();
-  const lastActive = new Date(lastActiveAt);
-  const diffMs = now - lastActive;
-  const diffMinutes = Math.floor(diffMs / 60000);
-  if (diffMinutes < 1) return 'Vừa xong';
-  if (diffMinutes < 60) return `Hoạt động ${diffMinutes} phút trước`;
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `Hoạt động ${diffHours} giờ trước`;
-  const diffDays = Math.floor(diffHours / 24);
-  return `Hoạt động ${diffDays} ngày trước`;
 }
 
 const ROLE_COLORS = {
@@ -318,7 +304,7 @@ function ChatBubble({ msg, isMe, senderProfile, showHeader, showFooter, showAvat
       </Message>
       {showFooter && (
         <MessageFooter className={`text-[9px] text-muted-foreground/50 px-1 ${isMe ? 'justify-end' : 'pl-11'}`}>
-          {format(addHours(new Date(msg.created_date), 7), 'HH:mm dd/MM')}
+          {formatDateTime(msg.created_date, 'HH:mm dd/MM')}
           {isMe && (
             <span className={`ml-1.5 ${msg.read_at ? 'text-primary' : msg.delivered_at ? 'text-muted-foreground/50' : 'text-muted-foreground/30'}`}>
               {msg.read_at ? 'Đã xem' : msg.delivered_at ? 'Đã nhận' : 'Đã gửi'}
@@ -662,7 +648,7 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
 
   // Group messages by date
   const grouped = messages.reduce((acc, msg) => {
-    const date = format(addHours(new Date(msg.created_date), 7), 'dd/MM/yyyy');
+    const date = formatDateTime(msg.created_date, 'dd/MM/yyyy');
     if (!acc[date]) acc[date] = [];
     acc[date].push(msg);
     return acc;

@@ -70,6 +70,11 @@ def _record_to_dict(record: asyncpg.Record) -> dict:
         # Convert UUID objects to strings so comparisons with Pydantic str fields work
         if isinstance(v, uuid.UUID):
             d[k] = str(v)
+        # Normalize all timestamps to UTC regardless of the PostgreSQL server's timezone setting.
+        # This ensures the JSON API always returns +00:00 ISO strings, so the frontend
+        # can reliably parse them as UTC regardless of where the production DB runs.
+        elif isinstance(v, datetime):
+            d[k] = v.astimezone(timezone.utc) if v.tzinfo is not None else v
         else:
             d[k] = v
     # Parse JSONB fields that asyncpg returns as strings
