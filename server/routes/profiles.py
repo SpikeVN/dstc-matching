@@ -172,11 +172,11 @@ async def list_profiles(request: Request, user: dict = Depends(get_current_user)
                up.info_shown
         FROM contestant_profiles cp
         LEFT JOIN user_preferences up ON cp.created_by = up.user_id
-        WHERE COALESCE(up.admin_visible, true) = true
+        WHERE (COALESCE(up.admin_visible, true) = true OR cp.created_by = $1)
     """
-    params = []
+    params = [user["id"]]
     conditions = []
-    idx = 1
+    idx = 2
 
     # Single-value exact-match fields (legacy support)
     for key in ('created_by', 'team_id', 'gender', 'display_name', 'username'):
