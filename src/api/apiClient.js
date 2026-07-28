@@ -169,7 +169,7 @@ async function tryRefresh() {
       return false;
     }
     setTokens(data.access_token, data.refresh_token);
-    console.log('[API] Token refresh succeeded, new token prefix:', data.access_token.slice(0, 12));
+    console.log('[API] Token refresh succeeded');
     resolve(true);
     return true;
   } catch (err) {

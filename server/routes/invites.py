@@ -20,21 +20,19 @@ class InviteUpdate(BaseModel):
 
 @router.get("")
 async def list_invites(request: Request, user: dict = Depends(get_current_user)):
-    query = "SELECT * FROM team_invites"
-    params = []
-    conditions = []
-    idx = 1
+    # Restrict to invites where the authenticated user is inviter or invitee.
+    # Additional optional filters (team_id, status) are scoped within those invites.
+    params = [user["id"], user["id"]]
+    conditions = ["(inviter_id = $1 OR invitee_id = $2)"]
+    idx = 3
 
     for key in request.query_params:
-        if key in ('team_id', 'inviter_id', 'invitee_id', 'status'):
+        if key in ('team_id', 'status'):
             conditions.append(f"{key} = ${idx}")
             params.append(request.query_params[key])
             idx += 1
 
-    if conditions:
-        query += " WHERE " + " AND ".join(conditions)
-
-    query += " ORDER BY created_date DESC"
+    query = f"SELECT * FROM team_invites WHERE {' AND '.join(conditions)} ORDER BY created_date DESC"
     return await fetch(query, *params)
 
 

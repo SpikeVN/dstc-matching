@@ -26,13 +26,15 @@ class SwipeUpdate(BaseModel):
 
 @router.get("")
 async def list_swipes(request: Request, user: dict = Depends(get_current_user)):
-    query = "SELECT * FROM swipe_actions"
-    params = []
-    conditions = []
-    idx = 1
+    # Restrict to the authenticated user's own swipes only.
+    # Additional optional filters (swiped_id, action, is_match) are scoped
+    # within the user's own swipes — users cannot enumerate others' swipes.
+    params = [user["id"]]
+    conditions = ["swiper_id = $1"]
+    idx = 2
 
     for key in request.query_params:
-        if key in ('swiper_id', 'swiped_id', 'action', 'is_match'):
+        if key in ('swiped_id', 'action', 'is_match'):
             if key == 'is_match':
                 conditions.append(f"{key} = ${idx}")
                 params.append(request.query_params[key] in ('true', '1'))
@@ -41,10 +43,7 @@ async def list_swipes(request: Request, user: dict = Depends(get_current_user)):
                 params.append(request.query_params[key])
             idx += 1
 
-    if conditions:
-        query += " WHERE " + " AND ".join(conditions)
-
-    query += " ORDER BY created_date DESC"
+    query = f"SELECT * FROM swipe_actions WHERE {' AND '.join(conditions)} ORDER BY created_date DESC"
     return await fetch(query, *params)
 
 

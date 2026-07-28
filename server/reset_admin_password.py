@@ -10,7 +10,11 @@ GOTRUE_URL = os.getenv("SUPABASE_URL") or os.getenv("GOTRUE_URL", "").rsplit("/a
 SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("GOTRUE_SERVICE_KEY", "")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-NEW_PASSWORD = "cteftu"
+NEW_PASSWORD = os.getenv("ADMIN_RESET_PASSWORD")
+if not NEW_PASSWORD:
+    print("ERROR: ADMIN_RESET_PASSWORD environment variable is required.")
+    print("Usage: ADMIN_RESET_PASSWORD=<new-password> python server/reset_admin_password.py")
+    sys.exit(1)
 
 async def main():
     # 1. Find admin user from the database

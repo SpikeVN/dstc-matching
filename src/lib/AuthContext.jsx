@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
   const checkAppState = async () => {
     const token = localStorage.getItem('access_token');
     const rt = localStorage.getItem('refresh_token');
-    console.log('[Auth] checkAppState:', { hasToken: !!token, hasRefresh: !!rt, tokenPrefix: token?.slice(0, 10) });
+    console.log('[Auth] checkAppState:', { hasToken: !!token, hasRefresh: !!rt });
 
     // No token → definitely not authenticated, skip the API call and loading state
     if (!localStorage.getItem('access_token')) {

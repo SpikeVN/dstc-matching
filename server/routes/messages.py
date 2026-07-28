@@ -34,25 +34,30 @@ class MessageUpdate(BaseModel):
 
 @router.get("")
 async def list_messages(request: Request, user: dict = Depends(get_current_user)):
-    query = "SELECT * FROM messages"
-    params = []
-    conditions = []
-    idx = 1
+    # Restrict to messages in matches where the authenticated user is a participant.
+    # Additional optional filters (match_id, sender_id, is_read) are scoped within
+    # those matches only — users cannot enumerate messages outside their own matches.
+    params = [user["id"], user["id"]]
+    conditions = ["(m.user1_id = $1 OR m.user2_id = $2)"]
+    idx = 3
 
     for key in request.query_params:
         if key in ('match_id', 'sender_id', 'receiver_id', 'is_read'):
             if key == 'is_read':
-                conditions.append(f"{key} = ${idx}")
+                conditions.append(f"msg.{key} = ${idx}")
                 params.append(request.query_params[key] in ('true', '1'))
+            elif key == 'receiver_id':
+                conditions.append(f"msg.{key} = ${idx}")
+                params.append(request.query_params[key])
             else:
-                conditions.append(f"{key} = ${idx}")
+                conditions.append(f"msg.{key} = ${idx}")
                 params.append(request.query_params[key])
             idx += 1
 
-    if conditions:
-        query += " WHERE " + " AND ".join(conditions)
-
-    query += " ORDER BY created_date ASC"
+    query = f"""SELECT msg.* FROM messages msg
+        JOIN matches m ON msg.match_id = m.id
+        WHERE {' AND '.join(conditions)}
+        ORDER BY msg.created_date ASC"""
     return await fetch(query, *params)
 
 
@@ -78,6 +83,10 @@ async def create_message(msg: MessageCreate, user: dict = Depends(get_current_us
 
     # Fetch match unconditionally (used for receiver resolution, block check, and pending limit)
     match = await fetch_one("SELECT * FROM matches WHERE id = $1", msg.match_id)
+
+    # Verify the authenticated user is a participant in the match
+    if not match or user["id"] not in (match["user1_id"], match["user2_id"]):
+        raise HTTPException(status_code=403, detail="Not authorized to send messages in this match")
 
     # Resolve receiver: use provided receiver_id, or look up from the match
     receiver_id = msg.receiver_id
@@ -163,12 +172,25 @@ async def update_message(message_id: str, update: MessageUpdate, user: dict = De
     return await fetch_one("SELECT * FROM messages WHERE id = $1", message_id)
 
 
+# Whitelist of columns allowed in bulk-update — prevents mass assignment
+# and SQL injection via user-controlled column names.
+_BULK_UPDATE_ALLOWED_COLUMNS = frozenset({"is_read", "delivered_at", "read_at"})
+
+
 @router.post("/bulk-update")
 async def bulk_update_messages(data: dict = Body(...), user: dict = Depends(get_current_user)):
     ids = data.get("ids", [])
     updates = data.get("updates", {})
     if not ids:
         return {"success": False, "error": "No ids provided"}
+
+    # Reject unknown column keys before touching the database
+    for key in updates:
+        if key not in _BULK_UPDATE_ALLOWED_COLUMNS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot update column: {key}",
+            )
 
     # Verify user is a participant in the matches owning these messages
     placeholders = ", ".join(f"${i+1}" for i in range(len(ids)))
@@ -184,12 +206,8 @@ async def bulk_update_messages(data: dict = Body(...), user: dict = Depends(get_
     vals = []
     idx = 1
     for key, value in updates.items():
-        if key == 'is_read':
-            fields.append(f"{key} = ${idx}")
-            vals.append(value)
-        else:
-            fields.append(f"{key} = ${idx}")
-            vals.append(value)
+        fields.append(f"{key} = ${idx}")
+        vals.append(value)
         idx += 1
 
     if fields:

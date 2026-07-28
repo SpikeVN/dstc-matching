@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import Optional
 from database import fetch, fetch_one, execute, generate_id, now, is_disabled
 from auth.dependencies import get_current_user
+from ratelimit import limiter
 from mailer import (
     fire_team_invitation,
     fire_team_acceptance,
@@ -124,21 +125,19 @@ async def invite_by_email(req: InviteByEmailRequest, user: dict = Depends(get_cu
 
 @router.get("")
 async def list_teams(request: Request, user: dict = Depends(get_current_user)):
-    query = "SELECT * FROM teams"
-    params = []
-    conditions = []
-    idx = 1
+    # Restrict to teams where the authenticated user is a member or leader.
+    # Additional optional filters (status, name) are scoped within those teams.
+    params = [user["id"], user["id"]]
+    conditions = ["(t.leader_id = $1 OR t.member_ids @> to_jsonb($2::text))"]
+    idx = 3
 
     for key in request.query_params:
-        if key in ("leader_id", "status", "name", "id"):
-            conditions.append(f"{key} = ${idx}")
+        if key in ("status", "name"):
+            conditions.append(f"t.{key} = ${idx}")
             params.append(request.query_params[key])
             idx += 1
 
-    if conditions:
-        query += " WHERE " + " AND ".join(conditions)
-
-    query += " ORDER BY created_date DESC"
+    query = f"SELECT t.* FROM teams t WHERE {' AND '.join(conditions)} ORDER BY t.created_date DESC"
     return await fetch(query, *params)
 
 
@@ -180,7 +179,8 @@ async def get_team(team_id: str, user: dict = Depends(get_current_user)):
 
 
 @router.post("")
-async def create_team(team: TeamCreate, user: dict = Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def create_team(request: Request, team: TeamCreate, user: dict = Depends(get_current_user)):
     if await is_disabled("matching_disabled"):
         raise HTTPException(status_code=400, detail="Đã hết thời hạn thực hiện matching.")
     tid = generate_id()
@@ -213,13 +213,14 @@ async def create_team(team: TeamCreate, user: dict = Depends(get_current_user)):
 
 
 @router.patch("/{team_id}")
+@limiter.limit("20/minute")
 async def update_team(
-    team_id: str, update: TeamUpdate, user: dict = Depends(get_current_user)
+    request: Request, team_id: str, update: TeamUpdate, user: dict = Depends(get_current_user)
 ):
     existing = await fetch_one("SELECT * FROM teams WHERE id = $1", team_id)
     if existing is None:
         raise HTTPException(status_code=404, detail="Team not found")
-    # Any member can update the team
+    # Any member can update the team, but only the leader can transfer leadership
     member_ids = existing.get("member_ids") or []
     if user["id"] not in member_ids and existing["leader_id"] != user["id"]:
         raise HTTPException(
@@ -231,7 +232,16 @@ async def update_team(
     idx = 1
     for key, value in update.model_dump(exclude_unset=True).items():
         if value is not None:
-            if key == "member_ids":
+            if key == "leader_id":
+                # Only the current leader can transfer leadership
+                if user["id"] != existing["leader_id"]:
+                    raise HTTPException(
+                        status_code=403,
+                        detail="Only the team leader can transfer leadership",
+                    )
+                fields.append(f"{key} = ${idx}")
+                vals.append(value)
+            elif key == "member_ids":
                 fields.append(f"{key} = ${idx}")
                 vals.append(json.dumps(value))
             else:

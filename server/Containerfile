@@ -48,10 +48,16 @@ COPY . .
 # curl for Docker healthchecks (Alpine doesn't ship it by default).
 RUN apk add --no-cache curl
 
+# Create non-root user for runtime security
+RUN adduser -D -s /bin/sh appuser
+
 ARG GIT_SHA=dev
 ENV GIT_SHA=${GIT_SHA} \
     API_PORT=36918
 EXPOSE ${API_PORT}
+
+# Drop privileges — uvicorn must never run as root
+USER appuser
 
 # uvicorn is available via .venv/bin/ on PATH.
 CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${API_PORT} --workers 1"]

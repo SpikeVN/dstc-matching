@@ -19,7 +19,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Build image
         working-directory: server
@@ -51,7 +51,7 @@ jobs:
           docker push "${IMAGE}:sha-${SHORT_SHA}"
 
       - name: Deploy to production
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@7e0a2d82ba5b45e3aa4efd5d424aafc59c2cb3a0 # v1.2.2
         with:
           host: mainframe.cteftu.id.vn
           username: root
@@ -64,7 +64,7 @@ jobs:
             exit $EXIT
 
       - name: Verify deployment
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@7e0a2d82ba5b45e3aa4efd5d424aafc59c2cb3a0 # v1.2.2
         with:
           host: mainframe.cteftu.id.vn
           username: root

@@ -230,13 +230,17 @@ async def list_profiles(request: Request, user: dict = Depends(get_current_user)
 @router.get("/contestant-profiles/{profile_id}")
 async def get_profile(profile_id: str, user: dict = Depends(get_current_user)):
     row = await fetch_one(
-        """SELECT cp.*, up.info_shown
+        """SELECT cp.*, up.info_shown,
+                  COALESCE(up.admin_visible, true) as admin_visible
            FROM contestant_profiles cp
            LEFT JOIN user_preferences up ON cp.created_by = up.user_id
            WHERE cp.id = $1""",
         profile_id,
     )
     if row is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    # Respect visibility: only the profile owner or admins can view hidden profiles
+    if not row.get("admin_visible", True) and row["created_by"] != user["id"] and user.get("admin_role", "user") == "user":
         raise HTTPException(status_code=404, detail="Profile not found")
     return _strip_hidden_fields(row, row.pop("info_shown", None))
 

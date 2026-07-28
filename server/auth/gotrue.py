@@ -67,8 +67,7 @@ async def login(email: str, password: str) -> dict:
 async def refresh(refresh_token: str) -> dict:
     """Refresh an expired access token."""
     sb = get_supabase()
-    preview = refresh_token[:20] + "..." if len(refresh_token) > 20 else refresh_token
-    print(f"[gotrue.refresh] refreshing rt={preview}")
+    print("[gotrue.refresh] attempting refresh")
     try:
         resp = await sb.auth.refresh_session(refresh_token)
     except Exception as exc:
