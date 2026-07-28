@@ -10,7 +10,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Message, MessageAvatar, MessageContent, MessageHeader, MessageFooter } from '@/components/ui/message';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { MessageScrollerProvider, MessageScroller, MessageScrollerViewport, MessageScrollerContent, MessageScrollerItem, MessageScrollerButton, useMessageScroller } from '@/components/ui/message-scroller';
-import { Send, ChevronLeft, ArrowDown, User, MessageCircle, Zap, Paperclip, FileText, Code, BookOpen, Archive, File, X, Download, MoreVertical, Users, Check, Loader2, Ban, UserMinus, Flag, Search, UserPlus } from 'lucide-react';
+import { Send, ChevronLeft, ArrowDown, User, MessageCircle, Zap, Paperclip, FileText, Code, BookOpen, Archive, File, X, Download, MoreVertical, Users, Check, Loader2, Ban, UserMinus, Flag, Search, UserPlus, Reply, Trash2 } from 'lucide-react';
 import { useOnlineContext } from '@/components/layout/AppLayout';
 import { toast } from 'sonner';
 import { formatDateTime, formatLastActive } from '@/lib/timeUtils';
@@ -219,10 +219,11 @@ function ConversationItem({ match, profile, currentUser, myProfile, profileMap, 
   );
 }
 
-function ChatBubble({ msg, isMe, senderProfile, showHeader, showFooter, showAvatar }) {
+function ChatBubble({ msg, isMe, senderProfile, showHeader, showFooter, showAvatar, onDelete, onReply, messageMap }) {
   const hasAttachment = !!msg.attachment_url;
   const isImage = msg.attachment_category === 'image';
   const Icon = CATEGORY_ICONS[msg.attachment_category] || File;
+  const { scrollToMessage } = useMessageScroller();
 
   const isFirstInGroup = showHeader;
   const isLastInGroup = showFooter;
@@ -245,63 +246,184 @@ function ChatBubble({ msg, isMe, senderProfile, showHeader, showFooter, showAvat
           ? 'rounded-tl-[6px] rounded-bl-2xl rounded-tr-2xl rounded-br-2xl'
           : 'rounded-tl-[6px] rounded-bl-[6px] rounded-tr-2xl rounded-br-2xl';
 
-  return (
-    <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-      <Message align={isMe ? 'end' : 'start'}>
-        {!isMe && showAvatar ? (
-          <MessageAvatar>
-            <Avatar className="w-7 h-7">
-              {senderProfile?.profile_image
-                ? <AvatarImage src={senderProfile.profile_image} alt="" />
-                : <AvatarFallback className="bg-muted/50 text-primary/30"><User className="w-3 h-3" /></AvatarFallback>
-              }
-            </Avatar>
-          </MessageAvatar>
-        ) : !isMe ? (
-          <div className="min-w-8 shrink-0" />
-        ) : null}
-        <MessageContent className="gap-1">
-          {!isMe && showHeader && (
-            <MessageHeader className="text-[10px] px-1 pb-0">
-              {senderProfile?.display_name}
-            </MessageHeader>
-          )}
-
-          {/* Text content */}
-          {msg.content && (
+  // ── Deleted message placeholder ──────────────────────────────────
+  if (msg.is_deleted) {
+    return (
+      <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+        <Message align={isMe ? 'end' : 'start'}>
+          {!isMe && showAvatar ? (
+            <MessageAvatar>
+              <Avatar className="w-7 h-7">
+                {senderProfile?.profile_image
+                  ? <AvatarImage src={senderProfile.profile_image} alt="" />
+                  : <AvatarFallback className="bg-muted/50 text-primary/30"><User className="w-3 h-3" /></AvatarFallback>
+                }
+              </Avatar>
+            </MessageAvatar>
+          ) : !isMe ? (
+            <div className="min-w-8 shrink-0" />
+          ) : null}
+          <MessageContent className="gap-1">
             <Bubble variant="ghost" align={isMe ? 'end' : 'start'}>
-              <BubbleContent className={`px-4 py-2.5 ${bubbleRadius} text-sm font-body leading-relaxed ${isMe ? '!bg-[#1e391e] !border-[#1e391e]' : '!bg-[#0e1b12] !border-[#0e1b12]'}`}>
-                <LinkifiedText text={msg.content} />
+              <BubbleContent className={`rounded-2xl px-4 py-2.5 text-xs font-body italic text-muted-foreground/40 bg-transparent border border-dashed border-muted-foreground/15`}>
+                Tin nhắn đã được gỡ
               </BubbleContent>
             </Bubble>
-          )}
+          </MessageContent>
+        </Message>
+        {showFooter && (
+          <MessageFooter className={`text-[9px] text-muted-foreground/50 px-1 mt-0.5 ${isMe ? 'justify-end' : 'pl-11'}`}>
+            {formatDateTime(msg.created_date, 'HH:mm')}
+          </MessageFooter>
+        )}
+      </div>
+    );
+  }
 
-          {/* Attachment */}
-          {hasAttachment && isImage && (
-            <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer"
-              className={`block overflow-hidden rounded-xl border border-primary/15 max-w-[280px] ${isMe ? 'self-end' : 'self-start'}`}>
-              <img src={msg.attachment_url} alt={msg.attachment_name || 'Image'}
-                className="max-w-full max-h-[200px] object-cover" loading="lazy" />
-            </a>
-          )}
-          {hasAttachment && !isImage && (
-            <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer"
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors max-w-[280px] ${isMe
-                ? 'bg-[#1e391e] border-[#1e391e] hover:bg-[#244524] self-end'
-                : 'bg-[#0e1b12] border-[#0e1b12] hover:bg-[#132218]'
-                }`}
-            >
-              <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isMe ? 'bg-primary/20' : 'bg-white/10'}`}>
-                <Icon className={`w-4 h-4 ${isMe ? 'text-primary' : 'text-primary/70'}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-body text-xs text-foreground truncate">{msg.attachment_name || 'File'}</p>
-              </div>
-              <Download className={`w-3.5 h-3.5 flex-shrink-0 ${isMe ? 'text-primary/60' : 'text-muted-foreground/60'}`} />
-            </a>
-          )}
-        </MessageContent>
-      </Message>
+  // ── Action buttons (appear on hover) ──────────────────────────────
+  const actions = isMe ? (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="p-1 rounded-lg hover:bg-primary/10 text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+        >
+          <MoreVertical className="w-3.5 h-3.5" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-32">
+        <DropdownMenuItem onClick={() => onDelete?.(msg.id)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs">
+          <Trash2 className="w-3.5 h-3.5 mr-2" />
+          Xóa
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  ) : (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onReply?.(msg); }}
+      className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground/40 hover:text-primary transition-colors"
+    >
+      <Reply className="w-3.5 h-3.5" />
+    </button>
+  );
+
+  return (
+    <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+      <div className={`flex flex-col min-w-0 ${isMe ? 'self-end' : 'self-start'}`}>
+        <Message align={isMe ? 'end' : 'start'}>
+          {!isMe && showAvatar ? (
+            <MessageAvatar>
+              <Avatar className="w-7 h-7">
+                {senderProfile?.profile_image
+                  ? <AvatarImage src={senderProfile.profile_image} alt="" />
+                  : <AvatarFallback className="bg-muted/50 text-primary/30"><User className="w-3 h-3" /></AvatarFallback>
+                }
+              </Avatar>
+            </MessageAvatar>
+          ) : !isMe ? (
+            <div className="min-w-8 shrink-0" />
+          ) : null}
+          <MessageContent className="gap-1">
+            {!isMe && showHeader && (
+              <MessageHeader className="text-[10px] px-1 pb-0">
+                {senderProfile?.display_name}
+              </MessageHeader>
+            )}
+
+            {/* Reply context — click to scroll to replied message */}
+            {msg.reply_to_id && messageMap?.[msg.reply_to_id] && (
+              <button
+                type="button"
+                onClick={() => scrollToMessage?.(msg.reply_to_id, { behavior: 'smooth', align: 'start' })}
+                className={`flex items-stretch gap-2 max-w-[280px] mb-0.5 ${isMe ? 'self-end flex-row-reverse text-right' : 'self-start text-left'}`}
+              >
+                <div className={`w-[3px] rounded-full flex-shrink-0 bg-primary/30`} />
+                <div className="min-w-0 py-0.5">
+                  <p className="text-[10px] font-body font-medium text-primary/60 truncate leading-tight">
+                    {messageMap[msg.reply_to_id].sender_id === msg.sender_id ? 'Đã trả lời' : 'Trả lời'}
+                  </p>
+                  <p className="text-[10px] font-body text-muted-foreground/40 truncate leading-tight">
+                    {messageMap[msg.reply_to_id].is_deleted
+                      ? 'Tin nhắn đã được gỡ'
+                      : (messageMap[msg.reply_to_id].content || (messageMap[msg.reply_to_id].attachment_url ? 'Hình ảnh' : ''))
+                    }
+                  </p>
+                </div>
+              </button>
+            )}
+
+            {/* Bubble content — wrapped as relative anchor for action buttons */}
+            <div className={`relative ${isMe ? 'self-end' : 'self-start'}`}>
+              {/* Text content */}
+              {msg.content && (
+                <Bubble variant="ghost" align={isMe ? 'end' : 'start'}>
+                  <BubbleContent className={`px-4 py-2.5 ${bubbleRadius} text-sm font-body leading-relaxed ${isMe ? '!bg-[#1e391e] !border-[#1e391e]' : '!bg-[#0e1b12] !border-[#0e1b12]'}`}>
+                    <LinkifiedText text={msg.content} />
+                  </BubbleContent>
+                </Bubble>
+              )}
+
+              {/* Attachment */}
+              {hasAttachment && isImage && (
+                <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer"
+                  className={`block overflow-hidden rounded-xl border border-primary/15 max-w-[280px] ${isMe ? 'self-end' : 'self-start'}`}>
+                  <img src={msg.attachment_url} alt={msg.attachment_name || 'Image'}
+                    className="max-w-full max-h-[200px] object-cover" loading="lazy" />
+                </a>
+              )}
+              {hasAttachment && !isImage && (
+                <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer"
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors max-w-[280px] ${isMe
+                    ? 'bg-[#1e391e] border-[#1e391e] hover:bg-[#244524] self-end'
+                    : 'bg-[#0e1b12] border-[#0e1b12] hover:bg-[#132218]'
+                    }`}
+                >
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isMe ? 'bg-primary/20' : 'bg-white/10'}`}>
+                    <Icon className={`w-4 h-4 ${isMe ? 'text-primary' : 'text-primary/70'}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-body text-xs text-foreground truncate">{msg.attachment_name || 'File'}</p>
+                  </div>
+                  <Download className={`w-3.5 h-3.5 flex-shrink-0 ${isMe ? 'text-primary/60' : 'text-muted-foreground/60'}`} />
+                </a>
+              )}
+
+              {/* Action buttons — centered on bubble content only (outside header/reply context) */}
+              {!msg.is_deleted && (
+                <div className={`absolute top-1/2 -translate-y-1/2 opacity-0 group-hover/message:opacity-100 transition-opacity duration-150 z-10 ${isMe ? 'right-full mr-2' : 'left-full ml-2'}`}>
+                  {isMe ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          className="p-1 rounded-lg hover:bg-primary/10 text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+                        >
+                          <MoreVertical className="w-3.5 h-3.5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align={isMe ? 'start' : 'end'} className="min-w-32">
+                        <DropdownMenuItem onClick={() => onDelete?.(msg.id)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs">
+                          <Trash2 className="w-3.5 h-3.5 mr-2" />
+                          Xóa
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onReply?.(msg); }}
+                      className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground/40 hover:text-primary transition-colors"
+                    >
+                      <Reply className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </MessageContent>
+        </Message>
+      </div>
       {showFooter && (
         <MessageFooter className={`text-[9px] text-muted-foreground/50 px-1 mt-0.5 ${isMe ? 'justify-end' : 'pl-11'}`}>
           {formatDateTime(msg.created_date, 'HH:mm')}
@@ -368,6 +490,7 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
   const queryClient = useQueryClient();
   const [message, setMessage] = useState('');
   const [pendingAttachment, setPendingAttachment] = useState(null);
+  const [replyingTo, setReplyingTo] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
   const [unmatchConfirmOpen, setUnmatchConfirmOpen] = useState(false);
@@ -392,7 +515,15 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
     queryKey: ['messages', match.id],
     queryFn: () => db.entities.Message.filter({ match_id: match.id }, 'created_date'),
     initialData: [],
+    staleTime: 2000,
+    refetchInterval: 3000,
   });
+
+  const messageMap = useMemo(() => {
+    const map = {};
+    (messages || []).forEach(m => { map[m.id] = m; });
+    return map;
+  }, [messages]);
 
   const sentCount = useMemo(() => {
     if (!messages) return 0;
@@ -424,8 +555,9 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
       await db.block.block(otherEmail);
       queryClient.invalidateQueries({ queryKey: ['matches'] });
       queryClient.invalidateQueries({ queryKey: ['blockedUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['blockedBy'] });
+      queryClient.invalidateQueries({ queryKey: ['blockedUsers', currentUser?.id] });
       setBlockConfirmOpen(false);
-      onBack();
       toast.success('Đã chặn người dùng');
     } catch (err) {
       toast.error('Lỗi: ' + (err?.message || 'Không xác định'));
@@ -491,6 +623,10 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
         name: reportAttachment?.name,
         type: reportAttachment?.type,
       });
+      // Report auto-blocks on the backend, so refresh block status
+      queryClient.invalidateQueries({ queryKey: ['blockedUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['blockedBy'] });
+      queryClient.invalidateQueries({ queryKey: ['blockedUsers', currentUser?.id] });
       setReportDialogOpen(false);
       setReportReason('');
       setReportAttachment(null);
@@ -562,8 +698,23 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
     markRead();
   }, [messages, match.id, currentUser?.id, queryClient]);
 
+  // ── Delete own message ──────────────────────────────────────────
+  const deleteMessageMutation = useMutation({
+    mutationFn: (messageId) => db.entities.Message.delete(messageId),
+    onSuccess: (_, messageId) => {
+      // Update cache locally — backend soft-deletes and clears content
+      queryClient.setQueryData(['messages', match.id], (old = []) =>
+        old.map(m => m.id === messageId
+          ? { ...m, is_deleted: true, content: '', attachment_url: '', attachment_type: '', attachment_name: '', attachment_category: '' }
+          : m
+        )
+      );
+    },
+    onError: (err) => toast.error('Không thể xóa tin nhắn: ' + (err?.message || 'Lỗi kết nối')),
+  });
+
   const sendMutation = useMutation({
-    mutationFn: ({ content, attachment }) => db.entities.Message.create({
+    mutationFn: ({ content, attachment, replyToId }) => db.entities.Message.create({
       match_id: match.id,
       sender_id: currentUser.id,
       receiver_id: otherEmail,
@@ -572,6 +723,7 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
       attachment_type: attachment?.type || '',
       attachment_name: attachment?.name || '',
       attachment_category: attachment?.category || '',
+      reply_to_id: replyToId || '',
     }),
     onSuccess: (newMsg) => {
       // Push directly into cache — no polling, realtime handles the other side
@@ -581,6 +733,7 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
       });
       setMessage('');
       setPendingAttachment(null);
+      setReplyingTo(null);
     },
   });
 
@@ -643,7 +796,7 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
     const hasText = message.trim();
     const hasFile = pendingAttachment;
     if (!hasText && !hasFile) return;
-    sendMutation.mutate({ content: message.trim(), attachment: pendingAttachment });
+    sendMutation.mutate({ content: message.trim(), attachment: pendingAttachment, replyToId: replyingTo?.id || '' });
   };
 
   return (
@@ -836,6 +989,9 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
                         showHeader={isFirstInGroup}
                         showAvatar={isLastInGroup}
                         showFooter={isLastInGroup}
+                        onDelete={(id) => deleteMessageMutation.mutate(id)}
+                        onReply={(m) => setReplyingTo(m)}
+                        messageMap={messageMap}
                       />
                     </div>
                   </MessageScrollerItem>
@@ -902,6 +1058,24 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
         </div>
       ) : (
         <div className="relative z-10 p-3 pb-safe border-t border-white/10 bg-background/60 backdrop-blur-md md:pb-3" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+          {/* Reply preview */}
+          {replyingTo && (
+            <div className="flex items-center gap-3 mb-2 px-3 py-2 rounded-lg bg-neutral-800/60 border border-neutral-700/50">
+              <div className="w-[3px] h-8 rounded-full bg-primary/40 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-body font-medium text-primary/60 truncate">
+                  {replyingTo.sender_id === currentUser?.id ? 'Đang trả lời chính mình' : `Đang trả lời ${profileMap[replyingTo.sender_id]?.display_name || 'ai đó'}`}
+                </p>
+                <p className="text-[11px] font-body text-muted-foreground/50 truncate">
+                  {replyingTo.is_deleted ? 'Tin nhắn đã được gỡ' : (replyingTo.content || (replyingTo.attachment_url ? 'Hình ảnh' : ''))}
+                </p>
+              </div>
+              <button onClick={() => setReplyingTo(null)}
+                className="p-1 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
           <div className="flex gap-2 items-center">
             <input ref={fileInputRef} type="file" accept={FILE_ACCEPT} className="hidden" onChange={handleFileSelect} />
             <button
@@ -1117,7 +1291,7 @@ export default function Messages() {
         db.entities.Match.filter({ user1_id: me.id }),
         db.entities.Match.filter({ user2_id: me.id }),
       ]);
-      return [...m1, ...m2].filter(m => m.status !== 'blocked');
+      return [...m1, ...m2];
     },
     initialData: [],
     enabled: !!currentUser,
@@ -1137,7 +1311,7 @@ export default function Messages() {
     queryKey: ['allProfilesForMatch'],
     queryFn: () => db.entities.ContestantProfile.list(),
     initialData: [],
-    refetchInterval: 30000,
+    refetchInterval: 120000,
   });
 
   const { data: myProfiles } = useQuery({
@@ -1148,7 +1322,7 @@ export default function Messages() {
     },
     initialData: [],
     enabled: !!currentUser,
-    refetchInterval: 15000,
+    refetchInterval: 120000,
   });
   const myProfile = myProfiles[0];
 
@@ -1160,7 +1334,6 @@ export default function Messages() {
     },
     initialData: [],
     enabled: !!currentUser,
-    refetchInterval: 5000,
   });
 
   const { data: receivedInvites } = useQuery({
@@ -1171,7 +1344,6 @@ export default function Messages() {
     },
     initialData: [],
     enabled: !!currentUser,
-    refetchInterval: 5000,
   });
 
   const sendTeamInviteMutation = useMutation({

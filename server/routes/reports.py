@@ -43,14 +43,6 @@ async def create_report(body: ReportCreate, user: dict = Depends(get_current_use
             bid, user["id"], body.reported_id, ts
         )
 
-    # Update any match between these two users to 'blocked' status
-    await execute(
-        """UPDATE public.matches SET status = 'blocked', updated_date = $1
-           WHERE ((user1_id = $2 AND user2_id = $3) OR (user1_id = $3 AND user2_id = $2))
-             AND (status = 'matched' OR status = 'pending')""",
-        ts, user["id"], body.reported_id
-    )
-
     # Delete swipe records so they don't appear in discover
     await execute(
         "DELETE FROM swipe_actions WHERE (swiper_id = $1 AND swiped_id = $2) OR (swiper_id = $2 AND swiped_id = $1)",

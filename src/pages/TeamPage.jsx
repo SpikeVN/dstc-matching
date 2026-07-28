@@ -37,7 +37,7 @@ export default function TeamPage() {
       return db.entities.ContestantProfile.filter({ created_by: me.id });
     },
     initialData: [],
-    refetchInterval: 15000,
+    refetchInterval: 120000,
   });
   const myProfile = myProfiles[0];
 
@@ -49,7 +49,7 @@ export default function TeamPage() {
     },
     initialData: [],
     enabled: !!currentUser,
-    refetchInterval: 10000,
+    refetchInterval: 120000,
   });
 
   const { data: teamById } = useQuery({
@@ -59,7 +59,7 @@ export default function TeamPage() {
     },
     initialData: [],
     enabled: !!myProfile?.team_id,
-    refetchInterval: 10000,
+    refetchInterval: 120000,
   });
 
   const myTeam = allTeamsAsLeader[0] || teamById[0] || null;
@@ -72,7 +72,6 @@ export default function TeamPage() {
     },
     initialData: [],
     enabled: !!currentUser,
-    refetchInterval: 5000,
   });
 
   const { data: sentInvites } = useQuery({
@@ -83,7 +82,6 @@ export default function TeamPage() {
     },
     initialData: [],
     enabled: !!currentUser && !!myTeam,
-    refetchInterval: 5000,
   });
 
   const { data: allProfiles } = useQuery({

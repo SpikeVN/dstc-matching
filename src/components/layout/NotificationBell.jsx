@@ -66,7 +66,6 @@ export default function NotificationBell({ compact }) {
     queryKey: ['notificationsUnread', currentUser?.id],
     queryFn: () => db.notifications.unreadCount(),
     enabled: !!currentUser,
-    refetchInterval: 30000,
   });
 
   const totalUnread = unreadCount?.count ?? 0;

@@ -1,4 +1,4 @@
-# DSTC Matching — FastAPI backend image.
+# DSTC Matching — FastAPI backend image (uv-based build).
 # Built and pushed to GHCR by .github/workflows/deploy-backend.yml.
 #
 # Build locally:
@@ -8,39 +8,50 @@
 
 # ── Builder: compile C extensions (asyncpg, cryptography) ───────────────
 FROM python:3.14-alpine AS builder
-ENV PIP_NO_CACHE_DIR=1 \
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
     PYTHONUNBUFFERED=1
 
-WORKDIR /install
+WORKDIR /app
+
+# Install uv from the official uv Docker image.
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 # gcc + musl-dev for any package without a cp314 wheel; asyncpg has no
 # libpq runtime dep so the runtime stage stays toolchain-free.
-RUN apk add --no-cache gcc musl-dev
+RUN apk add --no-cache build-base gcc musl-dev python3-dev linux-headers
 
-COPY requirements.txt .
-# Install into a prefix we copy verbatim into the runtime image (same Python 3.14).
-RUN pip install --prefix=/install -r requirements.txt
+# Install production dependencies (layer cached by uv.lock).
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project --no-editable
+
+# Copy the rest of the source and install the project itself.
+COPY . .
+RUN uv sync --frozen --no-dev --no-editable
 
 # ── Runtime: alpine, no toolchain ───────────────────────────────────────
 FROM python:3.14-alpine AS runtime
+
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /app
 
-# Installed packages from the builder stage.
-COPY --from=builder /install /usr/local
+# Full venv from builder (includes project + all deps, bytecode-compiled).
+COPY --from=builder /app/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
 
-# Application code (see .dockerignore for what is excluded).
+# Application code (templates, assets, etc.).
 COPY . .
 
 # curl for Docker healthchecks (Alpine doesn't ship it by default).
 RUN apk add --no-cache curl
 
 ARG GIT_SHA=dev
-ENV GIT_SHA=${GIT_SHA}
-ENV API_PORT=36918
+ENV GIT_SHA=${GIT_SHA} \
+    API_PORT=36918
 EXPOSE ${API_PORT}
 
-# uvicorn is installed into /usr/local/bin via the prefix copy above.
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${API_PORT}"]
+# uvicorn is available via .venv/bin/ on PATH.
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${API_PORT} --workers 1"]

@@ -19,7 +19,7 @@ git clone <repo-url> && cd dstc-matching
 bun install
 
 # Backend
-cd server && pip install -r requirements.txt && cd ..
+cd server && uv sync && cd ..
 ```
 
 ### 2. Set up environment variables

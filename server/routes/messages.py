@@ -23,6 +23,7 @@ class MessageCreate(BaseModel):
     attachment_type: str = ""
     attachment_name: str = ""
     attachment_category: str = ""
+    reply_to_id: str = ""
 
 
 class MessageUpdate(BaseModel):
@@ -107,10 +108,10 @@ async def create_message(msg: MessageCreate, user: dict = Depends(get_current_us
 
     await execute("""
         INSERT INTO messages (id, created_date, updated_date, match_id, sender_id, receiver_id, content, is_read,
-            attachment_url, attachment_type, attachment_name, attachment_category)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            attachment_url, attachment_type, attachment_name, attachment_category, reply_to_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
     """, mid, now_ts, now_ts, msg.match_id, msg.sender_id, receiver_id or "", msg.content, msg.is_read,
-         msg.attachment_url, msg.attachment_type, msg.attachment_name, msg.attachment_category)
+         msg.attachment_url, msg.attachment_type, msg.attachment_name, msg.attachment_category, msg.reply_to_id)
 
     # Send message notification email to receiver
     if receiver_id:
@@ -208,10 +209,21 @@ async def delete_message(message_id: str, user: dict = Depends(get_current_user)
     existing = await fetch_one("SELECT * FROM messages WHERE id = $1", message_id)
     if existing is None:
         raise HTTPException(status_code=404, detail="Message not found")
+    # Only the sender can delete their own message
+    if existing["sender_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this message")
     match = await fetch_one("SELECT * FROM matches WHERE id = $1", existing["match_id"])
     if not match or user["id"] not in (match["user1_id"], match["user2_id"]):
         raise HTTPException(status_code=403, detail="Not authorized to delete this message")
-    await execute("DELETE FROM messages WHERE id = $1", message_id)
+    # Soft delete: mark as deleted and clear content
+    await execute("""
+        UPDATE messages
+        SET is_deleted = true, content = '',
+            attachment_url = '', attachment_type = '',
+            attachment_name = '', attachment_category = '',
+            updated_date = $1
+        WHERE id = $2
+    """, now(), message_id)
     return {"success": True}
 
 

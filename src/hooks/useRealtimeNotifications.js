@@ -79,7 +79,19 @@ export function useRealtimeNotifications({ currentUser, profileMap, navigate }) 
           queryClient.setQueryData(['messages', msg.match_id], (old = []) => {
             if (!old) return old;
             return old.map(m => m.id === msg.id
-              ? { ...m, is_read: msg.is_read, read_at: msg.read_at, delivered_at: msg.delivered_at, updated_date: msg.updated_date }
+              ? {
+                  ...m,
+                  is_read: msg.is_read,
+                  read_at: msg.read_at,
+                  delivered_at: msg.delivered_at,
+                  updated_date: msg.updated_date,
+                  is_deleted: msg.is_deleted,
+                  content: msg.content,
+                  attachment_url: msg.attachment_url,
+                  attachment_type: msg.attachment_type,
+                  attachment_name: msg.attachment_name,
+                  attachment_category: msg.attachment_category,
+                }
               : m
             );
           });
@@ -133,6 +145,74 @@ export function useRealtimeNotifications({ currentUser, profileMap, navigate }) 
       )
       .subscribe((status) => {
         console.log('[realtime] matches channel:', status);
+      });
+
+    // ── Team invites (INSERT + UPDATE) ─────────────────────────────
+    const teamInvitesChannel = supabase
+      .channel('team-invites-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'team_invites' },
+        (payload) => {
+          const invite = payload.new;
+          if (invite.inviter_id === currentUser.id || invite.invitee_id === currentUser.id) {
+            queryClient.invalidateQueries({ queryKey: ['sentInvites'] });
+            queryClient.invalidateQueries({ queryKey: ['receivedInvites'] });
+            queryClient.invalidateQueries({ queryKey: ['myInvites'] });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'team_invites' },
+        (payload) => {
+          const invite = payload.new;
+          if (invite.inviter_id === currentUser.id || invite.invitee_id === currentUser.id) {
+            queryClient.invalidateQueries({ queryKey: ['sentInvites'] });
+            queryClient.invalidateQueries({ queryKey: ['receivedInvites'] });
+            queryClient.invalidateQueries({ queryKey: ['myInvites'] });
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[realtime] team_invites channel:', status);
+      });
+
+    // ── Contestant profiles (UPDATE) ──────────────────────────────
+    const profilesChannel = supabase
+      .channel('profiles-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'contestant_profiles' },
+        (payload) => {
+          const profile = payload.new;
+          // Invalidate all profile-list and single-profile queries
+          queryClient.invalidateQueries({ queryKey: ['allProfilesForMatch'] });
+          queryClient.invalidateQueries({ queryKey: ['allProfilesForTeam'] });
+          queryClient.invalidateQueries({ queryKey: ['allProfilesForNotif'] });
+          queryClient.invalidateQueries({ queryKey: ['myProfile'] });
+          // Also invalidate any individual profile filter cache
+          queryClient.invalidateQueries({ queryKey: ['contestantProfiles'] });
+        }
+      )
+      .subscribe((status) => {
+        console.log('[realtime] contestant_profiles channel:', status);
+      });
+
+    // ── Teams (INSERT + UPDATE) ──────────────────────────────────
+    const teamsChannel = supabase
+      .channel('teams-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'teams' },
+        (payload) => {
+          queryClient.invalidateQueries({ queryKey: ['allTeamsForLeader'] });
+          queryClient.invalidateQueries({ queryKey: ['myTeam'] });
+          queryClient.invalidateQueries({ queryKey: ['allTeams'] });
+        }
+      )
+      .subscribe((status) => {
+        console.log('[realtime] teams channel:', status);
       });
 
     // ── Notifications (INSERT) ───────────────────────────────────────
@@ -219,6 +299,9 @@ export function useRealtimeNotifications({ currentUser, profileMap, navigate }) 
     return () => {
       supabase.removeChannel(messagesChannel);
       supabase.removeChannel(matchesChannel);
+      supabase.removeChannel(teamInvitesChannel);
+      supabase.removeChannel(profilesChannel);
+      supabase.removeChannel(teamsChannel);
       supabase.removeChannel(notificationsChannel);
     };
   }, [currentUser?.id, profileMap, navigate, queryClient]);

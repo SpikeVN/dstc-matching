@@ -21,7 +21,7 @@ async def list_blocked_users(user: dict = Depends(get_current_user)):
 
 @router.post("")
 async def block_user(body: BlockCreate, user: dict = Depends(get_current_user)):
-    """Block a user. Also sets the match status to 'blocked'."""
+    """Block a user. Prevents future discover matches and deletes swipe records."""
     if body.blocked_id == user["id"]:
         raise HTTPException(status_code=400, detail="Cannot block yourself")
 
@@ -39,14 +39,6 @@ async def block_user(body: BlockCreate, user: dict = Depends(get_current_user)):
     await execute(
         "INSERT INTO public.blocked_users (id, blocker_id, blocked_id, created_date) VALUES ($1, $2, $3, $4)",
         bid, user["id"], body.blocked_id, ts
-    )
-
-    # Update any match between these two users to 'blocked' status
-    await execute(
-        """UPDATE public.matches SET status = 'blocked', updated_date = $1
-           WHERE ((user1_id = $2 AND user2_id = $3) OR (user1_id = $3 AND user2_id = $2))
-             AND (status = 'matched' OR status = 'pending')""",
-        ts, user["id"], body.blocked_id
     )
 
     # Delete swipe records so blocked user doesn't appear in discover
