@@ -10,6 +10,47 @@ async def _create_notification(user_id: str, type_: str, title: str, body: str =
     from routes.notifications import create_notification_helper
     await create_notification_helper(user_id, type_, title, body, data or {})
 
+
+async def _ensure_match(user1_id: str, user2_id: str, now_ts: str) -> str:
+    """Create a match record or reactivate an existing one. Returns the match id."""
+    existing_match = await fetch_one(
+        """SELECT id FROM matches
+           WHERE (user1_id = $1 AND user2_id = $2)
+              OR (user1_id = $2 AND user2_id = $1)
+           LIMIT 1""",
+        user1_id, user2_id,
+    )
+    if existing_match:
+        mid = existing_match["id"]
+        await execute(
+            "UPDATE matches SET status = 'matched', updated_date = $1 WHERE id = $2",
+            now_ts, mid,
+        )
+    else:
+        mid = generate_id()
+        await execute("""
+            INSERT INTO matches (id, created_date, updated_date, user1_id, user2_id, status, user1_confirmed, user2_confirmed)
+            VALUES ($1, $2, $3, $4, $5, 'matched', false, false)
+        """, mid, now_ts, now_ts, user1_id, user2_id)
+    return mid
+
+
+async def _create_match_notifications(user1_id: str, user2_id: str, match_id: str):
+    """Create in-app 'new_match' notifications for both users."""
+    for uid, other_id in ((user1_id, user2_id), (user2_id, user1_id)):
+        profile = await fetch_one(
+            "SELECT display_name FROM contestant_profiles WHERE created_by = $1",
+            other_id,
+        )
+        other_name = profile["display_name"] if profile else "Ai đó"
+        await _create_notification(
+            uid,
+            "new_match",
+            f"Match mới với {other_name}",
+            f"Bạn đã match với {other_name}",
+            {"match_id": match_id, "matched_user_id": other_id},
+        )
+
 router = APIRouter(prefix="/api/swipe-actions")
 
 
@@ -68,13 +109,41 @@ async def create_swipe(swipe: SwipeCreate, user: dict = Depends(get_current_user
     if swipe.swiper_id != user["id"]:
         raise HTTPException(status_code=403, detail="Cannot swipe on behalf of another user")
 
-    # Check for existing swipe from this user to the same target
+    # Check for existing swipe from this user to the same target.
+    # When looping back passed profiles, a re-pass is idempotent and
+    # upgrading a pass to a like is allowed. Duplicate likes are rejected.
     existing = await fetch_one(
         "SELECT * FROM swipe_actions WHERE swiper_id = $1 AND swiped_id = $2",
         swipe.swiper_id, swipe.swiped_id,
     )
     if existing:
-        raise HTTPException(status_code=409, detail="Already swiped on this user")
+        if existing["action"] == swipe.action:
+            # Same action again — idempotent, return the existing record
+            return existing
+        if existing["action"] == "like":
+            # Already liked; cannot downgrade to pass
+            raise HTTPException(status_code=409, detail="Already liked this user")
+        # existing action was 'pass', new action is 'like' — upgrade
+        now_ts = now()
+        await execute(
+            "UPDATE swipe_actions SET action = $1, updated_date = $2 WHERE id = $3",
+            "like", now_ts, existing["id"],
+        )
+
+        # Check for mutual like
+        reciprocal = await fetch_one(
+            "SELECT * FROM swipe_actions WHERE swiper_id = $1 AND swiped_id = $2 AND action = 'like'",
+            swipe.swiped_id, swipe.swiper_id,
+        )
+        if reciprocal:
+            # Mark both swipes and create/reactivate match
+            await execute("UPDATE swipe_actions SET is_match = true WHERE id = $1", existing["id"])
+            await execute("UPDATE swipe_actions SET is_match = true WHERE id = $1", reciprocal["id"])
+            mid = await _ensure_match(swipe.swiper_id, swipe.swiped_id, now_ts)
+            fire_match_notification(swipe.swiper_id, swipe.swiped_id, mid)
+            await _create_match_notifications(swipe.swiper_id, swipe.swiped_id, mid)
+
+        return await fetch_one("SELECT * FROM swipe_actions WHERE id = $1", existing["id"])
 
     # Server determines if this is a match (mutual like)
     is_match = False
@@ -93,51 +162,13 @@ async def create_swipe(swipe: SwipeCreate, user: dict = Depends(get_current_user
         VALUES ($1, $2, $3, $4, $5, $6, $7)
     """, sid, now_ts, now_ts, swipe.swiper_id, swipe.swiped_id, swipe.action, is_match)
 
-    # If mutual like, create or reactivate a match record
     if is_match:
-        # Check for existing match (including unmatched ones) to avoid duplicates
-        existing_match = await fetch_one(
-            """SELECT id FROM matches
-               WHERE (user1_id = $1 AND user2_id = $2)
-                  OR (user1_id = $2 AND user2_id = $1)
-               LIMIT 1""",
-            swipe.swiper_id, swipe.swiped_id,
-        )
-        if existing_match:
-            # Reactivate the existing match
-            mid = existing_match["id"]
-            await execute(
-                "UPDATE matches SET status = 'matched', updated_date = $1 WHERE id = $2",
-                now_ts, mid,
-            )
-        else:
-            mid = generate_id()
-            await execute("""
-                INSERT INTO matches (id, created_date, updated_date, user1_id, user2_id, status, user1_confirmed, user2_confirmed)
-                VALUES ($1, $2, $3, $4, $5, 'matched', false, false)
-            """, mid, now_ts, now_ts, swipe.swiper_id, swipe.swiped_id)
-        # Update both swipes to reflect the match
+        mid = await _ensure_match(swipe.swiper_id, swipe.swiped_id, now_ts)
         await execute("UPDATE swipe_actions SET is_match = true WHERE id = $1", sid)
         await execute("UPDATE swipe_actions SET is_match = true WHERE swiper_id = $1 AND swiped_id = $2",
                       swipe.swiped_id, swipe.swiper_id)
-        # Send match notification email to both users
         fire_match_notification(swipe.swiper_id, swipe.swiped_id, mid)
-
-        # Create in-app notifications for both users
-        for uid in (swipe.swiper_id, swipe.swiped_id):
-            other_id = swipe.swiped_id if uid == swipe.swiper_id else swipe.swiper_id
-            profile = await fetch_one(
-                "SELECT display_name FROM contestant_profiles WHERE created_by = $1",
-                other_id,
-            )
-            other_name = profile["display_name"] if profile else "Ai đó"
-            await _create_notification(
-                uid,
-                "new_match",
-                f"Match mới với {other_name}",
-                f"Bạn đã match với {other_name}",
-                {"match_id": mid, "matched_user_id": other_id},
-            )
+        await _create_match_notifications(swipe.swiper_id, swipe.swiped_id, mid)
 
     return await fetch_one("SELECT * FROM swipe_actions WHERE id = $1", sid)
 

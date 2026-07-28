@@ -1,6 +1,6 @@
-import { db } from '@/api/apiClient';
+import { db, request } from '@/api/apiClient';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -9,22 +9,7 @@ import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-mo
 import SwipeCard from '@/components/discover/SwipeCard';
 import MatchOverlay from '@/components/discover/MatchOverlay';
 import FilterPanel from '@/components/discover/FilterPanel';
-import { COMPLEMENTARY_ROLES } from '@/lib/constants';
 import { Link, useNavigate } from 'react-router-dom';
-
-function computeScore(myProfile, candidate) {
-  let score = 0;
-  const mySkills = new Set(myProfile.technical_skills || []);
-  const theirSkills = new Set(candidate.technical_skills || []);
-  for (const s of theirSkills) { if (!mySkills.has(s)) score += 3; }
-  const myGoals = new Set(myProfile.goals || []);
-  for (const g of (candidate.goals || [])) { if (myGoals.has(g)) score += 5; }
-  const compRoles = COMPLEMENTARY_ROLES[myProfile.role] || [];
-  if (candidate.role && compRoles.includes(candidate.role)) score += 8;
-  const expLevels = { "Chưa thi lần nào": 0, "Đã thi cuộc thi về Quant": 1, "Đã từng thi DSTC": 2 };
-  if (Math.abs((expLevels[myProfile.experience] ?? 0) - (expLevels[candidate.experience] ?? 0)) <= 1) score += 2;
-  return score;
-}
 
 function DraggableCard({ profile, onSwipe }) {
   const x = useMotionValue(0);
@@ -83,6 +68,7 @@ export default function Discover() {
   const [filters, setFilters] = useState({ roles: [], experience: [], goals: [], tools: [], frameworks: [], skillset: [], soft_skills: [], cities: [] });
   const [swipeDir, setSwipeDir] = useState(null);
   const [seenInCurrentRound, setSeenInCurrentRound] = useState(new Set());
+  const [roundId, setRoundId] = useState(0);
 
   const { data: myProfiles } = useQuery({
     queryKey: ['myProfile'],
@@ -94,41 +80,23 @@ export default function Discover() {
   });
   const myProfile = myProfiles[0];
 
-  const { data: allProfiles } = useQuery({
-    queryKey: ['allProfiles', filters],
-    queryFn: () => {
-      // Map frontend filter state to backend query params
-      const params = {};
-      if (filters.roles?.length) params.role = filters.roles;
-      if (filters.experience?.length) params.experience = filters.experience;
-      if (filters.goals?.length) params.goal = filters.goals;
-      if (filters.cities?.length) params.city = filters.cities;
-      const skillFilters = [...(filters.tools || []), ...(filters.frameworks || []), ...(filters.skillset || [])];
-      if (skillFilters.length) params.technical_skill = skillFilters;
-      if (filters.soft_skills?.length) params.soft_skill = filters.soft_skills;
-      // Only send params when filters are active; otherwise list() returns everything
-      return Object.keys(params).length > 0
-        ? db.entities.ContestantProfile.filter(params)
-        : db.entities.ContestantProfile.list();
-    },
-    initialData: [],
-    enabled: !!myProfile,
-  });
-
-  const { data: mySwipes } = useQuery({
-    queryKey: ['mySwipes'],
+  const { data: recommendationsData } = useQuery({
+    queryKey: ['recommendations', filters, roundId],
     queryFn: async () => {
-      const me = await db.auth.me();
-      return db.entities.SwipeAction.filter({ swiper_id: me.id });
+      const params = new URLSearchParams();
+      params.set('n', '999');
+      if (roundId > 0) params.set('include_passed', 'true');
+      if (filters.roles?.length) filters.roles.forEach(v => params.append('role', v));
+      if (filters.experience?.length) filters.experience.forEach(v => params.append('experience', v));
+      if (filters.goals?.length) filters.goals.forEach(v => params.append('goal', v));
+      if (filters.cities?.length) filters.cities.forEach(v => params.append('city', v));
+      const skillFilters = [...(filters.tools || []), ...(filters.frameworks || []), ...(filters.skillset || [])];
+      if (skillFilters.length) skillFilters.forEach(v => params.append('technical_skill', v));
+      if (filters.soft_skills?.length) filters.soft_skills.forEach(v => params.append('soft_skill', v));
+      const qs = params.toString();
+      return request('GET', `/api/recommendations${qs ? `?${qs}` : ''}`);
     },
-    initialData: [],
-    enabled: !!myProfile,
-  });
-
-  const { data: blockedUsers } = useQuery({
-    queryKey: ['blockedUsers', myProfile?.created_by],
-    queryFn: () => db.block.list(),
-    initialData: [],
+    initialData: { recommendations: [], total_remaining: 0 },
     enabled: !!myProfile,
   });
 
@@ -137,53 +105,24 @@ export default function Discover() {
   }, [filters]);
 
   const candidates = useMemo(() => {
-    if (!myProfile || !allProfiles.length) return [];
-    const likedIds = new Set(mySwipes.filter(s => s.action === 'like').map(s => s.swiped_id));
-    const blockedIds = new Set(blockedUsers.map(b => b.blocked_id));
-    let filtered = allProfiles.filter(p =>
-      p.created_by !== myProfile.created_by &&
-      p.display_name &&
-      !likedIds.has(p.created_by) &&
-      !blockedIds.has(p.created_by) &&
-      !seenInCurrentRound.has(p.created_by)
-    );
-    if (filters.roles?.length > 0) filtered = filtered.filter(p => filters.roles.includes(p.role));
-    if (filters.experience?.length > 0) filtered = filtered.filter(p => filters.experience.includes(p.experience));
-    if (filters.goals?.length > 0) filtered = filtered.filter(p =>
-      filters.goals.some(g => (p.goals || []).includes(g))
-    );
-    if (filters.cities?.length > 0) {
-      filtered = filtered.filter(p => {
-        const city = (p.city || '').toLowerCase();
-        return filters.cities.some(c => {
-          if (c === 'Hà Nội') return city.includes('hà nội');
-          if (c === 'Hồ Chí Minh') return city.includes('hồ chí minh');
-          if (c === 'Tỉnh/Thành phố khác') return !city.includes('hà nội') && !city.includes('hồ chí minh');
-          return false;
-        });
-      });
-    }
-    const skillFilters = [...(filters.tools || []), ...(filters.frameworks || []), ...(filters.skillset || [])];
-    if (skillFilters.length > 0) filtered = filtered.filter(p =>
-      skillFilters.some(s => (p.technical_skills || []).includes(s))
-    );
-    if (filters.soft_skills?.length > 0) filtered = filtered.filter(p =>
-      filters.soft_skills.some(s => (p.soft_skills || []).includes(s))
-    );
-    return filtered.sort((a, b) => computeScore(myProfile, b) - computeScore(myProfile, a));
-  }, [myProfile, allProfiles, mySwipes, seenInCurrentRound, filters]);
+    const list = recommendationsData.recommendations || [];
+    return list.filter(p => !seenInCurrentRound.has(p.created_by));
+  }, [recommendationsData, seenInCurrentRound]);
 
   const safeIndex = candidates.length > 0 ? Math.min(currentIndex, candidates.length - 1) : 0;
   const currentCandidate = candidates[safeIndex];
   const remaining = Math.max(0, candidates.length - safeIndex);
 
-  // Reset round when all candidates have been seen — passed candidates reappear
-  useEffect(() => {
-    if (candidates.length === 0 && seenInCurrentRound.size > 0) {
-      setSeenInCurrentRound(new Set());
-      setCurrentIndex(0);
-    }
-  }, [candidates.length, seenInCurrentRound.size]);
+  // Exhausted: no more candidates left (either swiped in-session or
+  // all profiles were already passed on a previous visit).  When filters
+  // are active, let the filter-specific empty message take priority.
+  const isExhausted = candidates.length === 0 && activeFilters === 0;
+
+  const handleRestartRound = () => {
+    setRoundId(r => r + 1);
+    setSeenInCurrentRound(new Set());
+    setCurrentIndex(0);
+  };
 
   const swipeMutation = useMutation({
     mutationFn: async ({ action, candidateEmail }) => {
@@ -191,7 +130,7 @@ export default function Discover() {
       return { matched: result?.is_match ?? false };
     },
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['mySwipes'] });
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       queryClient.invalidateQueries({ queryKey: ['matches'] });
       if (result.matched) { setMatchedProfile(currentCandidate); setShowMatch(true); }
     },
@@ -306,18 +245,31 @@ export default function Discover() {
                 >
                   <div className="text-center glass-card rounded-2xl p-8 border border-primary/15 w-full">
                     <RotateCcw className="w-10 h-10 text-primary/20 mx-auto mb-3" />
-                    <p className="font-display text-sm text-foreground font-semibold mb-1">
-                      {activeFilters > 0 ? 'Không tìm thấy ứng viên' : 'Đã hết ứng viên!'}
-                    </p>
-                    <p className="font-body text-xs text-muted-foreground mt-1 mb-4">
-                      {activeFilters > 0 ? 'Thử thay đổi bộ lọc' : 'Quay lại sau hoặc bỏ lọc'}
-                    </p>
-                    {activeFilters > 0 && (
-                      <Button size="sm" variant="outline"
-                        className="font-display text-xs border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
-                        onClick={() => setFilters({ roles: [], experience: [], goals: [], tools: [], frameworks: [], skillset: [], soft_skills: [], cities: [] })}>
-                        Bỏ lọc
-                      </Button>
+                    {isExhausted ? (
+                      <>
+                        <p className="font-display text-sm text-foreground font-semibold mb-1">
+                          Không còn ứng viên nào nữa
+                        </p>
+                        <p className="font-body text-xs text-muted-foreground mt-1 mb-4">
+                          Quay lại sau.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-display text-sm text-foreground font-semibold mb-1">
+                          {activeFilters > 0 ? 'Không tìm thấy ứng viên' : 'Đã hết ứng viên!'}
+                        </p>
+                        <p className="font-body text-xs text-muted-foreground mt-1 mb-4">
+                          {activeFilters > 0 ? 'Thử thay đổi bộ lọc' : 'Quay lại sau hoặc bỏ lọc'}
+                        </p>
+                        {activeFilters > 0 && (
+                          <Button size="sm" variant="outline"
+                            className="font-display text-xs border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
+                            onClick={() => setFilters({ roles: [], experience: [], goals: [], tools: [], frameworks: [], skillset: [], soft_skills: [], cities: [] })}>
+                            Bỏ lọc
+                          </Button>
+                        )}
+                      </>
                     )}
                   </div>
                 </motion.div>

@@ -80,7 +80,14 @@ module.exports = {
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out'
-			}
+			},
+			transitionDuration: {
+				400: '400ms',
+			},
+			transitionTimingFunction: {
+				'swipe-out': 'cubic-bezier(0.7, 0, 0.84, 0)',
+				'swipe-in': 'cubic-bezier(0.23, 1, 0.32, 1)',
+			},
 		}
 	},
 	plugins: [
