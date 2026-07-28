@@ -108,7 +108,12 @@ async def delete_match(match_id: str, user: dict = Depends(get_current_user)):
     if user["id"] not in (existing["user1_id"], existing["user2_id"]):
         raise HTTPException(status_code=403, detail="Not authorized to delete this match")
 
-    # Soft-delete: keep match visible, just change status
+    # Soft-delete: keep match visible, just change status.
+    # Also delete swipe actions between these users so they can re-match later.
+    await execute(
+        "DELETE FROM swipe_actions WHERE (swiper_id = $1 AND swiped_id = $2) OR (swiper_id = $2 AND swiped_id = $1)",
+        existing["user1_id"], existing["user2_id"],
+    )
     await execute(
         "UPDATE matches SET status = 'unmatched', updated_date = $1 WHERE id = $2",
         now(), match_id,
