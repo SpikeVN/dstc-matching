@@ -396,6 +396,17 @@ export default function Settings() {
               <Button onClick={handlePasswordChange} className="w-full h-9 font-display text-xs font-medium bg-primary text-background hover:bg-primary/90 transition-all duration-200 mt-2">
                 Cập nhật mật khẩu
               </Button>
+
+              <div className="md:hidden pt-4 mt-4 border-t border-primary/10">
+                <Button
+                  onClick={() => { logout(); navigate('/'); }}
+                  variant="outline"
+                  className="w-full h-10 font-display text-xs font-medium gap-2 border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive/50 md:hidden"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Đăng xuất
+                </Button>
+              </div>
             </div>
           </div>
         );

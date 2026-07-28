@@ -4,13 +4,13 @@ import React, { useState, useMemo, useEffect } from 'react';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { X, Heart, RotateCcw, Sparkles, ChevronRight, SlidersHorizontal, Zap } from 'lucide-react';
+import { X, Heart, RotateCcw, Sparkles, ChevronRight, ChevronLeft, Zap, Filter } from 'lucide-react';
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion';
 import SwipeCard from '@/components/discover/SwipeCard';
 import MatchOverlay from '@/components/discover/MatchOverlay';
 import FilterPanel from '@/components/discover/FilterPanel';
 import { COMPLEMENTARY_ROLES } from '@/lib/constants';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 function computeScore(myProfile, candidate) {
   let score = 0;
@@ -74,6 +74,7 @@ function DraggableCard({ profile, onSwipe }) {
 }
 
 export default function Discover() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matchedProfile, setMatchedProfile] = useState(null);
@@ -94,8 +95,22 @@ export default function Discover() {
   const myProfile = myProfiles[0];
 
   const { data: allProfiles } = useQuery({
-    queryKey: ['allProfiles'],
-    queryFn: () => db.entities.ContestantProfile.list(),
+    queryKey: ['allProfiles', filters],
+    queryFn: () => {
+      // Map frontend filter state to backend query params
+      const params = {};
+      if (filters.roles?.length) params.role = filters.roles;
+      if (filters.experience?.length) params.experience = filters.experience;
+      if (filters.goals?.length) params.goal = filters.goals;
+      if (filters.cities?.length) params.city = filters.cities;
+      const skillFilters = [...(filters.tools || []), ...(filters.frameworks || []), ...(filters.skillset || [])];
+      if (skillFilters.length) params.technical_skill = skillFilters;
+      if (filters.soft_skills?.length) params.soft_skill = filters.soft_skills;
+      // Only send params when filters are active; otherwise list() returns everything
+      return Object.keys(params).length > 0
+        ? db.entities.ContestantProfile.filter(params)
+        : db.entities.ContestantProfile.list();
+    },
     initialData: [],
     enabled: !!myProfile,
   });
@@ -213,116 +228,138 @@ export default function Discover() {
   }
 
   return (
-    <div className="h-screen flex flex-col items-center pb-10 px-4 grid-overlay overflow-hidden">
-      {/* Header */}
-      <div className="w-full max-w-sm pt-4 pb-3">
-        <div className="flex items-center justify-between mb-1">
-          <div>
-            <h1 className="font-display font-bold text-sm tracking-wide text-primary">Tìm đồng đội</h1>
+    <>
+      {/* Mobile header — fixed to top, placed OUTSIDE overflow-hidden to avoid click-area clipping */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-20 bg-background/80 px-4 pt-3 pb-2 border-b border-primary/10">
+        <div className="flex items-center justify-between max-w-lg mx-auto">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center justify-center w-11 h-11 -ml-1.5 rounded-full hover:bg-primary/10 active:bg-primary/15 transition-colors shrink-0 touch-manipulation"
+          >
+            <ChevronLeft className="w-5 h-5 text-primary" />
+          </button>
+          <div className="text-center min-w-0 px-2">
+            <h1 className="font-display font-bold text-sm tracking-wide text-primary truncate">Tìm đồng đội</h1>
             <p className="text-muted-foreground font-body text-xs">{remaining} ứng viên{activeFilters > 0 ? ` (đã lọc)` : ''}</p>
           </div>
           <button
             onClick={() => setShowFilter(true)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-body transition-all ${activeFilters > 0
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg border text-xs font-body transition-all shrink-0 touch-manipulation ${activeFilters > 0
               ? 'border-primary/50 bg-primary/10 text-primary'
-              : 'border-primary/15 text-muted-foreground hover:border-primary/30 hover:text-foreground'
+              : 'border-primary/15 text-muted-foreground hover:border-primary/30 hover:text-foreground active:bg-primary/5'
               }`}
           >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <Filter className="w-4 h-4" />
             Lọc {activeFilters > 0 && <span className="bg-primary text-background rounded px-1 text-[10px] font-display font-bold">{activeFilters}</span>}
           </button>
         </div>
-        {/* Progress */}
-        {candidates.length > 0 && (
-          <div className="h-1 bg-muted rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-primary rounded-full"
-              animate={{ width: `${Math.min(100, (currentIndex / candidates.length) * 100)}%` }}
-              transition={{ duration: 0.4 }}
-            />
-          </div>
-        )}
       </div>
 
-      {/* Card area */}
-      <div className="relative w-full max-w-sm flex-1 min-h-0">
-        <AnimatePresence mode="wait">
-          {currentCandidate ? (
-            <motion.div
-              key={`${currentCandidate.id}-${currentIndex}`}
-              initial={{ scale: 0.9, opacity: 0, y: 16 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{
-                x: swipeDir === 'like' ? 400 : swipeDir === 'pass' ? -400 : 0,
-                rotate: swipeDir === 'like' ? 20 : swipeDir === 'pass' ? -20 : 0,
-                opacity: 0,
-              }}
-              transition={{ duration: 0.22, ease: 'easeOut' }}
-              className="absolute inset-0"
-            >
-              <DraggableCard profile={currentCandidate} onSwipe={handleSwipe} />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="empty"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="absolute inset-0 flex items-center justify-center"
-            >
-              <div className="text-center glass-card rounded-2xl p-8 border border-primary/15 w-full">
-                <RotateCcw className="w-10 h-10 text-primary/20 mx-auto mb-3" />
-                <p className="font-display text-sm text-foreground font-semibold mb-1">
-                  {activeFilters > 0 ? 'Không tìm thấy ứng viên' : 'Đã hết ứng viên!'}
-                </p>
-                <p className="font-body text-xs text-muted-foreground mt-1 mb-4">
-                  {activeFilters > 0 ? 'Thử thay đổi bộ lọc' : 'Quay lại sau hoặc bỏ lọc'}
-                </p>
-                {activeFilters > 0 && (
-                  <Button size="sm" variant="outline"
-                    className="font-display text-xs border-primary/30 text-primary hover:bg-primary/10"
-                    onClick={() => setFilters({ roles: [], experience: [], goals: [], tools: [], frameworks: [], skillset: [], soft_skills: [], cities: [] })}>
-                    Bỏ lọc
-                  </Button>
-                )}
+      <div className="h-screen flex flex-col items-center overflow-hidden grid-overlay">
+        {/* Padded container for everything else — pt-16 gives room for fixed mobile header */}
+        <div className="flex-1 w-full max-w-sm flex flex-col items-center pb-10 pt-16 md:pt-0 px-4">
+          {/* Desktop header */}
+          <div className="hidden md:block w-full pt-4 pb-3">
+            <div className="flex items-center justify-between mb-1">
+              <div>
+                <h1 className="font-display font-bold text-sm tracking-wide text-primary">Tìm đồng đội</h1>
+                <p className="text-muted-foreground font-body text-xs">{remaining} ứng viên{activeFilters > 0 ? ` (đã lọc)` : ''}</p>
               </div>
-            </motion.div>
+              <button
+                onClick={() => setShowFilter(true)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-body transition-all ${activeFilters > 0
+                  ? 'border-primary/50 bg-primary/10 text-primary'
+                  : 'border-primary/15 text-muted-foreground hover:border-primary/30 hover:text-foreground'
+                  }`}
+              >
+                <Filter className="w-3.5 h-3.5" />
+                Lọc {activeFilters > 0 && <span className="bg-primary text-background rounded px-1 text-[10px] font-display font-bold">{activeFilters}</span>}
+              </button>
+            </div>
+            <div className="w-full h-px bg-primary/10 mt-2 mb-3" />
+          </div>
+
+          {/* Card area */}
+          <div className="relative w-full flex-1 min-h-0">
+            <AnimatePresence mode="wait">
+              {currentCandidate ? (
+                <motion.div
+                  key={`${currentCandidate.id}-${currentIndex}`}
+                  initial={{ scale: 0.9, opacity: 0, y: 16 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{
+                    x: swipeDir === 'like' ? 400 : swipeDir === 'pass' ? -400 : 0,
+                    rotate: swipeDir === 'like' ? 20 : swipeDir === 'pass' ? -20 : 0,
+                    opacity: 0,
+                  }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  className="absolute inset-0"
+                >
+                  <DraggableCard profile={currentCandidate} onSwipe={handleSwipe} />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="empty"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="absolute inset-0 flex items-center justify-center"
+                >
+                  <div className="text-center glass-card rounded-2xl p-8 border border-primary/15 w-full">
+                    <RotateCcw className="w-10 h-10 text-primary/20 mx-auto mb-3" />
+                    <p className="font-display text-sm text-foreground font-semibold mb-1">
+                      {activeFilters > 0 ? 'Không tìm thấy ứng viên' : 'Đã hết ứng viên!'}
+                    </p>
+                    <p className="font-body text-xs text-muted-foreground mt-1 mb-4">
+                      {activeFilters > 0 ? 'Thử thay đổi bộ lọc' : 'Quay lại sau hoặc bỏ lọc'}
+                    </p>
+                    {activeFilters > 0 && (
+                      <Button size="sm" variant="outline"
+                        className="font-display text-xs border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
+                        onClick={() => setFilters({ roles: [], experience: [], goals: [], tools: [], frameworks: [], skillset: [], soft_skills: [], cities: [] })}>
+                        Bỏ lọc
+                      </Button>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Action buttons */}
+          {currentCandidate && (
+            <div className="flex items-center gap-6 mt-5">
+              <motion.button
+                whileTap={{ scale: 0.88 }}
+                className="w-14 h-14 rounded-full glass-card border-2 border-destructive/40 hover:border-destructive/70 hover:bg-destructive/10 flex items-center justify-center transition-all duration-150 shadow-lg"
+                onClick={() => handleSwipe('pass')}
+              >
+                <X className="w-6 h-6 text-destructive" />
+              </motion.button>
+
+              <motion.button
+                whileTap={{ scale: 0.88 }}
+                className="w-14 h-14 rounded-full glass-card border-2 border-primary/40 hover:border-primary/70 hover:bg-primary/10 flex items-center justify-center transition-all duration-150 shadow-lg"
+                onClick={() => handleSwipe('like')}
+              >
+                <Heart className="w-6 h-6 text-primary fill-primary" />
+              </motion.button>
+            </div>
           )}
-        </AnimatePresence>
-      </div>
 
-      {/* Action buttons */}
-      {currentCandidate && (
-        <div className="flex items-center gap-6 mt-5">
-          <motion.button
-            whileTap={{ scale: 0.88 }}
-            className="w-14 h-14 rounded-full glass-card border-2 border-destructive/40 hover:border-destructive/70 hover:bg-destructive/10 flex items-center justify-center transition-all duration-150 shadow-lg"
-            onClick={() => handleSwipe('pass')}
-          >
-            <X className="w-6 h-6 text-destructive" />
-          </motion.button>
-
-          <motion.button
-            whileTap={{ scale: 0.88 }}
-            className="w-14 h-14 rounded-full glass-card border-2 border-primary/40 hover:border-primary/70 hover:bg-primary/10 flex items-center justify-center transition-all duration-150 shadow-lg"
-            onClick={() => handleSwipe('like')}
-          >
-            <Heart className="w-6 h-6 text-primary fill-primary" />
-          </motion.button>
+          {currentCandidate && (
+            <p className="font-body text-[10px] text-muted-foreground/40 mt-3">← vuốt để bỏ qua · vuốt để thích →</p>
+          )}
         </div>
-      )}
 
-      {currentCandidate && (
-        <p className="font-body text-[10px] text-muted-foreground/40 mt-3">← vuốt để bỏ qua · vuốt để thích →</p>
-      )}
+        <FilterPanel
+          open={showFilter}
+          onClose={() => setShowFilter(false)}
+          filters={filters}
+          onChange={setFilters}
+        />
 
-      <FilterPanel
-        open={showFilter}
-        onClose={() => setShowFilter(false)}
-        filters={filters}
-        onChange={setFilters}
-      />
-
-      <MatchOverlay show={showMatch} matchedProfile={matchedProfile} onClose={() => setShowMatch(false)} />
-    </div>
+        <MatchOverlay show={showMatch} matchedProfile={matchedProfile} onClose={() => setShowMatch(false)} />
+      </div>
+    </>
   );
 }

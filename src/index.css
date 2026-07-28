@@ -144,8 +144,13 @@
 
 /* Grid/dot pattern overlay */
 .grid-overlay {
-  background-image: 
+  background-image:
     linear-gradient(rgba(42,75,46,0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(42,75,46,0.04) 1px, transparent 1px);
   background-size: 40px 40px;
+}
+
+/* Touch manipulation — eliminates 300ms tap delay on mobile Safari */
+.touch-manipulation {
+  touch-action: manipulation;
 }

@@ -178,11 +178,45 @@ async def list_profiles(request: Request, user: dict = Depends(get_current_user)
     conditions = []
     idx = 1
 
-    for key in request.query_params:
-        if key in ('created_by', 'team_id', 'role', 'gender', 'experience', 'display_name', 'username'):
+    # Single-value exact-match fields (legacy support)
+    for key in ('created_by', 'team_id', 'gender', 'display_name', 'username'):
+        val = request.query_params.get(key)
+        if val:
             conditions.append(f"cp.{key} = ${idx}")
-            params.append(request.query_params[key])
+            params.append(val)
             idx += 1
+
+    # Multi-value exact-match: role, experience
+    for field in ('role', 'experience'):
+        values = request.query_params.getlist(field)
+        if values:
+            placeholders = ','.join(f'${idx + i}' for i in range(len(values)))
+            conditions.append(f"cp.{field} IN ({placeholders})")
+            params.extend(values)
+            idx += len(values)
+
+    # JSONB array overlap: goal, technical_skill, soft_skill
+    for field, db_col in [('goal', 'goals'), ('technical_skill', 'technical_skills'), ('soft_skill', 'soft_skills')]:
+        values = request.query_params.getlist(field)
+        if values:
+            placeholders = ','.join(f'${idx + i}' for i in range(len(values)))
+            conditions.append(f"cp.{db_col} ?| ARRAY[{placeholders}]")
+            params.extend(values)
+            idx += len(values)
+
+    # City: ILIKE matching (Hà Nội / Hồ Chí Minh / khác)
+    cities = request.query_params.getlist('city')
+    if cities:
+        city_conditions = []
+        for city_val in cities:
+            if city_val == 'Hà Nội':
+                city_conditions.append("cp.city ILIKE '%Hà Nội%'")
+            elif city_val == 'Hồ Chí Minh':
+                city_conditions.append("cp.city ILIKE '%Hồ Chí Minh%'")
+            elif city_val == 'Tỉnh/Thành phố khác':
+                city_conditions.append("cp.city NOT ILIKE '%Hà Nội%' AND cp.city NOT ILIKE '%Hồ Chí Minh%' AND cp.city != ''")
+        if city_conditions:
+            conditions.append('(' + ' OR '.join(city_conditions) + ')')
 
     if conditions:
         query += " AND " + " AND ".join(conditions)

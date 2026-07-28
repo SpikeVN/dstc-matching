@@ -1,4 +1,3 @@
-import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -45,6 +44,7 @@ function LoginRedirect() {
 const PublicRoutes = () => (
   <Routes>
     <Route path="/" element={<Landing />} />
+    <Route path="/landing" element={<Landing />} />
     <Route path="/login" element={<LoginPage />} />
     <Route path="/signup" element={<SignupPage />} />
     <Route path="/verify" element={<VerifyEmail />} />
@@ -114,6 +114,7 @@ const AuthenticatedApp = () => {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route element={<AppLayout />}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/landing" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/discover" element={<Discover />} />
@@ -142,7 +143,6 @@ function App() {
           <div className="fixed inset-0 -z-10 pointer-events-none" style={{ background: 'rgba(2, 10, 8, 0.82)' }} />
           <AuthenticatedApp />
         </Router>
-        <Toaster />
         <SonnerToaster position="top-center" richColors />
       </QueryClientProvider>
     </AuthProvider>

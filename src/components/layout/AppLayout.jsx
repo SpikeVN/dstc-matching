@@ -82,7 +82,7 @@ export default function AppLayout() {
         </main>
 
         {/* Mobile bottom nav */}
-        {!(location.pathname === '/messages' && location.search.includes('match=')) && <MobileNav />}
+        {!(location.pathname === '/messages' && location.search.includes('match=')) && !(location.pathname === '/discover') && <MobileNav />}
       </div>
     </OnlineContext.Provider>
   );

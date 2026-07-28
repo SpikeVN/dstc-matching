@@ -230,7 +230,14 @@ function buildFilterUrl(basePath, filters, sortField) {
   const params = new URLSearchParams();
   if (filters) {
     for (const [key, value] of Object.entries(filters)) {
-      if (value !== undefined && value !== null && value !== '') {
+      if (value === undefined || value === null || value === '') continue;
+      if (Array.isArray(value)) {
+        for (const v of value) {
+          if (v !== undefined && v !== null && v !== '') {
+            params.append(key, String(v));
+          }
+        }
+      } else {
         params.set(key, String(value));
       }
     }
