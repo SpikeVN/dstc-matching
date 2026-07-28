@@ -260,9 +260,9 @@ function ChatBubble({ msg, isMe, senderProfile, showHeader, showFooter, showAvat
         ) : !isMe ? (
           <div className="min-w-8 shrink-0" />
         ) : null}
-        <MessageContent>
+        <MessageContent className="gap-1">
           {!isMe && showHeader && (
-            <MessageHeader className="text-[10px] px-1">
+            <MessageHeader className="text-[10px] px-1 pb-0">
               {senderProfile?.display_name}
             </MessageHeader>
           )}
@@ -303,8 +303,8 @@ function ChatBubble({ msg, isMe, senderProfile, showHeader, showFooter, showAvat
         </MessageContent>
       </Message>
       {showFooter && (
-        <MessageFooter className={`text-[9px] text-muted-foreground/50 px-1 ${isMe ? 'justify-end' : 'pl-11'}`}>
-          {formatDateTime(msg.created_date, 'HH:mm dd/MM')}
+        <MessageFooter className={`text-[9px] text-muted-foreground/50 px-1 mt-0.5 ${isMe ? 'justify-end' : 'pl-11'}`}>
+          {formatDateTime(msg.created_date, 'HH:mm')}
           {isMe && (
             <span className={`ml-1.5 ${msg.read_at ? 'text-primary' : msg.delivered_at ? 'text-muted-foreground/50' : 'text-muted-foreground/30'}`}>
               {msg.read_at ? 'Đã xem' : msg.delivered_at ? 'Đã nhận' : 'Đã gửi'}
@@ -646,14 +646,6 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
     sendMutation.mutate({ content: message.trim(), attachment: pendingAttachment });
   };
 
-  // Group messages by date
-  const grouped = messages.reduce((acc, msg) => {
-    const date = formatDateTime(msg.created_date, 'dd/MM/yyyy');
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(msg);
-    return acc;
-  }, {});
-
   return (
     <div className="flex flex-col h-full bg-[hsl(150_20%_5%)]">
       {/* Chat header */}
@@ -816,7 +808,7 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
         <MessageScroller className="flex-1">
           <AutoScrollHandler messages={messages} viewportRef={viewportRef} />
           <MessageScrollerViewport ref={viewportRef}>
-            <MessageScrollerContent className="px-4 py-4 gap-8">
+            <MessageScrollerContent className="px-4 py-4 !gap-0">
               {messages.length === 0 && (
                 <div className="text-center py-12 space-y-2">
                   <Zap className="w-8 h-8 text-primary/15 mx-auto" />
@@ -829,35 +821,26 @@ function ChatArea({ match, currentUser, myProfile, profileMap, sentInvites, rece
                   </p>
                 </div>
               )}
-              {Object.entries(grouped).map(([date, msgs]) => (
-                <div key={date}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="flex-1 h-px bg-primary/8" />
-                    <span className="font-body text-[10px] text-muted-foreground/50">{date}</span>
-                    <div className="flex-1 h-px bg-primary/8" />
-                  </div>
-                  {msgs.map((msg, i) => {
-                    const prevSender = i > 0 ? msgs[i - 1].sender_id : null;
-                    const nextSender = i < msgs.length - 1 ? msgs[i + 1].sender_id : null;
-                    const isFirstInGroup = !prevSender || prevSender !== msg.sender_id;
-                    const isLastInGroup = !nextSender || nextSender !== msg.sender_id;
-                    return (
-                      <MessageScrollerItem key={msg.id} messageId={msg.id}>
-                        <div className={isFirstInGroup ? '' : 'mt-0.5'}>
-                          <ChatBubble
-                            msg={msg}
-                            isMe={msg.sender_id === currentUser?.id}
-                            senderProfile={profileMap[msg.sender_id]}
-                            showHeader={isFirstInGroup}
-                            showAvatar={isFirstInGroup}
-                            showFooter={isLastInGroup}
-                          />
-                        </div>
-                      </MessageScrollerItem>
-                    );
-                  })}
-                </div>
-              ))}
+              {messages.map((msg, i) => {
+                const prevSender = i > 0 ? messages[i - 1].sender_id : null;
+                const nextSender = i < messages.length - 1 ? messages[i + 1].sender_id : null;
+                const isFirstInGroup = !prevSender || prevSender !== msg.sender_id;
+                const isLastInGroup = !nextSender || nextSender !== msg.sender_id;
+                return (
+                  <MessageScrollerItem key={msg.id} messageId={msg.id}>
+                    <div className={isFirstInGroup ? '' : 'mt-0.5'}>
+                      <ChatBubble
+                        msg={msg}
+                        isMe={msg.sender_id === currentUser?.id}
+                        senderProfile={profileMap[msg.sender_id]}
+                        showHeader={isFirstInGroup}
+                        showAvatar={isLastInGroup}
+                        showFooter={isLastInGroup}
+                      />
+                    </div>
+                  </MessageScrollerItem>
+                );
+              })}
             </MessageScrollerContent>
           </MessageScrollerViewport>
           <ScrollToBottomButton />
