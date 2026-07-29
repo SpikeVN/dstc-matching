@@ -463,6 +463,134 @@ async def get_report_messages(report_id: str, user: dict = Depends(get_current_u
     """, report["match_id"])
 
 
+# ── Swipe history endpoint ────────────────────────────────────────────────────
+
+
+@router.get("/users/{user_id}/swipes")
+async def get_user_swipe_history(
+    user_id: str,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    """Get all swipe actions for a user (as swiper or swiped). Requires mod+ role."""
+    _require_admin_role(user, "mod")
+
+    search = request.query_params.get("search", "")
+    action_filter = request.query_params.get("action", "")
+
+    query = """
+        SELECT
+            sa.id,
+            sa.created_date,
+            sa.updated_date,
+            sa.swiper_id,
+            sa.swiped_id,
+            sa.action,
+            sa.is_match,
+            swiper.display_name AS swiper_name,
+            swiper.profile_image AS swiper_image,
+            swiper.email AS swiper_email,
+            swiped.display_name AS swiped_name,
+            swiped.profile_image AS swiped_image,
+            swiped.email AS swiped_email
+        FROM swipe_actions sa
+        LEFT JOIN contestant_profiles swiper ON sa.swiper_id = swiper.created_by
+        LEFT JOIN contestant_profiles swiped ON sa.swiped_id = swiped.created_by
+        WHERE (sa.swiper_id = $1 OR sa.swiped_id = $1)
+    """
+    params = [user_id]
+    idx = 2
+
+    if action_filter and action_filter in ("like", "pass"):
+        query += f" AND sa.action = ${idx}"
+        params.append(action_filter)
+        idx += 1
+
+    if search:
+        query += f""" AND (
+            swiper.display_name ILIKE ${idx}
+            OR swiped.display_name ILIKE ${idx}
+            OR swiper.email ILIKE ${idx}
+            OR swiped.email ILIKE ${idx}
+        )"""
+        params.append(f"%{search}%")
+        idx += 1
+
+    query += " ORDER BY sa.created_date DESC"
+
+    # Optional limit (default 500)
+    limit = request.query_params.get("limit", "500")
+    try:
+        limit_val = int(limit)
+    except ValueError:
+        limit_val = 500
+    query += f" LIMIT ${idx}"
+    params.append(limit_val)
+
+    return await fetch(query, *params)
+
+
+@router.delete("/users/{user_id}/swipes/passes")
+async def clear_user_passes(
+    user_id: str,
+    user: dict = Depends(get_current_user),
+):
+    """Delete all 'pass' swipe actions made by a user. Requires mod+ role.
+
+    This lets an admin reset who the user has passed on, so those profiles
+    reappear in the user's discovery feed.
+    """
+    _require_admin_role(user, "mod")
+
+    # Check target user exists
+    target = await fetch_one(
+        "SELECT created_by FROM contestant_profiles WHERE created_by = $1", user_id
+    )
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    await execute(
+        "DELETE FROM swipe_actions WHERE swiper_id = $1 AND action = 'pass'",
+        user_id,
+    )
+
+    # Also invalidate the recommendations query cache hint by updating
+    # the user's profile updated_date (prevents stale cache issues)
+    await execute(
+        "UPDATE contestant_profiles SET updated_date = $1 WHERE created_by = $2",
+        now(),
+        user_id,
+    )
+
+    return {"success": True, "message": f"Cleared pass swipes for user {user_id}"}
+
+
+@router.delete("/users/{user_id}/swipes/{swipe_id}")
+async def delete_user_swipe(
+    user_id: str,
+    swipe_id: str,
+    user: dict = Depends(get_current_user),
+):
+    """Delete a single swipe action for a user. Requires mod+ role.
+
+    Unlike role/visibility changes, swipe deletion doesn't modify the user's
+    account — the hierarchy check is not needed here. mod+ can delete any swipe.
+    """
+    _require_admin_role(user, "mod")
+
+    # Verify the swipe exists and belongs to this user
+    swipe = await fetch_one(
+        "SELECT * FROM swipe_actions WHERE id = $1 AND swiper_id = $2",
+        swipe_id,
+        user_id,
+    )
+    if not swipe:
+        raise HTTPException(status_code=404, detail="Swipe action not found")
+
+    await execute("DELETE FROM swipe_actions WHERE id = $1", swipe_id)
+    return {"success": True, "message": f"Swipe {swipe_id} deleted"}
+
+
 # ── Blocks endpoints ─────────────────────────────────────────────────────────
 
 
@@ -494,7 +622,7 @@ async def list_blocks(user: dict = Depends(get_current_user)):
 
 
 class AdminTeamUpdateRequest(BaseModel):
-    name: Optional[str] = None
+    name: str | None = None
 
 
 class AdminSettingUpdateRequest(BaseModel):

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { formatDateTime } from '@/lib/timeUtils';
 import MatchDashboard from '@/components/admin/MatchDashboard';
+import UserDetailModal from '@/components/admin/UserDetailModal';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -74,6 +75,8 @@ export default function AdminMatches() {
   const [showBulkAdd, setShowBulkAdd] = useState(false);
   const [noConfirmMode, setNoConfirmMode] = useState(false);
   const [noConfirmDialogOpen, setNoConfirmDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userDetailOpen, setUserDetailOpen] = useState(false);
   const deferredSearch = useDeferredValue(search);
 
   const { data: currentUser } = useQuery({
@@ -443,7 +446,14 @@ export default function AdminMatches() {
                   </thead>
                   <tbody className="divide-y divide-primary/8">
                     {adminUsers.map(u => (
-                      <tr key={u.id} className="hover:bg-primary/5 transition-colors">
+                      <tr
+                        key={u.id}
+                        className="hover:bg-primary/5 transition-colors cursor-pointer"
+                        onClick={() => {
+                          setSelectedUser(u);
+                          setUserDetailOpen(true);
+                        }}
+                      >
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-lg overflow-hidden border border-primary/20 bg-muted/50 flex-shrink-0">
@@ -456,7 +466,7 @@ export default function AdminMatches() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-xs text-muted-foreground truncate max-w-[200px]">{u.email}</td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
                           {u.id === currentUser?.id ? (
                             <Select value={u.admin_role} disabled>
                               <SelectTrigger className="h-7 text-xs font-medium px-2 border border-primary/20 bg-transparent text-foreground gap-1 w-[96px] opacity-60 cursor-not-allowed">
@@ -495,7 +505,7 @@ export default function AdminMatches() {
                             <RoleBadge role={u.admin_role} />
                           )}
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
                           <button
                             onClick={() => visibilityMutation.mutate({ userId: u.id, visible: !u.admin_visible })}
                             className={`p-1.5 rounded-lg transition-all hover:bg-primary/10 ${
@@ -509,7 +519,7 @@ export default function AdminMatches() {
                         <td className="px-4 py-3 text-right text-xs text-muted-foreground/50 hidden sm:table-cell">
                           {u.assigned_date ? formatDateTime(u.assigned_date, 'dd/MM/yy') : '—'}
                         </td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
                           {u.id !== currentUser?.id && u.admin_role !== 'owner' && (
                             <button
                               onClick={() => {
@@ -1212,6 +1222,14 @@ export default function AdminMatches() {
           </TabsContent>
 
         </Tabs>
+
+        {/* User detail modal */}
+        <UserDetailModal
+          user={selectedUser}
+          profile={allProfiles.find(p => p.created_by === selectedUser?.id)}
+          open={userDetailOpen}
+          onClose={() => { setUserDetailOpen(false); setSelectedUser(null); }}
+        />
 
         {/* Report detail dialog */}
         <Dialog open={reportDetailOpen} onOpenChange={setReportDetailOpen}>

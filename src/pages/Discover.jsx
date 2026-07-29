@@ -251,8 +251,18 @@ export default function Discover() {
                           Không còn ứng viên nào nữa
                         </p>
                         <p className="font-body text-xs text-muted-foreground mt-1 mb-4">
-                          Quay lại sau.
+                          {seenInCurrentRound.size > 0
+                            ? 'Bạn đã lướt hết tất cả ứng viên'
+                            : 'Quay lại sau.'}
                         </p>
+                        {seenInCurrentRound.size > 0 && (
+                          <Button size="sm" variant="outline"
+                            className="font-display text-xs border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
+                            onClick={handleRestartRound}>
+                            <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+                            Quay lại từ đầu
+                          </Button>
+                        )}
                       </>
                     ) : (
                       <>

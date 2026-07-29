@@ -425,6 +425,17 @@ export const db = {
       return request('GET', `/api/admin/users${qs ? `?${qs}` : ''}`);
     },
     getUser: async (userId) => request('GET', `/api/admin/users/${userId}`),
+    getUserSwipes: async (userId, params = {}) => {
+      const clean = Object.fromEntries(
+        Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+      );
+      const qs = new URLSearchParams(clean).toString();
+      return request('GET', `/api/admin/users/${userId}/swipes${qs ? `?${qs}` : ''}`);
+    },
+    clearUserPasses: async (userId) =>
+      request('DELETE', `/api/admin/users/${userId}/swipes/passes`),
+    deleteUserSwipe: async (userId, swipeId) =>
+      request('DELETE', `/api/admin/users/${userId}/swipes/${swipeId}`),
     updateUserRole: async (userId, role) =>
       request('PATCH', `/api/admin/users/${userId}/role`, { admin_role: role }),
     updateVisibility: async (userId, visible) =>
