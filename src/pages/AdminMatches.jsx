@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { formatDateTime } from '@/lib/timeUtils';
 import MatchDashboard from '@/components/admin/MatchDashboard';
 import UserDetailModal from '@/components/admin/UserDetailModal';
+import TeamDetailModal from '@/components/admin/TeamDetailModal';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -77,6 +78,8 @@ export default function AdminMatches() {
   const [noConfirmDialogOpen, setNoConfirmDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userDetailOpen, setUserDetailOpen] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState(null);
+  const [teamDetailOpen, setTeamDetailOpen] = useState(false);
   const deferredSearch = useDeferredValue(search);
 
   const { data: currentUser } = useQuery({
@@ -766,9 +769,16 @@ export default function AdminMatches() {
                   </thead>
                   <tbody className="divide-y divide-primary/8">
                     {adminTeams.map((team, i) => (
-                      <tr key={team.id} className="hover:bg-primary/5 transition-colors">
+                      <tr
+                        key={team.id}
+                        className="hover:bg-primary/5 transition-colors cursor-pointer"
+                        onClick={() => {
+                          setSelectedTeam(team);
+                          setTeamDetailOpen(true);
+                        }}
+                      >
                         <td className="px-4 py-3 text-xs text-muted-foreground/50">{i + 1}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3" onClick={e => { if (renamingTeamId === team.id) e.stopPropagation(); }}>
                           {renamingTeamId === team.id ? (
                             <div className="flex items-center gap-2">
                               <Input
@@ -820,7 +830,7 @@ export default function AdminMatches() {
                             <span className="ml-1 text-[10px] text-amber-400">(đang giải tán)</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={() => { setRenamingTeamId(team.id); setRenamingTeamValue(team.name); }}
@@ -1222,6 +1232,15 @@ export default function AdminMatches() {
           </TabsContent>
 
         </Tabs>
+
+        {/* Team detail modal */}
+        <TeamDetailModal
+          team={selectedTeam}
+          allProfiles={allProfiles}
+          adminUsers={adminUsers}
+          open={teamDetailOpen}
+          onClose={() => { setTeamDetailOpen(false); setSelectedTeam(null); }}
+        />
 
         {/* User detail modal */}
         <UserDetailModal
