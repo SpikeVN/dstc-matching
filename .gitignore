@@ -59,3 +59,4 @@ seed_owner.sql
 .tokensave/tokensave.db-shm
 .tokensave/tokensave.db
 .tokensave/tokensave.db-wal
+ds.ipynb

@@ -17,11 +17,20 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Build ${{ matrix.arch }} image
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build image
+      - name: Set image names
         working-directory: server
         env:
           OWNER: ${{ github.repository_owner }}
@@ -32,67 +41,103 @@ jobs:
           image="ghcr.io/${owner_lc}/dstc-matching"
           echo "IMAGE=${image}" >> "$GITHUB_ENV"
           echo "SHORT_SHA=${short}" >> "$GITHUB_ENV"
-          docker build \
-            --build-arg "GIT_SHA=${short}" \
-            --tag "${image}:latest" \
-            --tag "${image}:${SHA}" \
-            --tag "${image}:sha-${short}" \
-            -f Containerfile .
 
       - name: Log in to GHCR
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" \
             | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-      - name: Push to GHCR
+      - name: Build and push ${{ matrix.arch }} image
+        working-directory: server
+        env:
+          SHA: ${{ github.sha }}
+          ARCH: ${{ matrix.arch }}
         run: |
-          docker push "${IMAGE}:latest"
-          docker push "${IMAGE}:${{ github.sha }}"
-          docker push "${IMAGE}:sha-${SHORT_SHA}"
+          docker build \
+            --build-arg "GIT_SHA=${SHORT_SHA}" \
+            --tag "${IMAGE}:latest-${ARCH}" \
+            --tag "${IMAGE}:${SHA}-${ARCH}" \
+            --tag "${IMAGE}:sha-${SHORT_SHA}-${ARCH}" \
+            -f Containerfile .
+          docker push "${IMAGE}:latest-${ARCH}"
+          docker push "${IMAGE}:${SHA}-${ARCH}"
+          docker push "${IMAGE}:sha-${SHORT_SHA}-${ARCH}"
 
-      - name: Deploy to production
-        uses: appleboy/ssh-action@v1
-        with:
-          host: mainframe.cteftu.id.vn
-          username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /apps
-            bash deploy.sh 2>&1 | tee /tmp/deploy.log
-            EXIT=${PIPESTATUS[0]}
-            echo "--- deploy.sh output above ---"
-            exit $EXIT
+  publish:
+    name: Publish multi-architecture image
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set image names
+        env:
+          OWNER: ${{ github.repository_owner }}
+          SHA: ${{ github.sha }}
+        run: |
+          owner_lc="${OWNER,,}"
+          echo "IMAGE=ghcr.io/${owner_lc}/dstc-matching" >> "$GITHUB_ENV"
+          echo "SHORT_SHA=${SHA::7}" >> "$GITHUB_ENV"
 
-      - name: Verify deployment
-        uses: appleboy/ssh-action@v1
-        with:
-          host: mainframe.cteftu.id.vn
-          username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            for i in $(seq 1 5); do
-              HEALTH=$(curl -s -w "\n%{http_code}" https://matching-api.cteftu.id.vn/health) && \
-              CODE=$(echo "$HEALTH" | tail -1) && \
-              BODY=$(echo "$HEALTH" | sed '$d') && \
-              COMMIT=$(echo "$BODY" | jq -r '.commit // empty') && \
-              [ "$CODE" = "200" ] && [ -n "$COMMIT" ] && break
-              echo "Retry ${i}/5 — HTTP ${CODE}, body: ${BODY}"
-              sleep 3
-            done
-            echo "Health response: ${BODY}"
-            echo "Expected: ${{ env.SHORT_SHA }}"
-            echo "Got:      ${COMMIT:-<empty>}"
-            if [ "$COMMIT" != "${{ env.SHORT_SHA }}" ]; then
-              echo "ERROR: commit mismatch!"
-              exit 1
-            fi
-            echo "Deployment verified ✓"
+      - name: Log in to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" \
+            | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Create and push multi-architecture manifests
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          sources=("${IMAGE}:latest-amd64" "${IMAGE}:latest-arm64")
+          docker buildx imagetools create \
+            --tag "${IMAGE}:latest" \
+            --tag "${IMAGE}:${SHA}" \
+            --tag "${IMAGE}:sha-${SHORT_SHA}" \
+            "${sources[@]}"
+
+      # - name: Deploy to production
+      #   uses: appleboy/ssh-action@v1
+      #   with:
+      #     host: mainframe.cteftu.id.vn
+      #     username: root
+      #     key: ${{ secrets.SSH_PRIVATE_KEY }}
+      #     script: |
+      #       cd /apps
+      #       bash deploy.sh 2>&1 | tee /tmp/deploy.log
+      #       EXIT=${PIPESTATUS[0]}
+      #       echo "--- deploy.sh output above ---"
+      #       exit $EXIT
+
+      # - name: Verify deployment
+      #   uses: appleboy/ssh-action@v1
+      #   with:
+      #     host: mainframe.cteftu.id.vn
+      #     username: root
+      #     key: ${{ secrets.SSH_PRIVATE_KEY }}
+      #     script: |
+      #       for i in $(seq 1 5); do
+      #         HEALTH=$(curl -s -w "\n%{http_code}" https://matching-api.cteftu.id.vn/health) && \
+      #         CODE=$(echo "$HEALTH" | tail -1) && \
+      #         BODY=$(echo "$HEALTH" | sed '$d') && \
+      #         COMMIT=$(echo "$BODY" | jq -r '.commit // empty') && \
+      #         [ "$CODE" = "200" ] && [ -n "$COMMIT" ] && break
+      #         echo "Retry ${i}/5 — HTTP ${CODE}, body: ${BODY}"
+      #         sleep 3
+      #       done
+      #       echo "Health response: ${BODY}"
+      #       echo "Expected: ${{ env.SHORT_SHA }}"
+      #       echo "Got:      ${COMMIT:-<empty>}"
+      #       if [ "$COMMIT" != "${{ env.SHORT_SHA }}" ]; then
+      #         echo "ERROR: commit mismatch!"
+      #         exit 1
+      #       fi
+      #       echo "Deployment verified ✓"
 
       - name: Summary
         run: |
           {
-            echo "### Backend image pushed"
+            echo "### Multi-architecture backend image pushed"
             echo ""
             echo "\`${IMAGE}:latest\`"
             echo "\`${IMAGE}:sha-${SHORT_SHA}\`"
+            echo ""
+            echo "Platforms: linux/amd64, linux/arm64 (Alpine)"
           } >> "$GITHUB_STEP_SUMMARY"
